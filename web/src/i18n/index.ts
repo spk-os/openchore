@@ -25,7 +25,10 @@ i18n
     returnNull: false,
     interpolation: { escapeValue: false }, // React already escapes
     detection: {
-      order: ['localStorage', 'navigator'],
+      // First visit defaults to Chinese (FALLBACK_CODE) instead of the
+      // browser locale: our users are Chinese, and the language can still
+      // be switched per profile in the UI (cached in localStorage).
+      order: ['localStorage'],
       lookupLocalStorage: 'openchore_lang',
       caches: ['localStorage'],
     },
