@@ -769,7 +769,12 @@
       "subtitle": "Die ganze Familie, mit Farbe und Stil.",
       "unpauseAriaLabel": "Benutzer fortsetzen",
       "unpauseTitle": "Fortsetzen (Aufgaben wieder aufnehmen)",
-      "updateBtn": "Aktualisieren"
+      "updateBtn": "Aktualisieren",
+      "decayAdviceTitle": "Solltest du Punkteverfall einschalten?",
+      "decayAdviceBalance": "Guthaben unter 200 P.: lieber aus. Es gibt noch nichts, das sich zu verteidigen lohnt — Abzüge demotivieren nur.",
+      "decayAdviceEarn": "Erst bei gutem Guthaben in Erwägung ziehen: ein bis zwei Wochen beobachten, ob das Kind nicht will oder nicht kann.",
+      "decayAdviceMood": "Das Kind sagt „lohnt sich eh nicht“: Verfall aus, darüber sprechen, wie es eingeführt wurde — dann gemeinsam neu entscheiden.",
+      "decayAdviceDoc": "Mehr dazu im Leitfaden zum Punkteverfall."
     }
   },
   "common": {

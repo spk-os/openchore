@@ -47,6 +47,17 @@ const DecayConfigEditor: React.FC<{ userId: number }> = ({ userId }) => {
   return (
     <div className={ui.inset}>
       <h4 className={ui.eyebrow}>{t('admin.usersTab.decayTitle')}</h4>
+      {/* The decision helper: decay is the sharpest tool here, so the
+          guidance walks through when it helps and when it backfires. */}
+      <details className={styles.decayAdvice}>
+        <summary>{t('admin.usersTab.decayAdviceTitle')}</summary>
+        <ul className={styles.decayAdviceList}>
+          <li>{t('admin.usersTab.decayAdviceBalance')}</li>
+          <li>{t('admin.usersTab.decayAdviceEarn')}</li>
+          <li>{t('admin.usersTab.decayAdviceMood')}</li>
+        </ul>
+        <p className={ui.help}>{t('admin.usersTab.decayAdviceDoc')}</p>
+      </details>
       <div>
         <label className={ui.check}>
           <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />

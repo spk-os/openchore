@@ -1311,7 +1311,12 @@
       "subtitle": "全家每个人，配上自己的颜色和皮肤。",
       "unpauseAriaLabel": "恢复成员",
       "unpauseTitle": "恢复（继续任务）",
-      "updateBtn": "更新"
+      "updateBtn": "更新",
+      "decayAdviceTitle": "要不要开积分衰减？",
+      "decayAdviceBalance": "余额低于 200 分：建议不开。孩子还没攒到「值得守护」的程度，扣分只会挫伤积极性。",
+      "decayAdviceEarn": "余额充足再考虑：开启前先观察一两周，确认孩子是因为不想做而不是做不到。",
+      "decayAdviceMood": "孩子抱怨「做了也白做」：先停用衰减，和孩子聊聊触达方式，再决定是否换一种激励。",
+      "decayAdviceDoc": "想了解更多，见文档《积分衰减使用指南》。"
     }
   }
 }

@@ -769,7 +769,12 @@
       "subtitle": "Everyone in the family, with their colour and skin.",
       "unpauseAriaLabel": "Unpause user",
       "unpauseTitle": "Unpause (resume chores)",
-      "updateBtn": "Update"
+      "updateBtn": "Update",
+      "decayAdviceTitle": "Should you turn on points decay?",
+      "decayAdviceBalance": "Balance under 200 pts: leave it off. The kid hasn't built anything worth guarding yet — deductions only discourage.",
+      "decayAdviceEarn": "Consider it only with a healthy balance: watch for a week or two first, and confirm the kid is choosing not to do chores rather than unable to.",
+      "decayAdviceMood": "Kid complains it's pointless: turn decay off, talk about how it was pitched, then decide together on a different motivator.",
+      "decayAdviceDoc": "See the Points Decay guide in the docs for more."
     }
   },
   "common": {
