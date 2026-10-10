@@ -1,0 +1,87 @@
+{
+  "id": "holiday-balance",
+  "name": "假期平衡包",
+  "icon": "🏖️",
+  "scenario": "寒暑假",
+  "description": "假期的节奏是平衡：作业定额与运动是必做，自由阅读与家务一项是每日，兴趣项目与旅行计划是加分——假期才有家务。",
+  "tasks": [
+    {
+      "title": "暑期作业每日定额",
+      "description": "每天完成暑（寒）假作业的一个定额部分，按计划表推进。",
+      "icon": "📝",
+      "category": "required",
+      "points": 10,
+      "missed_penalty": 0,
+      "estimated_minutes": 60,
+      "days": ["daily"],
+      "available_at": "09:00",
+      "due_by": "20:00",
+      "expiry": "block"
+    },
+    {
+      "title": "户外运动 1 小时",
+      "description": "出门运动一小时（跑步/骑行/游泳都行）。",
+      "icon": "bike",
+      "category": "required",
+      "points": 8,
+      "missed_penalty": 0,
+      "estimated_minutes": 60,
+      "days": ["daily"],
+      "available_at": "08:00",
+      "due_by": "19:00",
+      "expiry": "block"
+    },
+    {
+      "title": "自由阅读 30 分钟",
+      "description": "自由读书 30 分钟，读完说一句感想。",
+      "icon": "📖",
+      "category": "core",
+      "points": 5,
+      "missed_penalty": 0,
+      "estimated_minutes": 30,
+      "days": ["daily"],
+      "available_at": "10:00",
+      "due_by": "21:00",
+      "expiry": "block"
+    },
+    {
+      "title": "家务一项",
+      "description": "做一项家务（扫地/洗碗/整理房间），家长说了算。",
+      "icon": "broom",
+      "category": "core",
+      "points": 5,
+      "missed_penalty": 0,
+      "estimated_minutes": 20,
+      "days": ["daily"],
+      "available_at": "09:00",
+      "due_by": "21:00",
+      "expiry": "block"
+    },
+    {
+      "title": "兴趣项目",
+      "description": "推进自己的兴趣项目（编程/画画/手工都算），有阶段产出。",
+      "icon": "🎨",
+      "category": "bonus",
+      "points": 15,
+      "missed_penalty": 0,
+      "estimated_minutes": 90,
+      "days": ["daily"],
+      "available_at": "10:00",
+      "due_by": "21:00",
+      "expiry": "block"
+    },
+    {
+      "title": "旅行计划制定",
+      "description": "给一次家庭出行做计划：路线、预算、必带清单。",
+      "icon": "rocket",
+      "category": "bonus",
+      "points": 10,
+      "missed_penalty": 0,
+      "estimated_minutes": 60,
+      "days": ["daily"],
+      "available_at": "10:00",
+      "due_by": "21:00",
+      "expiry": "block"
+    }
+  ]
+}

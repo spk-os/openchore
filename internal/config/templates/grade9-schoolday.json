@@ -1,0 +1,113 @@
+{
+  "id": "grade9-schoolday",
+  "name": "初三学习日",
+  "icon": "📚",
+  "scenario": "开学日每天",
+  "description": "工作日每天的学习日常：学校作业与订正是义务，听读背与复盘是每日基本功，AI 课程与试卷复盘是加分挑战。",
+  "tasks": [
+    {
+      "title": "完成学校作业",
+      "description": "当天全部学校作业写完并自查一遍，第二天带齐。",
+      "icon": "📝",
+      "category": "required",
+      "points": 10,
+      "missed_penalty": 0,
+      "estimated_minutes": 90,
+      "days": ["weekdays"],
+      "available_at": "17:30",
+      "due_by": "21:30",
+      "expiry": "block"
+    },
+    {
+      "title": "错题订正",
+      "description": "把当天作业和卷子里的错题订正到错题本上，写清错因。",
+      "icon": "📝",
+      "category": "required",
+      "points": 6,
+      "missed_penalty": 0,
+      "estimated_minutes": 25,
+      "days": ["weekdays"],
+      "available_at": "18:00",
+      "due_by": "21:40",
+      "expiry": "block"
+    },
+    {
+      "title": "背诵英语单词",
+      "description": "背今天这组单词（20 个），家长抽查 5 个。",
+      "icon": "book",
+      "category": "core",
+      "points": 5,
+      "missed_penalty": 0,
+      "estimated_minutes": 15,
+      "days": ["weekdays"],
+      "available_at": "06:50",
+      "due_by": "21:50",
+      "expiry": "block"
+    },
+    {
+      "title": "英语听说练习",
+      "description": "完成今天的听说跟读练习 15 分钟。",
+      "icon": "sound",
+      "category": "core",
+      "points": 6,
+      "missed_penalty": 0,
+      "estimated_minutes": 15,
+      "days": ["weekdays"],
+      "available_at": "19:00",
+      "due_by": "21:50",
+      "expiry": "block"
+    },
+    {
+      "title": "英语阅读 30 分钟",
+      "description": "读一篇英语文章或分级读物 30 分钟，圈出生词。",
+      "icon": "📖",
+      "category": "core",
+      "points": 5,
+      "missed_penalty": 0,
+      "estimated_minutes": 30,
+      "days": ["weekdays"],
+      "available_at": "18:30",
+      "due_by": "21:50",
+      "expiry": "block"
+    },
+    {
+      "title": "语音复盘：今天学到了什么",
+      "description": "用一分钟语音说说今天学会了什么、哪里还没弄懂。",
+      "icon": "sound",
+      "category": "core",
+      "points": 5,
+      "missed_penalty": 0,
+      "estimated_minutes": 5,
+      "days": ["weekdays"],
+      "available_at": "20:30",
+      "due_by": "21:55",
+      "expiry": "block"
+    },
+    {
+      "title": "AI 与 Agent 课程",
+      "description": "完成一节 AI/Agent 课程（含随堂练习）。",
+      "icon": "rocket",
+      "category": "bonus",
+      "points": 4,
+      "missed_penalty": 0,
+      "estimated_minutes": 30,
+      "days": ["weekdays"],
+      "available_at": "19:30",
+      "due_by": "21:55",
+      "expiry": "block"
+    },
+    {
+      "title": "试卷复盘",
+      "description": "挑一张近期卷子做复盘：错因归类，写下次怎么避免。",
+      "icon": "📝",
+      "category": "bonus",
+      "points": 8,
+      "missed_penalty": 0,
+      "estimated_minutes": 40,
+      "days": ["weekdays"],
+      "available_at": "18:00",
+      "due_by": "21:55",
+      "expiry": "block"
+    }
+  ]
+}

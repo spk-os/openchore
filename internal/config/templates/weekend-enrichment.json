@@ -1,0 +1,100 @@
+{
+  "id": "weekend-enrichment",
+  "name": "周末充实包",
+  "icon": "🌈",
+  "scenario": "周六周日",
+  "description": "周末强度减半：一张数学卷加作业收尾是必做，听力阅读运动保持节奏，复盘和兴趣是加分。",
+  "tasks": [
+    {
+      "title": "周末数学卷",
+      "description": "限时完成一张数学卷（按考试时长掐表），对答案并订正。",
+      "icon": "📝",
+      "category": "required",
+      "points": 15,
+      "missed_penalty": 0,
+      "estimated_minutes": 90,
+      "days": ["weekends"],
+      "available_at": "09:00",
+      "due_by": "20:00",
+      "expiry": "block"
+    },
+    {
+      "title": "学校作业收尾",
+      "description": "把周末该写的学校作业全部写完，周日晚上前收尾。",
+      "icon": "📝",
+      "category": "required",
+      "points": 8,
+      "missed_penalty": 0,
+      "estimated_minutes": 60,
+      "days": ["weekends"],
+      "available_at": "09:00",
+      "due_by": "20:30",
+      "expiry": "block"
+    },
+    {
+      "title": "英语听力 20 分钟",
+      "description": "完成一组英语听力练习 20 分钟。",
+      "icon": "sound",
+      "category": "core",
+      "points": 6,
+      "missed_penalty": 0,
+      "estimated_minutes": 20,
+      "days": ["weekends"],
+      "available_at": "10:00",
+      "due_by": "21:00",
+      "expiry": "block"
+    },
+    {
+      "title": "课外阅读 45 分钟",
+      "description": "自由读一本课外书 45 分钟，读完说一句感想。",
+      "icon": "📖",
+      "category": "core",
+      "points": 6,
+      "missed_penalty": 0,
+      "estimated_minutes": 45,
+      "days": ["weekends"],
+      "available_at": "10:00",
+      "due_by": "21:00",
+      "expiry": "block"
+    },
+    {
+      "title": "户外运动 1 小时",
+      "description": "出门运动一小时（跑步/骑行/球类都行）。",
+      "icon": "bike",
+      "category": "core",
+      "points": 8,
+      "missed_penalty": 0,
+      "estimated_minutes": 60,
+      "days": ["weekends"],
+      "available_at": "08:00",
+      "due_by": "18:00",
+      "expiry": "block"
+    },
+    {
+      "title": "亲子周复盘",
+      "description": "和爸妈聊聊这周：最得意的一件事、下周想改进的一点。",
+      "icon": "people",
+      "category": "bonus",
+      "points": 3,
+      "missed_penalty": 0,
+      "estimated_minutes": 20,
+      "days": ["weekends"],
+      "available_at": "19:00",
+      "due_by": "21:30",
+      "expiry": "block"
+    },
+    {
+      "title": "自选兴趣项目",
+      "description": "做一段自己的兴趣项目（编程/画画/手工都算），有产出即可。",
+      "icon": "🎨",
+      "category": "bonus",
+      "points": 10,
+      "missed_penalty": 0,
+      "estimated_minutes": 60,
+      "days": ["weekends"],
+      "available_at": "10:00",
+      "due_by": "21:00",
+      "expiry": "block"
+    }
+  ]
+}

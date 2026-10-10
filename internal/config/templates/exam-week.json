@@ -1,0 +1,62 @@
+{
+  "id": "exam-week",
+  "name": "考试周冲刺包",
+  "icon": "🎯",
+  "scenario": "期中期末前 1-2 周",
+  "description": "考前刻意减负：只剩错题与自测两条必做、模拟卷与作文模板两条每日，加分项全部停掉，把精力收回到考试本身。",
+  "tasks": [
+    {
+      "title": "错题重做",
+      "description": "把错题本里近期错题重做一遍，还错的标记出来问老师。",
+      "icon": "📝",
+      "category": "required",
+      "points": 10,
+      "missed_penalty": 0,
+      "estimated_minutes": 40,
+      "days": ["weekdays"],
+      "available_at": "18:00",
+      "due_by": "21:30",
+      "expiry": "block"
+    },
+    {
+      "title": "考纲知识点自测",
+      "description": "按考纲过一遍知识点，过不下去的记下来第二天问。",
+      "icon": "📝",
+      "category": "required",
+      "points": 10,
+      "missed_penalty": 0,
+      "estimated_minutes": 30,
+      "days": ["weekdays"],
+      "available_at": "18:00",
+      "due_by": "21:40",
+      "expiry": "block"
+    },
+    {
+      "title": "每日一套模拟卷（选做）",
+      "description": "每天一套模拟卷，选自己最需要练的那科。",
+      "icon": "📝",
+      "category": "core",
+      "points": 12,
+      "missed_penalty": 0,
+      "estimated_minutes": 90,
+      "days": ["weekdays"],
+      "available_at": "17:30",
+      "due_by": "21:50",
+      "expiry": "block"
+    },
+    {
+      "title": "英语作文模板背诵",
+      "description": "背一类作文模板句型，默写一遍。",
+      "icon": "book",
+      "category": "core",
+      "points": 6,
+      "missed_penalty": 0,
+      "estimated_minutes": 20,
+      "days": ["weekdays"],
+      "available_at": "19:00",
+      "due_by": "21:50",
+      "expiry": "block"
+    }
+  ],
+  "bonus_paused": true
+}
