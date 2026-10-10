@@ -353,7 +353,21 @@
       "toggleError": "Couldn't update \"{{title}}\": {{error}}",
       "waitingHeading": "Waiting for you",
       "coachToday": "Today's coach note",
-      "coachSaid": "Said to your kid: {{text}}"
+      "coachSaid": "Said to your kid: {{text}}",
+      "glance": {
+        "label": "Today at a glance",
+        "progress_one": "{{done}} of {{total}} done today",
+        "progress_other": "{{done}} of {{total}} done today",
+        "dueSoon_one": "\"{{title}}\" for {{name}} is due within the hour",
+        "dueSoon_other": "\"{{title}}\" for {{name}} and {{count}} more due within the hour",
+        "missed_one": "⚠ Must-do missed tonight",
+        "missed_other": "⚠ Must-dos missed tonight",
+        "greenDetail": "On track. You can breathe.",
+        "yellowDetail": "Still time — a word from you beats a buzz from the app.",
+        "redDetail": "Bonus points won't release. Excuse it and start fresh tomorrow.",
+        "excuseButton": "Excuse",
+        "excuseAllConfirm": "Excuse all {{count}} missed must-do chores today ({{names}})? Streaks stay intact."
+      }
     },
     "modal": {
       "close": "Close"

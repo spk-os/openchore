@@ -8,6 +8,7 @@ import { Avatar, CategoryHeader, CategoryMark, Icon, catFromCategory } from '../
 import { localDateStr } from '../../utils';
 import { ApprovalList } from './ApprovalList';
 import { IconWell, personColor } from './pickers';
+import { glanceFor, type TodayGlance } from './todayGlance';
 import ui from './ui.module.css';
 import styles from './KidsStatusTab.module.css';
 
@@ -78,8 +79,17 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   const today = localDateStr(new Date());
+
+  // The glance bar reads the clock, so it re-evaluates while the tab is open
+  // (a chore slipping past its due time turns yellow into red without a
+  // reload — plan A computes everything client-side on open).
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -200,6 +210,27 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
 
   useEffect(() => { load(); }, [load]);
 
+  // The three-colour risk bar: one row over everyone's day (red > yellow >
+  // green). Excusing from the bar closes the loop — the red state is the
+  // only one that carries a button.
+  const glance: TodayGlance | null = kids.length > 0
+    ? glanceFor(kids.map(k => ({ user: k.user, chores: k.chores })), now)
+    : null;
+
+  const handleExcuseAll = async () => {
+    if (!glance) return;
+    const names = Array.from(new Set(glance.overdue.map(o => o.user.name))).join('、');
+    if (!window.confirm(t('admin.kidsStatusTab.glance.excuseAllConfirm', { count: glance.overdue.length, names }))) return;
+    for (const o of glance.overdue) {
+      try {
+        await api.chores.excuse(o.chore.schedule_id, o.chore.date, undefined);
+      } catch (err) {
+        console.error('Failed to excuse chore from the glance bar', o.chore.schedule_id, err);
+      }
+    }
+    load();
+  };
+
   const toggleExpand = (id: number) => {
     setExpanded(prev => {
       const next = new Set(prev);
@@ -231,6 +262,53 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
       </div>
 
       {error && <p className={ui.msgError} role="alert">{error}</p>}
+
+      {/* The three-colour "today at a glance" bar: green on track, yellow
+          something is due within the hour, red a must-do missed its window
+          and the bonus gate is at risk (P2-8, plan A — no backend). */}
+      {glance && (
+        <section
+          className={clsx(
+            styles.glance,
+            glance.level === 'green' && styles.glanceGreen,
+            glance.level === 'yellow' && styles.glanceYellow,
+            glance.level === 'red' && styles.glanceRed,
+          )}
+          role="status"
+          aria-label={t('admin.kidsStatusTab.glance.label')}
+        >
+          <span className={styles.glanceDot} aria-hidden />
+          <div className={styles.glanceBody}>
+            <p className={styles.glanceTitle}>
+              {t('admin.kidsStatusTab.glance.progress', { done: glance.done, total: glance.total })}
+              {glance.level === 'yellow' && glance.dueSoon && (
+                <span className={styles.glanceSub}>
+                  {t('admin.kidsStatusTab.glance.dueSoon', {
+                    title: glance.dueSoon.chore.title,
+                    name: glance.dueSoon.user.name,
+                    count: glance.dueSoonCount,
+                  })}
+                </span>
+              )}
+              {glance.level === 'red' && (
+                <span className={styles.glanceSub}>
+                  {t('admin.kidsStatusTab.glance.missed', { count: glance.overdue.length })}
+                </span>
+              )}
+            </p>
+            <p className={styles.glanceDetail}>
+              {glance.level === 'green' && t('admin.kidsStatusTab.glance.greenDetail')}
+              {glance.level === 'yellow' && t('admin.kidsStatusTab.glance.yellowDetail')}
+              {glance.level === 'red' && t('admin.kidsStatusTab.glance.redDetail')}
+            </p>
+          </div>
+          {glance.level === 'red' && (
+            <button type="button" className={styles.glanceExcuse} onClick={handleExcuseAll}>
+              {t('admin.kidsStatusTab.glance.excuseButton')}
+            </button>
+          )}
+        </section>
+      )}
 
       {pending.length > 0 && (
         <section className={ui.section} aria-labelledby="waiting-for-you">

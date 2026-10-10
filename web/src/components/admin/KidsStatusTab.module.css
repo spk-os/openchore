@@ -7,6 +7,129 @@
   align-items: start;
 }
 
+/* ---------- glance bar (P2-8 risk alerts, plan A) ---------- */
+
+/* One sticky row over everyone's day: green on track, yellow something is
+   due within the hour, red a must-do missed its window. Same structure in
+   all three states — only the semantic colour and the right-hand action
+   change (the prototype's .glance, in the app's tokens). */
+.glance {
+  position: sticky;
+  top: var(--space-3);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--r-row);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+
+.glanceDot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--done);
+}
+
+.glanceBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.glanceTitle {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px var(--space-3);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.glanceSub {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--waiting);
+}
+
+.glanceRed .glanceSub {
+  color: var(--urgent);
+}
+
+.glanceDetail {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+/* Green: on track. */
+.glanceGreen {
+  border-color: color-mix(in oklab, var(--person-mint) 45%, var(--surface-raised));
+}
+
+.glanceGreen .glanceDot {
+  background: var(--person-mint);
+}
+
+/* Yellow: a chore is due within the hour — a nudge, not an alarm. */
+.glanceYellow {
+  border-color: color-mix(in oklab, var(--waiting) 40%, var(--surface-raised));
+}
+
+.glanceYellow .glanceDot {
+  background: var(--waiting);
+}
+
+/* Red: a required or core chore missed its window; the bonus gate is at
+   risk. Carries the excuse action (white ground, urgent outline). */
+.glanceRed {
+  border-color: color-mix(in oklab, var(--urgent) 45%, var(--surface-raised));
+}
+
+.glanceRed .glanceDot {
+  background: var(--urgent);
+}
+
+.glanceExcuse {
+  flex: none;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid var(--urgent);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--urgent);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.glanceExcuse:hover {
+  background: color-mix(in oklab, var(--urgent) 8%, var(--surface-raised));
+}
+
+.glanceExcuse:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 640px) {
+  .glance {
+    position: static;
+  }
+
+  .glanceExcuse {
+    min-height: 44px;
+  }
+}
+
 .card {
   display: flex;
   flex-direction: column;

@@ -897,7 +897,21 @@
       "toggleError": "无法更新「{{title}}」：{{error}}",
       "waitingHeading": "等你处理",
       "coachToday": "今日点评",
-      "coachSaid": "对孩子说：{{text}}"
+      "coachSaid": "对孩子说：{{text}}",
+      "glance": {
+        "label": "今日风险速览",
+        "progress_one": "今日 {{total}} 项完成 {{done}} 项",
+        "progress_other": "今日 {{total}} 项完成 {{done}} 项",
+        "dueSoon_one": "{{name}} 的「{{title}}」一小时内到期",
+        "dueSoon_other": "{{name}} 的「{{title}}」等 {{count}} 项一小时内到期",
+        "missed_one": "⚠ 必做项今晚未完成",
+        "missed_other": "⚠ 必做项今晚未完成",
+        "greenDetail": "一切在轨，现在可以喘口气。",
+        "yellowDetail": "现在提醒还来得及——口头提醒即可，不用催。",
+        "redDetail": "将影响加分项释放。可以豁免，明天再开始。",
+        "excuseButton": "豁免",
+        "excuseAllConfirm": "把今天 {{count}} 项未完成的必做任务全部豁免（{{names}}）？连击不受影响。"
+      }
     },
     "modal": {
       "close": "关闭"

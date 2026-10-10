@@ -353,7 +353,21 @@
       "toggleError": "„{{title}}“ konnte nicht aktualisiert werden: {{error}}",
       "waitingHeading": "Wartet auf dich",
       "coachToday": "Heutige Trainernotiz",
-      "coachSaid": "Zu deinem Kind gesagt: {{text}}"
+      "coachSaid": "Zu deinem Kind gesagt: {{text}}",
+      "glance": {
+        "label": "Heute auf einen Blick",
+        "progress_one": "Heute {{done}} von {{total}} erledigt",
+        "progress_other": "Heute {{done}} von {{total}} erledigt",
+        "dueSoon_one": "„{{title}}“ von {{name}} ist innerhalb einer Stunde fällig",
+        "dueSoon_other": "„{{title}}“ von {{name}} und {{count}} weitere sind innerhalb einer Stunde fällig",
+        "missed_one": "⚠ Pflichtaufgabe heute verpasst",
+        "missed_other": "⚠ Pflichtaufgaben heute verpasst",
+        "greenDetail": "Alles im Plan. Durchatmen.",
+        "yellowDetail": "Noch Zeit — ein Wort von dir hilft mehr als ein Ton aus der App.",
+        "redDetail": "Bonuspunkte werden nicht freigegeben. Entschuldigen und morgen neu starten.",
+        "excuseButton": "Entschuldigen",
+        "excuseAllConfirm": "Alle {{count}} verpassten Pflichtaufgaben von heute entschuldigen ({{names}})? Der Streak bleibt erhalten."
+      }
     },
     "modal": {
       "close": "Schließen"
