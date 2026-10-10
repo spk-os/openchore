@@ -128,6 +128,36 @@
   animation: edit-spin 1s linear infinite;
 }
 
+/* Reference photo ("this is what done looks like") editor block */
+
+.hint {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.refPhotoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.refPhotoThumb {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--oc-radius-lg);
+  box-shadow: var(--lift);
+}
+
+.refPhotoActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .spin {
     animation: none;

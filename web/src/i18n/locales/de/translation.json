@@ -241,7 +241,14 @@
       "ttsPlayTitle": "Abspielen",
       "ttsPlaying": "Wird abgespielt…",
       "ttsRegenerateError": "TTS konnte nicht neu generiert werden",
-      "ttsRegeneratedLabel": "Neu generiert"
+      "ttsRegeneratedLabel": "Neu generiert",
+      "referencePhotoSection": "Beispielbild (optional)",
+      "referencePhotoHint": "Lade ein Beispiel hoch, das zeigt, wie „fertig“ aussieht. Das Kind sieht es vor dem Fotografieren, und die KI prüft anhand dessen.",
+      "referencePhotoUpload": "Beispiel hochladen",
+      "referencePhotoReplace": "Ersetzen",
+      "referencePhotoRemove": "Entfernen",
+      "referencePhotoUploading": "Wird hochgeladen…",
+      "referencePhotoUploadError": "Upload fehlgeschlagen, bitte noch einmal versuchen"
     },
     "exportConfig": {
       "descriptionAfter": " mit dem aktuellen Stand der Datenbank herunter, um einen neuen Server einzurichten.",
@@ -1055,7 +1062,11 @@
       "titleNeeded": "Mach ein Foto",
       "uploadFailed": "Das Foto wurde nicht hochgeladen. Versuch es noch mal",
       "uploading": "Wird hochgeladen",
-      "waiting": "Warte auf das Foto"
+      "waiting": "Warte auf das Foto",
+      "referenceTitle": "Beispielbild der Eltern",
+      "referenceAlt": "Beispielbild der Eltern für „{{title}}“",
+      "referenceHelp": "Schau dir an, wie fertig aussieht, und mach ein ähnliches Foto.",
+      "referenceZoomHint": "Zum Schließen irgendwo tippen"
     },
     "rewards": {
       "cost_one": "{{count}} Pkt.",

@@ -291,7 +291,11 @@
       "titleNeeded": "拍张照片",
       "uploadFailed": "照片上传失败，再试一次",
       "uploading": "上传中",
-      "waiting": "等待照片"
+      "waiting": "等待照片",
+      "referenceTitle": "家长示例图",
+      "referenceAlt": "「{{title}}」的家长示例图",
+      "referenceHelp": "先看看达标长什么样，再拍一张一样的。",
+      "referenceZoomHint": "点一下任意处关闭"
     },
     "rewards": {
       "cost_one": "{{count}} 分",
@@ -774,7 +778,14 @@
       "ttsPlayTitle": "播放",
       "ttsPlaying": "播放中…",
       "ttsRegenerateError": "重新生成语音失败",
-      "ttsRegeneratedLabel": "已重新生成"
+      "ttsRegeneratedLabel": "已重新生成",
+      "referencePhotoSection": "基准照（可选）",
+      "referencePhotoHint": "拍一张「达标长这样」的示例照。孩子拍照前会先看到它，AI 审查时也会对比它。",
+      "referencePhotoUpload": "上传示例照",
+      "referencePhotoReplace": "换一张",
+      "referencePhotoRemove": "移除",
+      "referencePhotoUploading": "上传中…",
+      "referencePhotoUploadError": "示例照上传失败，再试一次"
     },
     "exportConfig": {
       "descriptionAfter": " 的当前内容，用于初始化一台新服务器。",

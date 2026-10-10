@@ -34,6 +34,7 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
   const [uploadToken, setUploadToken] = useState<string | null>(null);
   const alreadyCompleted = chore.completed;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [refZoom, setRefZoom] = useState(false);
 
   useEffect(() => {
     api.auth.uploadLink(chore.schedule_id)
@@ -116,6 +117,23 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
         <span>{t('kid.photo.scanOrUpload')}</span>
       </p>
 
+      {/* The parent's example photo: look at what "done" looks like before shooting. */}
+      {chore.reference_photo_url && (
+        <figure className={s.refPhoto} data-testid="reference-photo">
+          <figcaption>
+            <Icon name="book" />
+            {t('kid.photo.referenceTitle')}
+          </figcaption>
+          <img
+            src={chore.reference_photo_url}
+            alt={t('kid.photo.referenceAlt', { title: chore.title })}
+            loading="lazy"
+            onClick={() => setRefZoom(true)}
+          />
+          <p className={s.helpLine}>{t('kid.photo.referenceHelp')}</p>
+        </figure>
+      )}
+
       {/* The code sits on a House "paper" in every skin: scanners need dark on light. */}
       <div className={s.qrPaper} data-theme="house">
         <React.Suspense fallback={<span className={s.spinner} role="status" aria-label={t('kid.photo.preparing')} />}>
@@ -150,6 +168,14 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
             {t('kid.photo.skipPhoto')}
           </button>
           <p className={s.helpLine}>{t('kid.photo.skipPhotoHelp')}</p>
+        </div>
+      )}
+
+      {/* Tap the example to see it full-screen. */}
+      {refZoom && chore.reference_photo_url && (
+        <div className={s.refZoom} role="dialog" aria-modal="true" aria-label={t('kid.photo.referenceAlt', { title: chore.title })} onClick={() => setRefZoom(false)}>
+          <img src={chore.reference_photo_url} alt={t('kid.photo.referenceAlt', { title: chore.title })} />
+          <p>{t('kid.photo.referenceZoomHint')}</p>
         </div>
       )}
     </Sheet>

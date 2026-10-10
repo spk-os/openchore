@@ -169,6 +169,8 @@ export interface Chore {
   requires_approval: boolean;
   requires_photo: boolean;
   photo_source?: 'child' | 'external' | 'both';
+  /** Parent's "this is what done looks like" example photo. '' = none. */
+  reference_photo_url?: string;
   tts_audio_url?: string;
 }
 
@@ -314,6 +316,7 @@ export interface ScheduledChore {
   requires_approval: boolean;
   requires_photo: boolean;
   photo_source?: 'child' | 'external' | 'both';
+  reference_photo_url?: string;
   assignment_type: string;
   available_at?: string;
   due_by?: string;

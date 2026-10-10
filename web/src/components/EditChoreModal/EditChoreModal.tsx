@@ -33,6 +33,10 @@ const EditChoreModal: React.FC<Props> = ({ chore, isOpen, onClose, onSaved, user
   const [requiresApproval, setRequiresApproval] = useState(chore.requires_approval);
   const [requiresPhoto, setRequiresPhoto] = useState(chore.requires_photo);
   const [photoSource, setPhotoSource] = useState<'child' | 'external' | 'both'>(chore.photo_source || 'child');
+  const [referencePhoto, setReferencePhoto] = useState(chore.reference_photo_url || '');
+  const [refUploading, setRefUploading] = useState(false);
+  const [refError, setRefError] = useState('');
+  const refFileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -91,6 +95,41 @@ const EditChoreModal: React.FC<Props> = ({ chore, isOpen, onClose, onSaved, user
       setTtsError(msg);
     }
     setTtsRegenerating(false);
+  };
+
+  // Upload (or clear) the parent's "this is what done looks like" example
+  // photo, then persist the URL on the chore right away — the rest of the
+  // form is saved separately with the main save button.
+  const handleRefPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRefUploading(true);
+    setRefError('');
+    try {
+      const { url } = await api.chores.upload(file);
+      await api.chores.update(chore.id, { reference_photo_url: url });
+      setReferencePhoto(url);
+      onSaved();
+    } catch (err) {
+      setRefError(err instanceof Error ? err.message : t('admin.editChore.referencePhotoUploadError'));
+    } finally {
+      setRefUploading(false);
+      if (refFileRef.current) refFileRef.current.value = '';
+    }
+  };
+
+  const handleRefPhotoRemove = async () => {
+    setRefUploading(true);
+    setRefError('');
+    try {
+      await api.chores.update(chore.id, { reference_photo_url: '' });
+      setReferencePhoto('');
+      onSaved();
+    } catch (err) {
+      setRefError(err instanceof Error ? err.message : t('admin.editChore.referencePhotoUploadError'));
+    } finally {
+      setRefUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -174,6 +213,31 @@ const EditChoreModal: React.FC<Props> = ({ chore, isOpen, onClose, onSaved, user
               </select>
             </label>
           )}
+
+          {/* Parent's "this is what done looks like" example photo. */}
+          <div className={styles.formGroup}>
+            <span className={styles.label}>{t('admin.editChore.referencePhotoSection')}</span>
+            <p className={styles.hint}>{t('admin.editChore.referencePhotoHint')}</p>
+            {referencePhoto ? (
+              <div className={styles.refPhotoRow}>
+                <img className={styles.refPhotoThumb} src={referencePhoto} alt={t('admin.editChore.referencePhotoSection')} />
+                <div className={styles.refPhotoActions}>
+                  <button type="button" className={styles.btnSecondary} onClick={() => refFileRef.current?.click()} disabled={refUploading}>
+                    {refUploading ? t('admin.editChore.referencePhotoUploading') : t('admin.editChore.referencePhotoReplace')}
+                  </button>
+                  <button type="button" className={styles.btnSecondary} onClick={handleRefPhotoRemove} disabled={refUploading}>
+                    {t('admin.editChore.referencePhotoRemove')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className={styles.btnSecondary} onClick={() => refFileRef.current?.click()} disabled={refUploading}>
+                {refUploading ? t('admin.editChore.referencePhotoUploading') : t('admin.editChore.referencePhotoUpload')}
+              </button>
+            )}
+            <input ref={refFileRef} type="file" accept="image/*" capture="environment" onChange={handleRefPhotoUpload} hidden />
+            {refError && <span className={styles.error} role="alert">{refError}</span>}
+          </div>
 
           <div className={styles.saveRow}>
             {saved && <span className={styles.saved} role="status"><Icon name="check" /> {t('admin.editChore.savedLabel')}</span>}

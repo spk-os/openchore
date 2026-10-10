@@ -241,7 +241,14 @@
       "ttsPlayTitle": "Play",
       "ttsPlaying": "Playing…",
       "ttsRegenerateError": "Failed to regenerate TTS",
-      "ttsRegeneratedLabel": "Regenerated"
+      "ttsRegeneratedLabel": "Regenerated",
+      "referencePhotoSection": "Reference photo (optional)",
+      "referencePhotoHint": "Upload a \"this is what done looks like\" example. The kid sees it before taking their photo, and the AI reviewer compares against it.",
+      "referencePhotoUpload": "Upload example",
+      "referencePhotoReplace": "Replace",
+      "referencePhotoRemove": "Remove",
+      "referencePhotoUploading": "Uploading…",
+      "referencePhotoUploadError": "Upload failed, try again"
     },
     "exportConfig": {
       "descriptionAfter": " of what is in the database now, to set up a fresh server.",
@@ -1055,7 +1062,11 @@
       "titleNeeded": "Snap a photo",
       "uploadFailed": "The photo didn't upload. Try again",
       "uploading": "Uploading",
-      "waiting": "Waiting for the photo"
+      "waiting": "Waiting for the photo",
+      "referenceTitle": "Parent's example",
+      "referenceAlt": "Parent's example photo for \"{{title}}\"",
+      "referenceHelp": "See what done looks like, then snap one like it.",
+      "referenceZoomHint": "Tap anywhere to close"
     },
     "rewards": {
       "cost_one": "{{count}} pt",
