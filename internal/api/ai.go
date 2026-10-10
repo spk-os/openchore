@@ -45,10 +45,15 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 		log.Printf("ai: skipping review of completion %d: %v", completionID, err)
 		return
 	}
-	var title, description string
+	var title, description, refPhotoPath string
 	if schedule, _ := h.store.GetSchedule(ctx, c.ChoreScheduleID); schedule != nil {
 		if chore, _ := h.store.GetChore(ctx, schedule.ChoreID); chore != nil {
 			title, description = chore.Title, chore.Description
+			if chore.ReferencePhotoURL != "" {
+				if p, err := resolveUploadPath(chore.ReferencePhotoURL); err == nil {
+					refPhotoPath = p
+				}
+			}
 		}
 	}
 
@@ -57,7 +62,7 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 		return
 	}
 	start := time.Now()
-	result, err := ai.ReviewPhoto(ctx, title, description, photoPath)
+	result, err := ai.ReviewPhoto(ctx, title, description, photoPath, refPhotoPath)
 	if err != nil {
 		log.Printf("ai: review of completion %d failed: %v", completionID, err)
 		return
@@ -142,7 +147,7 @@ func (h *ChoreHandler) TestAIReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := time.Now()
-	result, err := ai.ReviewPhoto(r.Context(), req.ChoreTitle, "", photoPath)
+	result, err := ai.ReviewPhoto(r.Context(), req.ChoreTitle, "", photoPath, "")
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "AI review failed: "+err.Error())
 		return

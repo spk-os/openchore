@@ -87,6 +87,11 @@ type createChoreRequest struct {
 	RequiresApproval   bool   `json:"requires_approval"`
 	RequiresPhoto      bool   `json:"requires_photo"`
 	PhotoSource        string `json:"photo_source"`
+	// ReferencePhotoURL is the "this is what done looks like" example photo
+	// shown to the kid before they shoot their completion photo and used by
+	// the AI reviewer as the before/after baseline. Pointers distinguish
+	// "field omitted" (nil, keep existing) from "set to empty" (clear it).
+	ReferencePhotoURL *string `json:"reference_photo_url"`
 }
 
 func (h *ChoreHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +133,7 @@ func (h *ChoreHandler) Create(w http.ResponseWriter, r *http.Request) {
 		RequiresApproval:   req.RequiresApproval,
 		RequiresPhoto:      req.RequiresPhoto,
 		PhotoSource:        photoSource,
+		ReferencePhotoURL:  strPtrOrEmpty(req.ReferencePhotoURL),
 		Source:             "manual",
 		CreatedBy:          user.ID,
 	}
@@ -202,6 +208,11 @@ func (h *ChoreHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		existing.PhotoSource = req.PhotoSource
+	}
+	// Nil keeps the current reference photo; an explicit value (including
+	// empty string) replaces it.
+	if req.ReferencePhotoURL != nil {
+		existing.ReferencePhotoURL = *req.ReferencePhotoURL
 	}
 
 	if err := h.store.UpdateChore(r.Context(), existing); err != nil {

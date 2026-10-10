@@ -42,6 +42,16 @@ func intPtrOrZero(p *int) int {
 	return *p
 }
 
+// strPtrOrEmpty returns *p if p is non-nil, otherwise "". Used for request
+// fields that are *string so we can tell "omitted" (nil) from "explicitly
+// set to empty".
+func strPtrOrEmpty(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
 // clientIP extracts the client's IP address from headers (X-Forwarded-For, X-Real-IP) or RemoteAddr.
 func clientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {

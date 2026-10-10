@@ -171,6 +171,7 @@ type Chore struct {
 	RequiresApproval   bool      `json:"requires_approval"`
 	RequiresPhoto      bool      `json:"requires_photo"`
 	PhotoSource        string    `json:"photo_source"`
+	ReferencePhotoURL  string    `json:"reference_photo_url"`
 	Source             string    `json:"source"`
 	ExternalID         string    `json:"external_id,omitempty"`
 	TTSAudioURL        string    `json:"tts_audio_url,omitempty"`
@@ -442,6 +443,7 @@ type ScheduledChore struct {
 	CompletedByName    string     `json:"completed_by_name,omitempty"`
 	CompletedBySibling bool       `json:"completed_by_sibling,omitempty"`
 	TTSAudioURL        string     `json:"tts_audio_url,omitempty"`
+	ReferencePhotoURL  string     `json:"reference_photo_url,omitempty"`
 	Date               string     `json:"date"`
 }
 

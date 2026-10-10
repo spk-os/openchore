@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -44,7 +45,7 @@ func TestReviewPhotoSendsImageAndSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := New(srv.URL+"/v1/", "sk-test", "gemma").ReviewPhoto(context.Background(), "Make bed", "Pull up the covers", photo)
+	res, err := New(srv.URL+"/v1/", "sk-test", "gemma").ReviewPhoto(context.Background(), "Make bed", "Pull up the covers", photo, "")
 	if err != nil {
 		t.Fatalf("ReviewPhoto: %v", err)
 	}
@@ -67,6 +68,46 @@ func TestReviewPhotoSendsImageAndSchema(t *testing.T) {
 	}
 	if !strings.HasPrefix(image, "data:image/jpeg;base64,") {
 		t.Errorf("expected an inline JPEG, got %.40q", image)
+	}
+}
+
+func TestReviewPhotoSendsReferenceImageWhenGiven(t *testing.T) {
+	srv, got := fakeServer(t, `{"complete": true, "confidence": 0.9, "feedback": "Matches the reference."}`, http.StatusOK)
+	dir := t.TempDir()
+	photo := filepath.Join(dir, "bed.jpg")
+	if err := os.WriteFile(photo, []byte("\xff\xd8\xff\xe0jpeg"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ref := filepath.Join(dir, "ref.jpg")
+	if err := os.WriteFile(ref, []byte("\xff\xd8\xff\xe0refjpeg"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := New(srv.URL+"/v1/", "sk-test", "gemma").ReviewPhoto(context.Background(), "Make bed", "", photo, ref)
+	if err != nil {
+		t.Fatalf("ReviewPhoto: %v", err)
+	}
+	if !res.Complete {
+		t.Errorf("unexpected result %+v", res)
+	}
+	parts := got.body["messages"].([]any)[0].(map[string]any)["content"].([]any)
+	if len(parts) != 4 {
+		t.Fatalf("expected prompt+photo+ref-label+ref-photo (4 parts), got %d", len(parts))
+	}
+	text := parts[0].(map[string]any)["text"].(string)
+	if !strings.Contains(text, "reference photo from the parent") {
+		t.Errorf("expected the comparison clause in the prompt, got %q", text)
+	}
+	image := parts[1].(map[string]any)["image_url"].(map[string]any)["url"].(string)
+	if !strings.HasPrefix(image, "data:image/jpeg;base64,") {
+		t.Errorf("expected the submission image inline, got %.40q", image)
+	}
+	refImage := parts[3].(map[string]any)["image_url"].(map[string]any)["url"].(string)
+	if !strings.HasPrefix(refImage, "data:image/jpeg;base64,") {
+		t.Errorf("expected the reference image inline, got %.40q", refImage)
+	}
+	if !strings.Contains(refImage, base64.StdEncoding.EncodeToString([]byte("\xff\xd8\xff\xe0refjpeg"))) {
+		t.Errorf("reference part does not carry the reference photo bytes")
 	}
 }
 
