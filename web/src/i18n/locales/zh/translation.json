@@ -1041,7 +1041,11 @@
         "voiceHelp": "语音服务支持的音色，例如 Kokoro 的 af_heart 或 OpenAI 的 alloy。更换后会重新录制所有任务。",
         "voiceLabel": "朗读音色",
         "weeklySummaryHelp": "每周一总结全家上一周的表现，并通过 Discord 和 report.weekly_summary webhook 分享。",
-        "weeklySummaryLabel": "生成每周总结"
+        "weeklySummaryLabel": "生成每周总结",
+        "dailyCoachLabel": "每日教练点评",
+        "dailyCoachHelp": "每晚生成一条给孩子的成长型点评（附朗读音频）和一条给家长的当日观察。",
+        "coachTimeLabel": "点评生成时刻",
+        "coachTimeHelp": "默认 21:00（孩子睡前）。到点后自动为当天有任务的孩子生成点评。"
       },
       "baseUrl": {
         "description": "本服务器的公网地址（例如 ",

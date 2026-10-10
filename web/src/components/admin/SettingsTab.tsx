@@ -56,6 +56,8 @@ export const SettingsTab: React.FC = () => {
   const [aiAutoApprove, setAiAutoApprove] = useState(false);
   const [aiThreshold, setAiThreshold] = useState('0.85');
   const [aiWeeklySummary, setAiWeeklySummary] = useState(false);
+  const [aiDailyCoach, setAiDailyCoach] = useState(false);
+  const [coachTime, setCoachTime] = useState('21:00');
   const [ttsVoice, setTtsVoice] = useState('');
   const [savedTtsVoice, setSavedTtsVoice] = useState('');
   const [aiSaving, setAiSaving] = useState(false);
@@ -103,12 +105,14 @@ export const SettingsTab: React.FC = () => {
       .then(data => setDiscordUrl(data.value || ''))
       .catch(() => {});
     const setting = (key: string) => api.admin.getSetting(key).then(d => d.value || '').catch(() => '');
-    Promise.all(['ai_photo_review', 'ai_auto_approve', 'ai_auto_approve_threshold', 'ai_weekly_summary', 'tts_voice'].map(setting))
-      .then(([photoReview, autoApprove, threshold, weeklySummary, voice]) => {
+    Promise.all(['ai_photo_review', 'ai_auto_approve', 'ai_auto_approve_threshold', 'ai_weekly_summary', 'ai_daily_coach', 'coach_time', 'tts_voice'].map(setting))
+      .then(([photoReview, autoApprove, threshold, weeklySummary, dailyCoach, coachTimeVal, voice]) => {
         setAiPhotoReview(photoReview === 'true');
         setAiAutoApprove(autoApprove === 'true');
         setAiThreshold(threshold || '0.85');
         setAiWeeklySummary(weeklySummary === 'true');
+        setAiDailyCoach(dailyCoach === 'true');
+        setCoachTime(coachTimeVal || '21:00');
         setTtsVoice(voice);
         setSavedTtsVoice(voice);
       });
@@ -177,6 +181,8 @@ export const SettingsTab: React.FC = () => {
         api.admin.setSetting('ai_auto_approve', aiAutoApprove ? 'true' : 'false'),
         api.admin.setSetting('ai_auto_approve_threshold', aiThreshold),
         api.admin.setSetting('ai_weekly_summary', aiWeeklySummary ? 'true' : 'false'),
+        api.admin.setSetting('ai_daily_coach', aiDailyCoach ? 'true' : 'false'),
+        api.admin.setSetting('coach_time', coachTime.trim()),
         api.admin.setSetting('tts_voice', ttsVoice.trim()),
       ]);
       // A new voice means every chore's audio needs re-recording.
@@ -335,6 +341,27 @@ export const SettingsTab: React.FC = () => {
                     </label>
                     <span className={ui.help}>{t('admin.settingsTab.ai.weeklySummaryHelp')}</span>
                   </div>
+
+                  <div className={ui.field}>
+                    <label className={ui.check}>
+                      <input type="checkbox" checked={aiDailyCoach} onChange={e => setAiDailyCoach(e.target.checked)} />
+                      <span className={ui.checkLabel}>{t('admin.settingsTab.ai.dailyCoachLabel')}</span>
+                    </label>
+                    <span className={ui.help}>{t('admin.settingsTab.ai.dailyCoachHelp')}</span>
+                  </div>
+
+                  {aiDailyCoach && (
+                    <label className={ui.field}>
+                      <span className={ui.label}>{t('admin.settingsTab.ai.coachTimeLabel')}</span>
+                      <input
+                        type="time"
+                        className={ui.input}
+                        value={coachTime}
+                        onChange={e => setCoachTime(e.target.value)}
+                      />
+                      <span className={ui.help}>{t('admin.settingsTab.ai.coachTimeHelp')}</span>
+                    </label>
+                  )}
                 </>
               )}
 

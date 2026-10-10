@@ -497,7 +497,11 @@
         "voiceHelp": "Eine Stimme deines Sprachdiensts, z. B. af_heart für Kokoro oder alloy für OpenAI. Eine Änderung nimmt alle Aufgaben neu auf.",
         "voiceLabel": "Vorlesestimme",
         "weeklySummaryHelp": "Fasst jeden Montag die vergangene Woche aller zusammen und teilt sie über Discord und den Webhook report.weekly_summary.",
-        "weeklySummaryLabel": "Wochenbericht schreiben"
+        "weeklySummaryLabel": "Wochenbericht schreiben",
+        "dailyCoachLabel": "Tägliche Trainernotiz",
+        "dailyCoachHelp": "Jede Nacht eine wachstumsorientierte Notiz für das Kind (mit Vorlese-Audio) und eine Beobachtung für die Eltern.",
+        "coachTimeLabel": "Notiz-Uhrzeit",
+        "coachTimeHelp": "Standard 21:00 (vor dem Zubettgehen). Notizen werden zu dieser Zeit für jedes Kind mit Aufgaben an dem Tag erstellt."
       },
       "baseUrl": {
         "description": "Die öffentliche URL dieses Servers (z. B. ",
