@@ -538,7 +538,7 @@ func setupTestWithAuth(t *testing.T, prompt string, extra func(*config.AuthConfi
 		t.Fatal(err)
 	}
 	oidcSvc := api.NewOIDCService(s, sessions, d, authCfg)
-	router, chores, _ := api.NewRouter(s, d, api.Auth{Sessions: sessions, OIDC: oidcSvc})
+	router, chores, _, _ := api.NewRouter(s, d, api.Auth{Sessions: sessions, OIDC: oidcSvc})
 	server := httptest.NewServer(router)
 	t.Cleanup(func() {
 		server.Close()

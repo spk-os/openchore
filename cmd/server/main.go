@@ -109,7 +109,7 @@ func main() {
 		log.Fatalf("failed to load sign-in settings: %v", err)
 	}
 
-	router, choreHandler, reportsHandler := api.NewRouter(s, dispatcher, api.Auth{Sessions: sessions, OIDC: oidcSvc})
+	router, choreHandler, reportsHandler, coachHandler := api.NewRouter(s, dispatcher, api.Auth{Sessions: sessions, OIDC: oidcSvc})
 
 	// Optional AI and read-aloud audio: off unless a base URL is set, either
 	// in the environment or under Manage → Settings → AI.
@@ -127,6 +127,7 @@ func main() {
 		}
 	}()
 	go reportsHandler.StartWeeklySummaries(context.Background())
+	go coachHandler.StartDailyCoach(context.Background())
 
 	log.Printf("starting server on :%s", port)
 	if err := http.ListenAndServe(":"+port, router); err != nil {

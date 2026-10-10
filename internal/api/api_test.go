@@ -32,6 +32,7 @@ type testEnv struct {
 	store   *store.Store
 	chores  *api.ChoreHandler
 	reports *api.ReportsHandler
+	coach   *api.CoachHandler
 }
 
 func setupTest(t *testing.T) *testEnv {
@@ -63,7 +64,7 @@ func setupTest(t *testing.T) *testEnv {
 	d := webhook.NewDispatcher(s)
 	sessions := api.NewSessionManager(testSessionSecret)
 	oidcSvc := api.NewOIDCService(s, sessions, d, nil)
-	router, chores, reports := api.NewRouter(s, d, api.Auth{Sessions: sessions, OIDC: oidcSvc})
+	router, chores, reports, coach := api.NewRouter(s, d, api.Auth{Sessions: sessions, OIDC: oidcSvc})
 	server := httptest.NewServer(router)
 
 	t.Cleanup(func() {
@@ -71,7 +72,7 @@ func setupTest(t *testing.T) *testEnv {
 		db.Close()
 	})
 
-	return &testEnv{server: server, db: db, store: s, chores: chores, reports: reports}
+	return &testEnv{server: server, db: db, store: s, chores: chores, reports: reports, coach: coach}
 }
 
 func (e *testEnv) request(t *testing.T, method, path string, body any, headers map[string]string) *http.Response {

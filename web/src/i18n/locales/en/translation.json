@@ -351,7 +351,9 @@
       "subtitle": "Everyone's day at a glance, {{date}}",
       "tapHint": "Tap a person to see today's chores. Tap a chore's circle to mark it done on their behalf.",
       "toggleError": "Couldn't update \"{{title}}\": {{error}}",
-      "waitingHeading": "Waiting for you"
+      "waitingHeading": "Waiting for you",
+      "coachToday": "Today's coach note",
+      "coachSaid": "Said to your kid: {{text}}"
     },
     "modal": {
       "close": "Close"
@@ -1144,7 +1146,9 @@
       "streakDays_other": "{{count}} days in a row",
       "streakBest": "Best: {{count}} days",
       "streakNext_one": "{{count}} more day for \"{{label}}\" (+{{points}} pts)",
-      "streakNext_other": "{{count}} more days for \"{{label}}\" (+{{points}} pts)"
+      "streakNext_other": "{{count}} more days for \"{{label}}\" (+{{points}} pts)",
+      "coachTitle": "Coach's note",
+      "coachPlay": "Play the coach note"
     },
     "upload": {
       "doneBody": "Nice work. You can close this page now.",

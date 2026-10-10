@@ -351,7 +351,9 @@
       "subtitle": "Der Tag aller auf einen Blick, {{date}}",
       "tapHint": "Tippe auf eine Person, um die heutigen Aufgaben zu sehen. Tippe auf den Kreis einer Aufgabe, um sie für sie zu erledigen.",
       "toggleError": "„{{title}}“ konnte nicht aktualisiert werden: {{error}}",
-      "waitingHeading": "Wartet auf dich"
+      "waitingHeading": "Wartet auf dich",
+      "coachToday": "Heutige Trainernotiz",
+      "coachSaid": "Zu deinem Kind gesagt: {{text}}"
     },
     "modal": {
       "close": "Schließen"
@@ -1144,7 +1146,9 @@
       "streakDays_other": "{{count}} Tage in Folge",
       "streakBest": "Beste: {{count}} Tage",
       "streakNext_one": "Noch {{count}} Tag für „{{label}}\" (+{{points}} P.)",
-      "streakNext_other": "Noch {{count}} Tage für „{{label}}\" (+{{points}} P.)"
+      "streakNext_other": "Noch {{count}} Tage für „{{label}}\" (+{{points}} P.)",
+      "coachTitle": "Notiz des Trainers",
+      "coachPlay": "Trainernotiz abspielen"
     },
     "upload": {
       "doneBody": "Gut gemacht. Du kannst die Seite jetzt schließen.",

@@ -92,6 +92,26 @@ export function TodayScreen({ user, data, now, topBar, viewOf, tts, onToggle, on
             )}
           </section>
         )}
+        {/* The coach's good-night note from yesterday: one warm line and a
+            button to hear it read aloud (pre-recorded audio when TTS is on,
+            the browser's voice otherwise). */}
+        {!user.paused && data.coachNote && (
+          <section className={s.coachCard} aria-label={t('kid.today.coachTitle')}>
+            <div className={s.coachHead}>
+              <span className={s.coachIcon}><Icon name="star" fill size={20} /></span>
+              <span className={s.coachKicker}>{t('kid.today.coachTitle')}</span>
+              <button
+                type="button"
+                className={s.coachPlay}
+                aria-label={t('kid.today.coachPlay')}
+                onClick={() => onSpeak(data.coachNote!.child_text, data.coachNote!.child_audio_url)}
+              >
+                <Icon name="sound" size={20} />
+              </button>
+            </div>
+            <p className={s.coachText}>{data.coachNote.child_text}</p>
+          </section>
+        )}
       </section>
 
       <section className={s.todayLists} aria-label={t('kid.today.listLabel')}>

@@ -381,6 +381,56 @@
   font-weight: 600;
 }
 
+/* ---------- coach note (daily AI coach) ---------- */
+.coachCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+.coachHead { display: flex; align-items: center; gap: var(--space-2); }
+.coachIcon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: var(--outline-w) solid var(--line);
+  background: var(--cat-bonus-soft);
+  color: var(--star);
+}
+.coachKicker {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+.coachPlay {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--ink);
+  cursor: pointer;
+}
+.coachPlay:active { transform: scale(0.94); }
+.coachText { margin: 0; font-size: 15px; line-height: 21px; font-weight: 600; overflow-wrap: anywhere; }
+
 .dayTitle { margin: var(--space-5) 2px 0; font-size: 17px; line-height: 22px; font-weight: 700; }
 
 /* ---------- Rewards ---------- */

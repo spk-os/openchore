@@ -453,3 +453,16 @@ type AIReviewResult struct {
 	Confidence float64 `json:"confidence"`
 	Feedback   string  `json:"feedback"`
 }
+
+// --- Daily coach notes (P2) ---
+
+// DailyCoachNote is one day's two-sided coaching note: a short
+// growth-minded line for the kid (with optional read-aloud audio) and a
+// longer observation for the parent.
+type DailyCoachNote struct {
+	UserID        int64  `json:"user_id"`
+	Date          string `json:"date"`
+	ChildText     string `json:"child_text"`
+	ChildAudioURL string `json:"child_audio_url,omitempty"`
+	ParentText    string `json:"parent_text"`
+}

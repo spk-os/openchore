@@ -509,3 +509,12 @@ export interface AIReviewResult {
   would_approve: boolean;
   elapsed_ms: number;
 }
+
+/** One day's two-sided coaching note. Kids' views hide parent_text. */
+export interface DailyCoachNote {
+  user_id: number;
+  date: string;
+  child_text: string;
+  child_audio_url?: string;
+  parent_text?: string;
+}

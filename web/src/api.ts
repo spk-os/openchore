@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote } from './types';
 
 const API_BASE = '/api';
 
@@ -297,6 +297,11 @@ export const api = {
         body: JSON.stringify(data),
       }),
     deleteReward: (id: number) => fetchWithAuth(`/admin/streak-rewards/${id}`, { method: 'DELETE' }),
+  },
+  coach: {
+    // The daily coaching note; date defaults to today on the server.
+    getNote: (userId: number, date?: string) =>
+      fetchWithAuth<DailyCoachNote>(`/users/${userId}/coach-note${date ? `?date=${date}` : ''}`),
   },
   decay: {
     getConfig: (userId: number) => fetchWithAuth<UserDecayConfig>(`/admin/users/${userId}/decay`),

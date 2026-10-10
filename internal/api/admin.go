@@ -16,6 +16,8 @@ var writableSettings = map[string]bool{
 	"ai_auto_approve":           true,
 	"ai_auto_approve_threshold": true,
 	"ai_weekly_summary":         true,
+	"ai_daily_coach":            true,
+	"coach_time":                true,
 	"tts_voice":                 true,
 	"base_url":                  true,
 	"discord_webhook_url":       true,

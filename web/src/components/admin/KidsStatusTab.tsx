@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { api } from '../../api';
-import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion } from '../../types';
+import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote } from '../../types';
 import { Avatar, CategoryHeader, CategoryMark, Icon, catFromCategory } from '../../design';
 import { localDateStr } from '../../utils';
 import { ApprovalList } from './ApprovalList';
@@ -17,6 +17,7 @@ interface KidStatus {
   balance: number;
   streak: number;
   pendingApprovals: number;
+  coachNote: DailyCoachNote | null;
   loadError: boolean;
 }
 
@@ -110,13 +111,15 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
       const results = await Promise.all(
         children.map(async (kid): Promise<KidStatus> => {
           try {
-            const [chores, streakData] = await Promise.all([
+            const [chores, streakData, coachNote] = await Promise.all([
               api.users.getChores(kid.id, 'daily', today),
               api.streaks.getForUser(kid.id).catch<UserStreakData>(() => ({
                 current_streak: 0,
                 longest_streak: 0,
                 earned_rewards: [],
               })),
+              // Today's coach note (parent view: observation + the kid's line).
+              api.coach.getNote(kid.id).catch<DailyCoachNote | null>(() => null),
             ]);
             const bal = balances.find(b => b.user_id === kid.id)?.balance ?? 0;
             return {
@@ -125,6 +128,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               balance: bal,
               streak: streakData.current_streak,
               pendingApprovals: pendingByAssignee.get(kid.id) || 0,
+              coachNote: coachNote && (coachNote.parent_text || coachNote.child_text) ? coachNote : null,
               loadError: false,
             };
           } catch (e) {
@@ -135,6 +139,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               balance: balances.find(b => b.user_id === kid.id)?.balance ?? 0,
               streak: 0,
               pendingApprovals: pendingByAssignee.get(kid.id) || 0,
+              coachNote: null,
               loadError: true,
             };
           }
@@ -351,6 +356,19 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
                 <div id={detailsId} className={styles.details}>
                   {kid.loadError && (
                     <p className={ui.msgError}>{t('admin.kidsStatusTab.childLoadError')}</p>
+                  )}
+                  {/* Today's coach note: the parent-side observation first, the
+                      kid's line below it (what they saw on their screen). */}
+                  {kid.coachNote && (
+                    <div className={styles.coachNote}>
+                      <p className={styles.coachKicker}>
+                        <Icon name="star" fill /> {t('admin.kidsStatusTab.coachToday')}
+                      </p>
+                      {kid.coachNote.parent_text && <p className={styles.coachParent}>{kid.coachNote.parent_text}</p>}
+                      {kid.coachNote.child_text && (
+                        <p className={styles.coachChild}>{t('admin.kidsStatusTab.coachSaid', { text: kid.coachNote.child_text })}</p>
+                      )}
+                    </div>
                   )}
                   {!kid.loadError && kid.chores.length === 0 && (
                     <p className={ui.emptyInline}>{t('admin.kidsStatusTab.noChoresScheduledDetail')}</p>

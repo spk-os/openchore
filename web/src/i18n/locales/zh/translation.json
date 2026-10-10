@@ -366,7 +366,9 @@
       "streakDays_other": "连续 {{count}} 天",
       "streakBest": "最佳：{{count}} 天",
       "streakNext_one": "再坚持 {{count}} 天达成「{{label}}」（+{{points}} 分）",
-      "streakNext_other": "再坚持 {{count}} 天达成「{{label}}」（+{{points}} 分）"
+      "streakNext_other": "再坚持 {{count}} 天达成「{{label}}」（+{{points}} 分）",
+      "coachTitle": "教练悄悄话",
+      "coachPlay": "播放教练的话"
     },
     "upload": {
       "doneBody": "干得漂亮。现在可以关闭这个页面了。",
@@ -893,7 +895,9 @@
       "subtitle": "全家今日一览，{{date}}",
       "tapHint": "点击成员查看他今天的任务；点击任务圆圈可代为标记完成。",
       "toggleError": "无法更新「{{title}}」：{{error}}",
-      "waitingHeading": "等你处理"
+      "waitingHeading": "等你处理",
+      "coachToday": "今日点评",
+      "coachSaid": "对孩子说：{{text}}"
     },
     "modal": {
       "close": "关闭"

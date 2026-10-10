@@ -17,7 +17,7 @@ type Auth struct {
 	OIDC     *OIDCService
 }
 
-func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.Mux, *ChoreHandler, *ReportsHandler) {
+func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.Mux, *ChoreHandler, *ReportsHandler, *CoachHandler) {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -36,6 +36,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	tokens := NewTokenHandler(s)
 	setup := NewSetupHandler(s, auth.Sessions)
 	reports := NewReportsHandler(s, dispatcher, discordNotifier, aiSvc)
+	coach := NewCoachHandler(s, aiSvc, chores)
 	authH := NewAuthHandler(s, auth.Sessions, dispatcher, auth.OIDC)
 	oidcH := auth.OIDC
 
@@ -84,6 +85,10 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			r.Delete("/users/{id}/identities/{identityID}", oidcH.UnlinkIdentity)
 
 			r.Get("/users/{id}/redemptions", rewards.ListRedemptions)
+
+			// Daily coach note: kids read their own (parent side hidden),
+			// grown-ups read any kid's full note.
+			r.Get("/users/{id}/coach-note", coach.GetNote)
 
 			// Any user can update their own profile preferences
 			r.Put("/users/{id}/theme", users.UpdateTheme)
@@ -210,5 +215,5 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 		})
 	})
 
-	return r, chores, reports
+	return r, chores, reports, coach
 }

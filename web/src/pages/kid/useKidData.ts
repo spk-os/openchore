@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, APIError } from '../../api';
 import type {
-  PointsData, RedemptionHistory, Reward, ScheduledChore, User, UserStreakData,
+  DailyCoachNote, PointsData, RedemptionHistory, Reward, ScheduledChore, User, UserStreakData,
 } from '../../types';
 import { localDateStr } from '../../utils';
 
@@ -25,6 +25,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
   const [weekChores, setWeekChores] = useState<ScheduledChore[] | null>(null);
   const [streak, setStreak] = useState<UserStreakData | null>(null);
   const [points, setPoints] = useState<PointsData | null>(null);
+  const [coachNote, setCoachNote] = useState<DailyCoachNote | null>(null);
   const [rewards, setRewards] = useState<Reward[] | null>(null);
   const [redemptions, setRedemptions] = useState<RedemptionHistory[]>([]);
   const [people, setPeople] = useState<User[]>([]);
@@ -79,6 +80,18 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
     }
   }, [userId]);
 
+  // The daily coach note for today (kid view: parent side already hidden
+  // server-side). Failing quietly is fine: the card simply doesn't show.
+  const loadCoachNote = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const note = await api.coach.getNote(userId);
+      setCoachNote(note.child_text ? note : null);
+    } catch {
+      setCoachNote(null);
+    }
+  }, [userId]);
+
   const loadRewards = useCallback(async () => {
     if (!userId) return;
     try {
@@ -93,6 +106,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
 
   useEffect(() => { loadChores(); }, [loadChores]);
   useEffect(() => { loadExtras(); }, [loadExtras]);
+  useEffect(() => { loadCoachNote(); }, [loadCoachNote, today]);
   useEffect(() => { if (opts.week) loadWeek(); }, [opts.week, loadWeek]);
   useEffect(() => { if (opts.rewards) loadRewards(); }, [opts.rewards, loadRewards]);
   // Family pots show each contributor in their colour: the profile list is
@@ -293,7 +307,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
 
   return {
     today, chores, weekChores, streak, points, rewards, redemptions, people,
-    togglingIds, toast, showToast,
+    coachNote, togglingIds, toast, showToast,
     reloadChores, refreshAll, loadRewards, toggle,
     commitmentFor, redeem, redeemingId, redeemedId, saveToward, savingTowardId,
     contribute, setAutoContribute, breakCommitment, busyGoals,

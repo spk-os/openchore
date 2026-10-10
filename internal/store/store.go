@@ -1155,6 +1155,43 @@ func (s *Store) SaveWeeklySummary(ctx context.Context, userID int64, weekStart, 
 	return err
 }
 
+// --- Daily coach notes (P2) ---
+
+// GetDailyCoachNote returns the stored note for a user's date, or nil when
+// none has been written.
+func (s *Store) GetDailyCoachNote(ctx context.Context, userID int64, date string) (*model.DailyCoachNote, error) {
+	n := &model.DailyCoachNote{}
+	err := s.db.QueryRowContext(ctx,
+		`SELECT user_id, date, child_text, child_audio_url, parent_text FROM daily_coach_notes WHERE user_id = ? AND date = ?`,
+		userID, date).
+		Scan(&n.UserID, &n.Date, &n.ChildText, &n.ChildAudioURL, &n.ParentText)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	n.Date = normalizeDate(n.Date)
+	return n, nil
+}
+
+// SaveDailyCoachNote stores (or replaces) the note for a user's date.
+func (s *Store) SaveDailyCoachNote(ctx context.Context, n model.DailyCoachNote) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO daily_coach_notes (user_id, date, child_text, child_audio_url, parent_text) VALUES (?, ?, ?, ?, ?)
+		 ON CONFLICT (user_id, date) DO UPDATE SET child_text = excluded.child_text, child_audio_url = excluded.child_audio_url, parent_text = excluded.parent_text, created_at = CURRENT_TIMESTAMP`,
+		n.UserID, n.Date, n.ChildText, n.ChildAudioURL, n.ParentText)
+	return err
+}
+
+// UpdateDailyCoachNoteAudio records the read-aloud audio for a stored note.
+func (s *Store) UpdateDailyCoachNoteAudio(ctx context.Context, userID int64, date, audioURL string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE daily_coach_notes SET child_audio_url = ? WHERE user_id = ? AND date = ?`,
+		audioURL, userID, date)
+	return err
+}
+
 // --- Settings ---
 
 func (s *Store) GetSetting(ctx context.Context, key string) (string, error) {
