@@ -112,3 +112,37 @@ func TestScheduledChoreIncludesReferencePhoto(t *testing.T) {
 	}
 }
 
+
+// The pending-approvals list carries the chore's reference photo so the
+// parent card can show the before/after pair.
+func TestPendingCompletionCarriesReferencePhoto(t *testing.T) {
+	env := setupTest(t)
+	env.createAdmin(t)
+	kidID := env.createChild(t, "Kid")
+
+	env.expectStatus(t, "POST", "/api/chores", map[string]any{
+		"title": "Fold Laundry", "category": "core", "points_value": 7,
+		"requires_photo": true, "photo_source": "child", "requires_approval": true,
+		"reference_photo_url": "/uploads/ref_laundry.jpg",
+	}, adminHeaders(), http.StatusCreated)
+	env.expectStatus(t, "POST", "/api/chores/1/schedules", map[string]any{
+		"assigned_to": kidID,
+		"day_of_week": int(time.Now().Weekday()),
+	}, adminHeaders(), http.StatusCreated)
+
+	env.expectStatus(t, "POST", "/api/schedules/1/complete", map[string]any{
+		"completed_by":    kidID,
+		"completion_date": time.Now().Format(model.DateFormat),
+		"photo_url":       "/uploads/proof.jpg",
+	}, childHeaders(kidID), http.StatusCreated)
+
+	resp := env.expectStatus(t, "GET", "/api/completions/pending", nil, adminHeaders(), http.StatusOK)
+	var pending []map[string]any
+	decodeBody(t, resp, &pending)
+	if len(pending) != 1 {
+		t.Fatalf("expected one pending completion, got %d", len(pending))
+	}
+	if pending[0]["reference_photo_url"] != "/uploads/ref_laundry.jpg" {
+		t.Fatalf("expected reference photo in pending row, got %+v", pending[0]["reference_photo_url"])
+	}
+}

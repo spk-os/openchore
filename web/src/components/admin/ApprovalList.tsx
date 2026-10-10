@@ -8,6 +8,10 @@ import { CategoryLabel, IconWell, PersonName } from './pickers';
 import ui from './ui.module.css';
 import styles from './ApprovalList.module.css';
 
+
+// Before/after pair: the parent's example photo vs. the kid's completion
+// shot, each taking half the card width.
+
 interface Props {
   pending: PendingCompletion[];
   users: User[];
@@ -70,12 +74,30 @@ export const ApprovalList: React.FC<Props> = ({ pending, users, onChanged }) => 
               </div>
             </div>
 
-            {p.photo_url && (
+            {p.reference_photo_url && p.photo_url ? (
+              // Before/after: the parent's example next to what the kid
+              // actually shot, so "matches?" can be judged at a glance.
+              <div className={styles.beforeAfter}>
+                <a className={styles.beforeAfterItem} href={p.reference_photo_url} target="_blank" rel="noreferrer">
+                  <img src={p.reference_photo_url} alt={t('admin.approvalsTab.beforeAfterRef')} loading="lazy" />
+                  <span className={styles.photoHint}><Icon name="book" />{t('admin.approvalsTab.beforeAfterRef')}</span>
+                </a>
+                <a className={styles.beforeAfterItem} href={p.photo_url} target="_blank" rel="noreferrer">
+                  <img src={p.photo_url} alt={t('admin.approvalsTab.beforeAfterDone')} loading="lazy" />
+                  <span className={styles.photoHint}><Icon name="camera" />{t('admin.approvalsTab.beforeAfterDone')}</span>
+                </a>
+              </div>
+            ) : p.photo_url ? (
               <a className={styles.photo} href={p.photo_url} target="_blank" rel="noreferrer">
                 <img src={p.photo_url} alt={t('admin.approvalsTab.photoAlt')} loading="lazy" />
                 <span className={styles.photoHint}><Icon name="camera" />{t('admin.approvalsTab.openPhoto')}</span>
               </a>
-            )}
+            ) : p.reference_photo_url ? (
+              <a className={styles.photo} href={p.reference_photo_url} target="_blank" rel="noreferrer">
+                <img src={p.reference_photo_url} alt={t('admin.approvalsTab.beforeAfterRef')} loading="lazy" />
+                <span className={styles.photoHint}><Icon name="book" />{t('admin.approvalsTab.beforeAfterRef')}</span>
+              </a>
+            ) : null}
 
             {p.requires_photo && !p.photo_url && (
               // A "child" photo chore pending without a photo was finished

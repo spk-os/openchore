@@ -358,6 +358,9 @@ export interface PendingCompletion {
   // for "external"/"both" the photo can still be attached later.
   requires_photo?: boolean;
   photo_source?: 'child' | 'external' | 'both';
+  // The chore's "this is what done looks like" example, when set: the
+  // approval card shows it next to the submitted photo (before/after).
+  reference_photo_url?: string;
   // The AI photo reviewer's advisory note, once a review has run.
   // ai_complete is its read on the photo (absent until reviewed).
   ai_feedback?: string;

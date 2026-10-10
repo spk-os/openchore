@@ -603,7 +603,9 @@
       "tickedOffBy": "由 {{name}} 打勾",
       "title": "审批",
       "waitingForReview_one": "{{count}} 个任务待审",
-      "waitingForReview_other": "{{count}} 个任务待审"
+      "waitingForReview_other": "{{count}} 个任务待审",
+      "beforeAfterRef": "家长示例",
+      "beforeAfterDone": "完成照"
     },
     "choresTab": {
       "addChore": "添加任务",

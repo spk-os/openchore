@@ -66,7 +66,9 @@
       "tickedOffBy": "Abgehakt von {{name}}",
       "title": "Freigaben",
       "waitingForReview_one": "{{count}} Aufgabe wartet auf Prüfung",
-      "waitingForReview_other": "{{count}} Aufgaben warten auf Prüfung"
+      "waitingForReview_other": "{{count}} Aufgaben warten auf Prüfung",
+      "beforeAfterRef": "Eltern-Beispiel",
+      "beforeAfterDone": "Erledigt-Foto"
     },
     "choresTab": {
       "addChore": "Aufgabe hinzufügen",

@@ -66,7 +66,9 @@
       "tickedOffBy": "Ticked off by {{name}}",
       "title": "Approvals",
       "waitingForReview_one": "{{count}} chore waiting for review",
-      "waitingForReview_other": "{{count}} chores waiting for review"
+      "waitingForReview_other": "{{count}} chores waiting for review",
+      "beforeAfterRef": "Parent's example",
+      "beforeAfterDone": "Done photo"
     },
     "choresTab": {
       "addChore": "Add Chore",
