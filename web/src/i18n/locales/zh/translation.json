@@ -361,7 +361,12 @@
       "listLabel": "你的任务",
       "overview": "你的一天",
       "pending_one": "{{count}} 分待必做任务完成",
-      "pending_other": "{{count}} 分待必做任务完成"
+      "pending_other": "{{count}} 分待必做任务完成",
+      "streakDays_one": "连续 {{count}} 天",
+      "streakDays_other": "连续 {{count}} 天",
+      "streakBest": "最佳：{{count}} 天",
+      "streakNext_one": "再坚持 {{count}} 天达成「{{label}}」（+{{points}} 分）",
+      "streakNext_other": "再坚持 {{count}} 天达成「{{label}}」（+{{points}} 分）"
     },
     "upload": {
       "doneBody": "干得漂亮。现在可以关闭这个页面了。",

@@ -1134,7 +1134,12 @@
       "listLabel": "Your chores",
       "overview": "Your day",
       "pending_one": "{{count}} pt waiting for Must do",
-      "pending_other": "{{count}} pts waiting for Must do"
+      "pending_other": "{{count}} pts waiting for Must do",
+      "streakDays_one": "{{count}} day in a row",
+      "streakDays_other": "{{count}} days in a row",
+      "streakBest": "Best: {{count}} days",
+      "streakNext_one": "{{count}} more day for \"{{label}}\" (+{{points}} pts)",
+      "streakNext_other": "{{count}} more days for \"{{label}}\" (+{{points}} pts)"
     },
     "upload": {
       "doneBody": "Nice work. You can close this page now.",

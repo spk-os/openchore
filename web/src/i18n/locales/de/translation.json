@@ -1134,7 +1134,12 @@
       "listLabel": "Deine Aufgaben",
       "overview": "Dein Tag",
       "pending_one": "{{count}} Pkt. warten auf die Pflichten",
-      "pending_other": "{{count}} Pkt. warten auf die Pflichten"
+      "pending_other": "{{count}} Pkt. warten auf die Pflichten",
+      "streakDays_one": "{{count}} Tag in Folge",
+      "streakDays_other": "{{count}} Tage in Folge",
+      "streakBest": "Beste: {{count}} Tage",
+      "streakNext_one": "Noch {{count}} Tag für „{{label}}\" (+{{points}} P.)",
+      "streakNext_other": "Noch {{count}} Tage für „{{label}}\" (+{{points}} P.)"
     },
     "upload": {
       "doneBody": "Gut gemacht. Du kannst die Seite jetzt schließen.",

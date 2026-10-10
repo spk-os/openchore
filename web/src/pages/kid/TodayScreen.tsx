@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { DayProgress, Greeting, catFromCategory, salutationFor, type DayProgressItem } from '../../design';
+import { DayProgress, Greeting, Icon, catFromCategory, salutationFor, type DayProgressItem } from '../../design';
 import type { ScheduledChore, User } from '../../types';
 import { gates, isDone, type ChoreView } from './choreView';
 import { GoalNudge } from './GoalCard';
@@ -71,6 +71,26 @@ export function TodayScreen({ user, data, now, topBar, viewOf, tts, onToggle, on
             {earned > 0 && <span>{t('kid.today.earned', { count: earned })}</span>}
             {pending > 0 && <span>{t('kid.today.pending', { count: pending })}</span>}
           </p>
+        )}
+        {/* The streak bar: today's fire carries over from the week view, so
+            the kid sees the next milestone where the day actually happens. */}
+        {!user.paused && !!data.streak?.current_streak && (
+          <section className={s.streak} aria-label={t('kid.week.streak')}>
+            <span className={s.streakIcon}><Icon name="flame" fill size={26} /></span>
+            <div className={s.streakMain}>
+              <span className={s.streakNum}>{t('kid.today.streakDays', { count: data.streak.current_streak })}</span>
+              <span className={s.streakSub}>{t('kid.today.streakBest', { count: data.streak.longest_streak })}</span>
+            </div>
+            {data.streak.next_reward && (
+              <p className={s.streakNext}>
+                {t('kid.today.streakNext', {
+                  count: data.streak.next_reward.days_remaining,
+                  label: data.streak.next_reward.label,
+                  points: data.streak.next_reward.bonus_points,
+                })}
+              </p>
+            )}
+          </section>
         )}
       </section>
 
