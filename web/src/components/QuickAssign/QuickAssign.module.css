@@ -1,4 +1,5 @@
-/* Quick assign: one chore, some people, one day. */
+/* Quick assign: one chore, some people, one day — plus the parent
+ * Copilot's draft cards (P3-10/11). */
 
 .form {
   display: flex;
@@ -80,4 +81,231 @@
   width: 100%;
   min-height: 52px;
   font-size: 16px;
+}
+
+/* --- mode tabs (quick / copilot / flyer) --- */
+
+.modeTabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.modeTab {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.modeTab[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* --- copilot / flyer --- */
+
+.textarea {
+  composes: input from '../../styles/forms.module.css';
+  resize: vertical;
+  min-height: 76px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-muted, var(--ink));
+  opacity: 0.75;
+}
+
+.fileDrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 76px;
+  padding: 0 16px;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileHint {
+  opacity: 0.7;
+}
+
+/* dated facts (events) and parent memos: flat rows, never cards */
+.factRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.factTitle {
+  font-weight: 650;
+}
+
+.factDate {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.packHint {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  opacity: 0.8;
+}
+
+/* task cards: check, icon, editable title, editable points */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cardIcon {
+  font-size: 18px;
+}
+
+.cardTitleInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.cardTitleInput:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.cardPoints {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.cardPoints input {
+  width: 56px;
+  min-height: 34px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 14px;
+  text-align: right;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+}
+
+.cardSelect {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13px;
+}
+
+.cardDays {
+  font-size: 12.5px;
+  opacity: 0.75;
+}
+
+.cardWhy {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  opacity: 0.7;
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notes p {
+  margin: 0;
+}
+
+.applyRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.regenBtn {
+  min-height: 52px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.regenBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.applyRow .assignBtn {
+  flex: 1;
 }

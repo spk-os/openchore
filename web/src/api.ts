@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult } from './types';
 
 const API_BASE = '/api';
 
@@ -356,6 +356,16 @@ export const api = {
       }),
     importTemplate: (req: TemplateImportRequest) =>
       fetchWithAuth<TemplateImportResult>('/admin/templates/import', {
+        method: 'POST',
+        body: JSON.stringify(req),
+      }),
+    copilotDraft: (req: { assigned_to: number; mode?: 'text' | 'flyer'; request?: string; photo_url?: string }) =>
+      fetchWithAuth<CopilotDraftResponse>('/admin/copilot/draft', {
+        method: 'POST',
+        body: JSON.stringify(req),
+      }),
+    copilotApply: (req: { assigned_to: number; source: 'copilot' | 'flyer'; tasks: CopilotApplyTask[] }) =>
+      fetchWithAuth<CopilotApplyResult>('/admin/copilot/apply', {
         method: 'POST',
         body: JSON.stringify(req),
       }),

@@ -593,3 +593,77 @@ export interface TemplateImportResult {
   chores: Chore[];
 }
 
+// --- Parent Copilot (P3-10/11) ---
+
+/** One drafted task card. The parent reviews and may edit every field
+ *  inline before applying; confidence and rationale are shown so the
+ *  suggestion's origin is never a black box. */
+export interface CopilotTask {
+  title: string;
+  description: string;
+  category: 'required' | 'core' | 'bonus';
+  icon: string;
+  points_value: number;
+  missed_penalty: number;
+  estimated_minutes: number;
+  /** daily / weekdays / weekends / mon..sun — same tokens as template packs. */
+  days: string[];
+  /** One-day task (flyer deadlines): set with empty days. */
+  date: string;
+  due_by: string;
+  available_at: string;
+  confidence: number;
+  rationale: string;
+}
+
+/** A dated fact pulled out of a flyer (期中考试 11月3-5日): surfaced so the
+ *  parent can act (e.g. switch template packs), never a chore itself. */
+export interface CopilotEvent {
+  title: string;
+  date: string;
+  /** Built-in pack the event implies: 'exam-week' | 'holiday-balance' | ''. */
+  template_suggestion: string;
+}
+
+/** A parent-side obligation (缴费、家长会): explicitly NOT a kid task. */
+export interface CopilotMemo {
+  title: string;
+  date: string;
+}
+
+/** The Copilot's whole answer: cards plus advisory notes (dedup skips). */
+export interface CopilotDraft {
+  tasks: CopilotTask[];
+  events: CopilotEvent[];
+  memos: CopilotMemo[];
+  notes: string[];
+}
+
+/** What the draft endpoint answers: the plan plus the drawer's context. */
+export interface CopilotDraftResponse extends CopilotDraft {
+  mode: 'text' | 'flyer';
+  photo_url?: string;
+}
+
+/** One confirmed card of an apply, after the parent's inline edits. */
+export interface CopilotApplyTask {
+  title: string;
+  description: string;
+  category: 'required' | 'core' | 'bonus';
+  icon: string;
+  points_value: number;
+  missed_penalty: number;
+  estimated_minutes: number;
+  days: string[];
+  date: string;
+  due_by: string;
+  available_at: string;
+  expiry: 'block' | 'no_points' | 'penalty';
+}
+
+/** What the apply endpoint answers on 201. */
+export interface CopilotApplyResult {
+  applied: number;
+  chores: Chore[];
+}
+

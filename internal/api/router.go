@@ -221,6 +221,12 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Post("/admin/templates/{id}/tune", chores.TuneTemplate)
 				r.Post("/admin/templates/import", chores.ImportTemplate)
 
+				// Parent Copilot (P3-10/11): draft a task plan from a
+				// sentence or a photographed school notice, review card by
+				// card, then apply through the same paths as a manual create.
+				r.Post("/admin/copilot/draft", chores.DraftWithCopilot)
+				r.Post("/admin/copilot/apply", chores.ApplyCopilotDraft)
+
 				// Integration discovery: chores with triggers
 				r.Get("/chores/triggerable", triggers.ListTriggerable)
 			})
