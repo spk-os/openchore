@@ -22,7 +22,8 @@
         "pet_feed": "Pet fed",
         "points_decay": "Points decay",
         "reward_redeem": "Reward redeemed",
-        "streak_bonus": "Streak bonus"
+        "streak_bonus": "Streak bonus",
+        "grandparent_boost": "Grandparent boost"
       },
       "title": "Activity",
       "undoTitle": "Undo this event"
@@ -858,7 +859,27 @@
       "decayAdviceBalance": "Balance under 200 pts: leave it off. The kid hasn't built anything worth guarding yet — deductions only discourage.",
       "decayAdviceEarn": "Consider it only with a healthy balance: watch for a week or two first, and confirm the kid is choosing not to do chores rather than unable to.",
       "decayAdviceMood": "Kid complains it's pointless: turn decay off, talk about how it was pitched, then decide together on a different motivator.",
-      "decayAdviceDoc": "See the Points Decay guide in the docs for more."
+      "decayAdviceDoc": "See the Points Decay guide in the docs for more.",
+      "boostSettingsTitle": "Grandparent boost links",
+      "boostTitle": "Grandparent boost links",
+      "boostHelp": "Mint a personal link for a grandparent: scanning it shows the kid's week and lets them add points as a cheer. 60 points a month, at most 3 boosts a day, revocable any time.",
+      "boostLabelField": "Their name (e.g. Grandma)",
+      "boostLabelPlaceholder": "Grandma",
+      "boostLabelHelp": "Shown in the link list, so you can tell who each link is for.",
+      "boostCreateBtn": "Create link",
+      "boostCreating": "Creating…",
+      "boostShareTitle": "Link created: {{label}}",
+      "boostShareOnce": "This link shows only once — scan or copy it to the grandparent now.",
+      "boostShareExpiry": "Valid until {{date}}",
+      "boostCopyLink": "Copy link",
+      "boostCopied": "Copied",
+      "boostShareDone": "I've sent it",
+      "boostConfirmRevoke": "Revoke {{label}}'s link? Their page stops working immediately.",
+      "boostRevokeTitle": "Revoke this link",
+      "boostRevokedBadge": "Revoked",
+      "boostUnnamed": "(unnamed)",
+      "boostMeta": "{{granted}}/{{cap}} pts boosted this month · expires {{date}}",
+      "boostEmpty": "No links yet. Create one and send it to a grandparent who wants to cheer along."
     }
   },
   "common": {
@@ -1473,5 +1494,21 @@
     "chartTitle": "Today so far",
     "chartDesc": "How much of their day each person has done, hour by hour. Now: {{summary}}.",
     "chartPerson": "{{name}} {{pct}}%"
+  },
+  "boost": {
+    "kicker": "A grandparent's cheer",
+    "for": "For {{name}}",
+    "helloTitle": "Hi {{label}}",
+    "defaultLabel": "family",
+    "statStreak": "day streak",
+    "statWeek": "chores done this week",
+    "cheerTitle": "Send a cheer",
+    "quotaLine": "Boost allowance left this month: {{left}} / {{cap}} pts",
+    "sentToast": "🎉 {{amount}} points sent!",
+    "capMonthly": "This month's allowance is used up — come back next month",
+    "capDaily": "That's all the cheers for today — see you tomorrow",
+    "invalidTitle": "Link no longer available",
+    "invalidBody": "This link is missing, expired or revoked. Ask the kid's parent for a fresh one.",
+    "footnote": "Made with OpenChore · points only, never money"
   }
 }

@@ -35,6 +35,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	triggers := NewTriggerHandler(s)
 	tokens := NewTokenHandler(s)
 	pets := NewPetHandler(s)
+	boosts := NewBoostHandler(s)
 	setup := NewSetupHandler(s, auth.Sessions)
 	reports := NewReportsHandler(s, dispatcher, discordNotifier, aiSvc)
 	coach := NewCoachHandler(s, aiSvc, chores)
@@ -71,6 +72,11 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 
 		// Public: chore trigger webhook (UUID is the auth)
 		r.Post("/hooks/trigger/{uuid}", triggers.FireTrigger)
+
+		// Public: grandparent boost links (P4-16) — the token in the
+		// path is the elder's only credential, so no session needed.
+		r.Get("/boost/{token}", boosts.GetBoostPage)
+		r.Post("/boost/{token}", boosts.PostBoost)
 
 		// Initial setup (only works when no users exist)
 		r.Post("/setup", setup.Setup)
@@ -184,6 +190,12 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Get("/admin/streak-rewards", streaks.ListRewards)
 				r.Post("/admin/streak-rewards", streaks.CreateReward)
 				r.Delete("/admin/streak-rewards/{id}", streaks.DeleteReward)
+
+				// Grandparent boost link management (P4-16): mint,
+				// list and revoke the elder's read-only share links.
+				r.Get("/admin/users/{userID}/boost-links", boosts.ListLinks)
+				r.Post("/admin/users/{userID}/boost-links", boosts.CreateLink)
+				r.Delete("/admin/users/{userID}/boost-links/{linkID}", boosts.RevokeLink)
 
 				// Config export
 				r.Get("/admin/export-config", admin.ExportConfig)

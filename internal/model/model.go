@@ -22,17 +22,18 @@ const (
 
 // Point transaction reasons
 const (
-	ReasonChoreComplete   = "chore_complete"
-	ReasonChoreUncomplete = "chore_uncomplete"
-	ReasonAdminAdjust     = "admin_adjust"
-	ReasonRewardRedeem    = "reward_redeem"
-	ReasonExpiryPenalty   = "expiry_penalty"
-	ReasonPointsDecay     = "points_decay"
-	ReasonMissedChore     = "missed_chore"
-	ReasonCommitToGoal    = "commit_to_goal"
-	ReasonGoalBreak       = "goal_break"
-	ReasonPetFeed         = "pet_feed"
-	ReasonBonusDrop       = "bonus_drop"
+	ReasonChoreComplete    = "chore_complete"
+	ReasonChoreUncomplete  = "chore_uncomplete"
+	ReasonAdminAdjust      = "admin_adjust"
+	ReasonRewardRedeem     = "reward_redeem"
+	ReasonExpiryPenalty    = "expiry_penalty"
+	ReasonPointsDecay      = "points_decay"
+	ReasonMissedChore      = "missed_chore"
+	ReasonCommitToGoal     = "commit_to_goal"
+	ReasonGoalBreak        = "goal_break"
+	ReasonPetFeed          = "pet_feed"
+	ReasonBonusDrop        = "bonus_drop"
+	ReasonGrandparentBoost = "grandparent_boost"
 )
 
 // Commitment statuses
@@ -512,3 +513,32 @@ const (
 
 // FeedPetCost is what one feeding costs, in points.
 const FeedPetCost = 10
+
+// --- Grandparent boost links (P4-16) ---
+
+// BoostLink is a share-out to a grown-up outside the household (a
+// grandparent): a token-addressed, read-only page with a capped points
+// "boost" button. The token is the only auth — elders never register —
+// and the caps keep the boost a garnish, not a second income: a monthly
+// allowance (default 60), at most 3 boosts per day per link.
+type BoostLink struct {
+	ID           int64      `json:"id"`
+	UserID       int64      `json:"user_id"`         // the kid being cheered on
+	Token        string     `json:"token,omitempty"` // shared once at creation; listings keep it private by zeroing it
+	Label        string     `json:"label"`           // e.g. "Grandma"
+	MonthlyCap   int        `json:"monthly_cap"`
+	DailyLimit   int        `json:"daily_limit"`
+	Granted      int        `json:"granted"`       // points granted in GrantedMonth
+	GrantedMonth string     `json:"granted_month"` // "2006-01" the tally belongs to
+	Revoked      bool       `json:"revoked"`
+	ExpiresAt    time.Time  `json:"expires_at"`
+	LastBoostAt  *time.Time `json:"last_boost_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+}
+
+// The boost link's default caps.
+const (
+	BoostDefaultMonthlyCap = 60
+	BoostDefaultDailyLimit = 3
+	BoostDefaultDays       = 90
+)

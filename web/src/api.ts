@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot } from './types';
 
 const API_BASE = '/api';
 
@@ -312,6 +312,15 @@ export const api = {
     }),
     feed: () => fetchWithAuth<Pet>('/pet/feed', { method: 'POST' }),
   },
+  boost: {
+    // The elder's boost page (P4-16): public, token-addressed, no session.
+    page: (token: string) => fetchPublic<BoostSnapshot>(`/boost/${encodeURIComponent(token)}`),
+    send: (token: string, amount: number) =>
+      fetchPublic<BoostSnapshot>(`/boost/${encodeURIComponent(token)}`, {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      }),
+  },
   decay: {
     getConfig: (userId: number) => fetchWithAuth<UserDecayConfig>(`/admin/users/${userId}/decay`),
     setConfig: (userId: number, data: Partial<UserDecayConfig>) =>
@@ -384,6 +393,19 @@ export const api = {
       fetchWithAuth<{ status: string }>('/admin/tts/regenerate', { method: 'POST' }),
     getAISummary: (userId: number, period: string, date: string) =>
       fetchWithAuth<{ summary: string }>(`/admin/reports/ai-summary?user_id=${userId}&period=${period}&date=${date}`),
+    // Grandparent boost link management (P4-16). The token returns once
+    // at creation — the listing keeps it private.
+    listBoostLinks: (userId: number) =>
+      fetchWithAuth<BoostLink[]>(`/admin/users/${userId}/boost-links`),
+    createBoostLink: (userId: number, label: string) =>
+      fetchWithAuth<BoostLink>(`/admin/users/${userId}/boost-links`, {
+        method: 'POST',
+        body: JSON.stringify({ label }),
+      }),
+    revokeBoostLink: (userId: number, linkId: number) =>
+      fetchWithAuth<{ revoked: boolean }>(`/admin/users/${userId}/boost-links/${linkId}`, {
+        method: 'DELETE',
+      }),
     exportConfig: async (sections: string[]) => {
       const resp = await fetch(`${API_BASE}/admin/export-config?sections=${sections.join(',')}`, { credentials: 'same-origin' });
       if (!resp.ok) throw new Error('export failed');

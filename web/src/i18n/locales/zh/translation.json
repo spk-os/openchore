@@ -635,7 +635,8 @@
         "pet_feed": "宠物喂食",
         "points_decay": "积分衰减",
         "reward_redeem": "兑换奖励",
-        "streak_bonus": "连续奖励"
+        "streak_bonus": "连续奖励",
+        "grandparent_boost": "长辈打赏"
       },
       "title": "动态",
       "undoTitle": "撤销此条动态"
@@ -1471,7 +1472,43 @@
       "decayAdviceBalance": "余额低于 200 分：建议不开。孩子还没攒到「值得守护」的程度，扣分只会挫伤积极性。",
       "decayAdviceEarn": "余额充足再考虑：开启前先观察一两周，确认孩子是因为不想做而不是做不到。",
       "decayAdviceMood": "孩子抱怨「做了也白做」：先停用衰减，和孩子聊聊触达方式，再决定是否换一种激励。",
-      "decayAdviceDoc": "想了解更多，见文档《积分衰减使用指南》。"
+      "decayAdviceDoc": "想了解更多，见文档《积分衰减使用指南》。",
+      "boostSettingsTitle": "长辈打赏链接",
+      "boostTitle": "长辈打赏链接",
+      "boostHelp": "为爷爷奶奶生成一个专属链接：扫码即可看到孩子的近况，并给孩子加积分鼓励。每月额度 60 分、每天最多 3 次，随时可以吊销。",
+      "boostLabelField": "称呼（如：奶奶）",
+      "boostLabelPlaceholder": "奶奶",
+      "boostLabelHelp": "显示在链接列表里，帮您分清每个链接给谁。",
+      "boostCreateBtn": "生成链接",
+      "boostCreating": "生成中…",
+      "boostShareTitle": "链接已生成：{{label}}",
+      "boostShareOnce": "此链接只显示这一次——请现在扫码或复制发给长辈。",
+      "boostShareExpiry": "有效期至 {{date}}",
+      "boostCopyLink": "复制链接",
+      "boostCopied": "已复制",
+      "boostShareDone": "我已发送",
+      "boostConfirmRevoke": "吊销「{{label}}」的链接？吊销后长辈的页面立即失效。",
+      "boostRevokeTitle": "吊销此链接",
+      "boostRevokedBadge": "已吊销",
+      "boostUnnamed": "（未命名）",
+      "boostMeta": "本月已打赏 {{granted}}/{{cap}} 分 · {{date}} 到期",
+      "boostEmpty": "还没有链接。生成一个，发给想给孩子鼓励的长辈吧。"
     }
+  },
+  "boost": {
+    "kicker": "长辈的鼓励",
+    "for": "给 {{name}}",
+    "helloTitle": "{{label}}，你好呀",
+    "defaultLabel": "家人",
+    "statStreak": "连续打卡天数",
+    "statWeek": "本周完成任务",
+    "cheerTitle": "给孩子加个油",
+    "quotaLine": "本月剩余可打赏额度：{{left}} / {{cap}} 分",
+    "sentToast": "🎉 已给孩子加了 {{amount}} 分！",
+    "capMonthly": "本月额度已满，下月再来鼓励哦",
+    "capDaily": "今天的鼓励次数用完啦，明天再来～",
+    "invalidTitle": "链接已失效",
+    "invalidBody": "这个链接不存在、已过期或已被吊销。请孩子的家长重新生成一个。",
+    "footnote": "由 OpenChore 家庭任务系统生成 · 只有积分，没有金钱"
   }
 }

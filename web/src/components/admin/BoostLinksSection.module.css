@@ -1,0 +1,137 @@
+/* Grandparent boost links (P4-16): the one-time share card and the link
+   list inside a user card's inset. */
+
+/* The minted link's only appearance: a scannable code next to what to do
+   with it. The code sits on light "paper" — scanners need dark on light. */
+.shareCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--outline-w) solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+
+.qrPaper {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+  padding: var(--space-2);
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: var(--on-ink, #fff);
+  color: #111;
+}
+
+.shareBody {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.shareHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.shareHead svg {
+  flex: none;
+}
+
+.shareMeta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.shareActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* The create form: label input with the button riding alongside. */
+.createWrap {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 22px;
+}
+
+/* The existing links. */
+.linkList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 10px;
+  background: var(--surface-sunk);
+}
+
+.linkIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+}
+
+.linkMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.linkLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.linkLabel:empty::before {
+  content: '—';
+  color: var(--ink-muted);
+}
+
+.linkMeta {
+  font-size: 12px;
+  color: var(--ink-muted);
+}

@@ -60,6 +60,38 @@ No authentication required.
 | `POST` | `/api/setup` | First-run setup: `{"parent": {"name", "pin"}, "children", "chores"}`. Only succeeds while no users exist, and signs the parent in |
 | `POST` | `/api/hooks/trigger/{uuid}` | Fire a chore trigger; the UUID is the credential |
 
+### Grandparent boost links
+
+A token-addressed, read-only page for a grown-up outside the household
+(BusyKid's BusyPay idea, localized: the currency is points, never money).
+The 48-character token **is** the credential — unknown, revoked and expired
+links all answer `404`, so the page says "no longer available" without
+leaking which. The snapshot shows only what a family would share over the
+phone: the kid's name, the streak, this week's approved completions and
+today's coach line — no chore details, no balance, no photos.
+
+Caps keep the boost a garnish: 60 points a month per link (the tally rolls
+over lazily on the first boost of a new calendar month) and at most 3
+boosts a day. Amounts are fixed at 5 / 10 / 20. Every boost lands in the
+ledger as a `grandparent_boost` row with the link as `reference_id` and
+the elder's label in the note, so gifted points stay auditable.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/boost/{token}` | The elder's read-only snapshot: `kid_name`, `label`, `current_streak`, `week_completed`, `coach_line`, the caps (`monthly_cap`, `daily_limit`), `granted_this_month` and the allowed `amounts`. 404 when the link is missing, revoked or expired |
+| `POST` | `/api/boost/{token}` | Apply a boost: `{"amount": 5 \| 10 \| 20}`. `201` with the fresh snapshot; `422` when the monthly allowance is used up or the day's limit is reached; `400` for any other amount |
+
+Admin-side, links live under the kid they cheer on. The token returns
+**once**, from the create call — the listing never re-leaks it; sharing is
+a create-time event (the parent shows the QR code and copies the URL
+right then). Links expire after 90 days by default.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/admin/users/{userID}/boost-links` | The kid's links, newest first, tokens cleared |
+| `POST` | `/api/admin/users/{userID}/boost-links` | Mint a link; body `{"label"}` is optional (≤ 60 chars, e.g. "Grandma"). Returns the link with its token |
+| `DELETE` | `/api/admin/users/{userID}/boost-links/{linkID}` | Revoke: the elder's page stops working immediately |
+
 ---
 
 ## Authenticated

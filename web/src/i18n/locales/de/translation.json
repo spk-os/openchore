@@ -22,7 +22,8 @@
         "pet_feed": "Begleiter gefüttert",
         "points_decay": "Punkte verfallen",
         "reward_redeem": "Belohnung eingelöst",
-        "streak_bonus": "Streak-Bonus"
+        "streak_bonus": "Streak-Bonus",
+        "grandparent_boost": "Oma-&-Opa-Zuspruch"
       },
       "title": "Aktivität",
       "undoTitle": "Dieses Ereignis rückgängig machen"
@@ -858,7 +859,27 @@
       "decayAdviceBalance": "Guthaben unter 200 P.: lieber aus. Es gibt noch nichts, das sich zu verteidigen lohnt — Abzüge demotivieren nur.",
       "decayAdviceEarn": "Erst bei gutem Guthaben in Erwägung ziehen: ein bis zwei Wochen beobachten, ob das Kind nicht will oder nicht kann.",
       "decayAdviceMood": "Das Kind sagt „lohnt sich eh nicht“: Verfall aus, darüber sprechen, wie es eingeführt wurde — dann gemeinsam neu entscheiden.",
-      "decayAdviceDoc": "Mehr dazu im Leitfaden zum Punkteverfall."
+      "decayAdviceDoc": "Mehr dazu im Leitfaden zum Punkteverfall.",
+      "boostSettingsTitle": "Oma-&-Opa-Links",
+      "boostTitle": "Oma-&-Opa-Links",
+      "boostHelp": "Erstelle einen persönlichen Link für die Großeltern: Beim Scannen sehen sie die Woche des Kindes und können Punkte als Zuspruch geben. 60 Punkte im Monat, höchstens 3× täglich, jederzeit widerrufbar.",
+      "boostLabelField": "Anrede (z. B. Oma)",
+      "boostLabelPlaceholder": "Oma",
+      "boostLabelHelp": "Steht in der Link-Liste, damit Sie sehen, für wen jeder Link ist.",
+      "boostCreateBtn": "Link erstellen",
+      "boostCreating": "Wird erstellt…",
+      "boostShareTitle": "Link erstellt: {{label}}",
+      "boostShareOnce": "Dieser Link wird nur einmal angezeigt — jetzt scannen oder kopieren und weiterschicken.",
+      "boostShareExpiry": "Gültig bis {{date}}",
+      "boostCopyLink": "Link kopieren",
+      "boostCopied": "Kopiert",
+      "boostShareDone": "Verschickt",
+      "boostConfirmRevoke": "Den Link von {{label}} widerrufen? Die Seite funktioniert sofort nicht mehr.",
+      "boostRevokeTitle": "Diesen Link widerrufen",
+      "boostRevokedBadge": "Widerrufen",
+      "boostUnnamed": "(ohne Namen)",
+      "boostMeta": "{{granted}}/{{cap}} Pkt. diesen Monat · läuft ab am {{date}}",
+      "boostEmpty": "Noch keine Links. Erstelle einen und schicke ihn den Großeltern, die mitfiebern wollen."
     }
   },
   "common": {
@@ -1473,5 +1494,21 @@
     "chartTitle": "Heute bisher",
     "chartDesc": "Wie viel jede Person von ihrem Tag geschafft hat, Stunde für Stunde. Jetzt: {{summary}}.",
     "chartPerson": "{{name}} {{pct}} %"
+  },
+  "boost": {
+    "kicker": "Zuspruch der Großeltern",
+    "for": "Für {{name}}",
+    "helloTitle": "Hallo {{label}}",
+    "defaultLabel": "Familie",
+    "statStreak": "Tage in Folge",
+    "statWeek": "Aufgaben diese Woche",
+    "cheerTitle": "Ein Zuspruch schicken",
+    "quotaLine": "Übrig diesen Monat: {{left}} / {{cap}} Pkt.",
+    "sentToast": "🎉 {{amount}} Punkte geschickt!",
+    "capMonthly": "Das Monatskontingent ist aufgebraucht — nächsten Monat wieder",
+    "capDaily": "Für heute ist Schluss — bis morgen",
+    "invalidTitle": "Link nicht mehr verfügbar",
+    "invalidBody": "Dieser Link fehlt, ist abgelaufen oder widerrufen. Bitte die Eltern um einen neuen.",
+    "footnote": "Mit OpenChore gemacht · nur Punkte, nie Geld"
   }
 }

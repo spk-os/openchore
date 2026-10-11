@@ -201,7 +201,7 @@ export interface PointTransaction {
   id: number;
   user_id: number;
   amount: number;
-  reason: 'chore_complete' | 'chore_uncomplete' | 'reward_redeem' | 'streak_bonus' | 'admin_adjust' | 'expiry_penalty' | 'points_decay' | 'missed_chore' | 'commit_to_goal' | 'goal_break' | 'pet_feed' | 'bonus_drop';
+  reason: 'chore_complete' | 'chore_uncomplete' | 'reward_redeem' | 'streak_bonus' | 'admin_adjust' | 'expiry_penalty' | 'points_decay' | 'missed_chore' | 'commit_to_goal' | 'goal_break' | 'pet_feed' | 'bonus_drop' | 'grandparent_boost';
   reference_id?: number;
   note?: string;
   created_at: string;
@@ -697,3 +697,40 @@ export interface CopilotApplyResult {
   chores: Chore[];
 }
 
+
+// --- Grandparent boost links (P4-16) ---
+
+/**
+ * A share-out to a grown-up outside the household: a token-addressed,
+ * read-only page with a capped points boost button. The token comes
+ * back once at creation (never through the listing) — sharing is a
+ * create-time event.
+ */
+export interface BoostLink {
+  id: number;
+  user_id: number;
+  /** Present only right after creation, when the parent shares it. */
+  token?: string;
+  label: string;
+  monthly_cap: number;
+  daily_limit: number;
+  granted: number;
+  granted_month: string;
+  revoked: boolean;
+  expires_at: string;
+  last_boost_at?: string;
+  created_at: string;
+}
+
+/** The elder's curated, read-only snapshot (GET/POST /boost/{token}). */
+export interface BoostSnapshot {
+  kid_name: string;
+  label: string;
+  current_streak: number;
+  week_completed: number;
+  coach_line: string;
+  monthly_cap: number;
+  granted_this_month: number;
+  daily_limit: number;
+  amounts: number[];
+}

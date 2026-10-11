@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import { Trash2, Pencil, X, Pause, Play, KeyRound, Link2, TrendingDown } from 'lucide-react';
+import { Trash2, Pencil, X, Pause, Play, KeyRound, Link2, TrendingDown, HandHeart } from 'lucide-react';
 import { api, APIError } from '../../api';
 import type { User, UserDecayConfig } from '../../types';
 import { Avatar, Icon, resolveSkin, type PersonColor, type Skin } from '../../design';
 import LinkedAccountsModal from '../LinkedAccounts/LinkedAccountsModal';
 import { ColorPicker, SkinPicker, personColor } from './pickers';
+import { BoostLinksSection } from './BoostLinksSection';
 import ui from './ui.module.css';
 import styles from './UsersTab.module.css';
 
@@ -220,6 +221,7 @@ export const UsersTab: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [expandedDecay, setExpandedDecay] = useState<number | null>(null);
+  const [expandedBoost, setExpandedBoost] = useState<number | null>(null);
   const [accountsFor, setAccountsFor] = useState<User | null>(null);
   const [listError, setListError] = useState('');
 
@@ -370,6 +372,18 @@ export const UsersTab: React.FC = () => {
                   >
                     <TrendingDown aria-hidden />
                   </button>
+                  {u.role === 'child' && (
+                    <button
+                      type="button"
+                      className={ui.iconBtn}
+                      aria-expanded={expandedBoost === u.id}
+                      onClick={() => setExpandedBoost(expandedBoost === u.id ? null : u.id)}
+                      title={t('admin.usersTab.boostSettingsTitle')}
+                      aria-label={t('admin.usersTab.boostSettingsTitle')}
+                    >
+                      <HandHeart aria-hidden />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={ui.iconBtn}
@@ -393,6 +407,11 @@ export const UsersTab: React.FC = () => {
               {expandedDecay === u.id && (
                 <div className={styles.decay}>
                   <DecayConfigEditor userId={u.id} />
+                </div>
+              )}
+              {u.role === 'child' && expandedBoost === u.id && (
+                <div className={styles.decay}>
+                  <BoostLinksSection userId={u.id} />
                 </div>
               )}
             </div>

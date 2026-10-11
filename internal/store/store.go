@@ -3954,6 +3954,19 @@ func (s *Store) ReportCompletionTrend(ctx context.Context, startDate, endDate st
 	return results, rows.Err()
 }
 
+// CountApprovedCompletions counts one user's approved, still-live
+// completions in the inclusive date range — the boost page's "this
+// week" number and other light snapshots.
+func (s *Store) CountApprovedCompletions(ctx context.Context, userID int64, startDate, endDate string) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM chore_completions
+		 WHERE completed_by = ? AND completion_date >= ? AND completion_date <= ?
+		   AND status = ? AND uncompleted_at IS NULL`,
+		userID, startDate, endDate, model.StatusApproved).Scan(&count)
+	return count, err
+}
+
 type CategoryStatRow struct {
 	Category       string
 	TotalAssigned  int

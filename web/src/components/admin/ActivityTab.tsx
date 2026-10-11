@@ -22,6 +22,7 @@ const REASON_ICON: Partial<Record<PointTransaction['reason'], IconName>> = {
   goal_break: 'rocket',
   pet_feed: 'paw',
   bonus_drop: 'spark',
+  grandparent_boost: 'star',
 };
 
 export const ActivityTab: React.FC = () => {
