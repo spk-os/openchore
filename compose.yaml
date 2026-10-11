@@ -42,6 +42,38 @@ services:
       api:
         condition: service_healthy
 
+  # Optional: the MCP sidecar (P3-12) — a Model Context Protocol server
+  # that lets external agents (voice assistants, SPK-OS family agents)
+  # read chores, balances and reports and do two controlled writes
+  # (complete a chore, draft new ones). It holds no credentials of its
+  # own: every caller's Authorization header is forwarded to the API, so
+  # an agent can do exactly what its API token allows. Enable with
+  # `docker compose --profile mcp up -d` and connect at
+  # http://localhost:8090/mcp. See docs/mcp.md.
+  mcp:
+    image: ghcr.io/liftedkilt/openchore/mcp:latest
+    build:
+      context: .
+      dockerfile: Containerfile.mcp
+    container_name: openchore-mcp
+    restart: unless-stopped
+    profiles:
+      - mcp
+    environment:
+      - OPENCHORE_URL=http://api:8080
+      - PORT=8090
+    ports:
+      - "${MCP_PORT:-8090}:8090"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8090/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
   # Optional: a local vision model for photo review, chore descriptions and
   # weekly summaries — Gemma 4 E4B on llama.cpp's server (~5 GB download on
   # first start, ~6 GB RAM). Enable with `docker compose --profile ai up -d`

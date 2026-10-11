@@ -284,6 +284,7 @@ and `httptest`, no mocks.
 - [Signing in](docs/authentication.md) — PINs, parents, sessions, OIDC providers, upgrading
 - [AI features](docs/ai.md) — photo review, summaries, read-aloud voices, choosing a model, upgrading
 - [API reference](docs/api.md) — endpoints, auth, and webhook events
+- [MCP sidecar](docs/mcp.md) — let voice assistants and other agents read chores, tick them off (still parent-approved) and draft new ones
 - [Roadmap](ROADMAP.md) — shipped and planned
 - [CLAUDE.md](CLAUDE.md) — architecture notes and conventions
 

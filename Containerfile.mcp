@@ -1,0 +1,26 @@
+# The MCP sidecar (P3-12): a standalone Model Context Protocol server
+# that proxies external agents to OpenChore's REST API with the caller's
+# token. Built from the same module as the API, shipped as its own image so
+# upstream's api image stays untouched.
+
+FROM docker.io/library/golang:1.26-alpine AS builder
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 go build -o /openchore-mcp cmd/mcp-server/main.go
+
+FROM docker.io/library/alpine:3.21
+
+RUN apk add --no-cache ca-certificates
+COPY --from=builder /openchore-mcp /usr/local/bin/openchore-mcp
+
+# Where the sidecar finds OpenChore's REST API (compose service name).
+# The port the sidecar itself listens on.
+ENV OPENCHORE_URL=http://api:8080
+ENV PORT=8090
+EXPOSE 8090
+
+ENTRYPOINT ["/usr/local/bin/openchore-mcp"]

@@ -206,6 +206,20 @@ See [AI features](ai.md).
 
 ---
 
+## MCP sidecar
+
+External agents (voice assistants, scripts, SPK-OS family agents) reach the
+household through an optional Model Context Protocol server that proxies to
+this API with the caller's own token: `list_users`, `list_chores`,
+`query_balance`, `list_rewards`, `get_daily_report`, `get_streak` (reads),
+plus two narrow writes — `complete_chore` (goes through the normal approval
+flow) and `create_chore_draft` (draft-only; a parent must apply it).
+
+It is a separate container/binary that speaks only the endpoints above.
+Enable and authenticate it in [docs/mcp.md](mcp.md).
+
+---
+
 ## Outbound webhooks
 
 OpenChore posts JSON to registered URLs when something happens. Each request
