@@ -229,6 +229,10 @@ func (h *CoachHandler) dayStats(ctx context.Context, kid model.User, date string
 	if on, _ := h.store.GetSetting(ctx, petEnabledSetting); on == "true" {
 		h.addPetToStats(ctx, kid.ID, date, stats)
 	}
+	// P4-14: when the kid joined a shared family goal, its progress joins
+	// the parent side of the note — the AI ties the kid's effort to the
+	// "we" narrative. Errors are swallowed like the pet's.
+	h.addFamilyGoalToStats(ctx, kid.ID, stats)
 	return stats, nil
 }
 
@@ -255,6 +259,27 @@ func (h *CoachHandler) addPetToStats(ctx context.Context, userID int64, date str
 	stats.PetName = pet.Name
 	stats.PetMood = mood
 	stats.PetFedToday = fedToday
+}
+
+// addFamilyGoalToStats fills the family-goal fields of a day's stats when
+// the kid is part of a shared savings pool (P4-14). Like the pet, errors
+// are logged and swallowed: goal trouble must never cost the kid their
+// note.
+func (h *CoachHandler) addFamilyGoalToStats(ctx context.Context, userID int64, stats *llm.DailyNoteStats) {
+	commitments, err := h.store.ListActiveCommitmentsForUser(ctx, userID)
+	if err != nil {
+		log.Printf("coach: commitments for %d: %v", userID, err)
+		return
+	}
+	for _, c := range commitments {
+		if c.Pool == nil {
+			continue
+		}
+		stats.FamilyGoalName = c.Pool.RewardName
+		stats.FamilyGoalSaved = c.Pool.AmountSaved
+		stats.FamilyGoalTarget = c.Pool.TargetCost
+		return // one family goal is enough for one note
+	}
 }
 
 // saveCoachAudio writes one note's MP3 under the TTS directory and

@@ -4,6 +4,7 @@ import { DayProgress, Greeting, Icon, catFromCategory, salutationFor, type DayPr
 import type { ScheduledChore, User } from '../../types';
 import { gates, isDone, type ChoreView } from './choreView';
 import { GoalNudge } from './GoalCard';
+import { FamilyGoalCard } from './FamilyGoalCard';
 import { PetCard } from './PetCard';
 import { CAT_ORDER, ChoreGroups, Notice, PausedNotice } from './parts';
 import type { KidData } from './useKidData';
@@ -92,6 +93,18 @@ export function TodayScreen({ user, data, now, topBar, viewOf, tts, onToggle, on
               </p>
             )}
           </section>
+        )}
+        {/* The family's shared goal (P4-14) up front: the pot's progress
+            belongs where the day happens, so "we" is visible before any
+            single chore. Grown-ups who ticked their own chore off today
+            show here too. */}
+        {!user.paused && data.familyGoal && (
+          <FamilyGoalCard
+            c={data.familyGoal}
+            me={user}
+            people={data.people}
+            grownUpsDone={data.grownUpsDone}
+          />
         )}
         {/* The kid's buddy (P4-13), when the household has it on: mood from
             the chore record, feeding from the balance, growth over weeks. */}

@@ -2,13 +2,14 @@
 // The business rules live on the server; this keeps the old dashboard's
 // client behaviour: double-tap guards, photo flow fallbacks,
 // optimistic auto-save and the same error toasts.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, APIError } from '../../api';
+import { api, APIError, fetchPublicUserData } from '../../api';
 import type {
   DailyCoachNote, PetResponse, PointsData, RedemptionHistory, Reward, ScheduledChore, User, UserStreakData,
 } from '../../types';
 import { localDateStr } from '../../utils';
+import { isChoreDone } from '../../choreRules';
 
 export interface ToggleResult {
   /** The chore was finished (show the celebration). */
@@ -152,6 +153,39 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
   const refreshAll = useCallback(async () => {
     await Promise.all([reloadChores(), loadExtras()]);
   }, [reloadChores, loadExtras]);
+
+  // The family pot on Today (P4-14): besides the pool's numbers, the card
+  // shows which grown-ups already ticked their own (0-point) chore off
+  // today — the demonstration that "the whole family" is real. Each
+  // contributor's chores come from the public per-user endpoint, the same
+  // one the wall display reads; failures just drop the line.
+  const familyGoal = useMemo(
+    () => points?.active_commitments.find(c => c.pool) ?? null,
+    [points],
+  );
+  const [grownUpsDone, setGrownUpsDone] = useState<string[]>([]);
+  useEffect(() => {
+    const pool = familyGoal?.pool;
+    if (!pool?.contributors?.length) { setGrownUpsDone([]); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const users = people.length ? people : await api.users.list();
+        const grownUps = users.filter(u => u.role === 'admin' && !u.paused);
+        if (!grownUps.length) { if (alive) setGrownUpsDone([]); return; }
+        const lists = await Promise.all(grownUps.map(u =>
+          fetchPublicUserData<ScheduledChore[]>(`/users/${u.id}/chores?view=daily&date=${today}`).catch(() => [] as ScheduledChore[])));
+        if (!alive) return;
+        const done = grownUps
+          .filter((_, i) => lists[i].some(isChoreDone))
+          .map(u => u.name);
+        setGrownUpsDone(done);
+      } catch {
+        if (alive) setGrownUpsDone([]);
+      }
+    })();
+    return () => { alive = false; };
+  }, [familyGoal, people, today]);
 
   const togglingRef = useRef(togglingIds);
   togglingRef.current = togglingIds;
@@ -339,6 +373,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
     reloadChores, refreshAll, loadRewards, toggle,
     commitmentFor, redeem, redeemingId, redeemedId, saveToward, savingTowardId,
     contribute, setAutoContribute, breakCommitment, busyGoals,
+    familyGoal, grownUpsDone,
   };
 }
 

@@ -37,16 +37,21 @@ func (c *Client) WeeklySummary(ctx context.Context, s WeeklyStats) (string, erro
 
 // DailyNoteStats holds what a day's coaching note is written from. The
 // pet fields are the P4-13 tie-in: an empty PetName means no pet line.
+// The family-goal fields are the P4-14 tie-in: an empty FamilyGoalName
+// means no progress sentence for the parent.
 type DailyNoteStats struct {
-	KidName        string
-	CompletedCount int
-	MissedCount    int
-	TotalAssigned  int
-	PointsEarned   int
-	CurrentStreak  int
-	PetName        string // the kid's buddy, when they hatched one
-	PetMood        string // happy / calm / hungry
-	PetFedToday    bool
+	KidName          string
+	CompletedCount   int
+	MissedCount      int
+	TotalAssigned    int
+	PointsEarned     int
+	CurrentStreak    int
+	PetName          string // the kid's buddy, when they hatched one
+	PetMood          string // happy / calm / hungry
+	PetFedToday      bool
+	FamilyGoalName   string // the shared family goal, when the kid joined one
+	FamilyGoalSaved  int    // everyone's savings in the pool
+	FamilyGoalTarget int
 }
 
 // DailyNote writes the two sides of one day's coaching note in one pass:
@@ -66,14 +71,23 @@ The kid has a pet companion, %s (mood: %s; %s). Moods: happy = today's chores we
 			s.PetName, s.PetMood, fed, s.PetName, s.PetName)
 		reply = `{"child": "...", "pet": "...", "parent": "..."}`
 	}
-	prompt := fmt.Sprintf(`A kid's day of chores just ended. Kid: %s. Completed %d of %d chores (%d missed), earned %d points, current streak %d days.%s
+	family, familySuffix := "", ""
+	if s.FamilyGoalName != "" && s.FamilyGoalTarget > 0 {
+		pct := s.FamilyGoalSaved * 100 / s.FamilyGoalTarget
+		family = fmt.Sprintf(`
+The whole family is saving together toward "%s": %d of %d points pooled so far (%d%%). Weave the family goal's progress into the parent note ("parent"): when relevant, one clause tying the kid's effort to the shared goal (e.g. "家庭目标已完成 %d%%，照这个节奏本周能达成"). Never compare siblings' contributions.`,
+			s.FamilyGoalName, s.FamilyGoalSaved, s.FamilyGoalTarget, pct, pct)
+		// The parent's brief grows by one clause when there is a goal.
+		familySuffix = " When relevant, also tie today's effort to the family's shared goal."
+	}
+	prompt := fmt.Sprintf(`A kid's day of chores just ended. Kid: %s. Completed %d of %d chores (%d missed), earned %d points, current streak %d days.%s%s
 
 Write two short coaching notes about today, in the same language the family uses (default Chinese):
 1. "child": ONE sentence, at most 120 characters, for the kid to read themselves. Warm, growth-minded, specific to today's numbers. Never scold; if chores were missed, gently note tomorrow is a fresh start. No emojis.
-2. "parent": 2-3 sentences, at most 200 characters, for the parent. One concrete observation about today and one practical suggestion for tomorrow.
+2. "parent": 2-3 sentences, at most 200 characters, for the parent. One concrete observation about today and one practical suggestion for tomorrow.%s
 
 Reply with only JSON: %s`,
-		s.KidName, s.CompletedCount, s.TotalAssigned, s.MissedCount, s.PointsEarned, s.CurrentStreak, pet, reply)
+		s.KidName, s.CompletedCount, s.TotalAssigned, s.MissedCount, s.PointsEarned, s.CurrentStreak, pet, family, familySuffix, reply)
 	text, err := c.ask(ctx, prompt)
 	if err != nil {
 		return "", "", err

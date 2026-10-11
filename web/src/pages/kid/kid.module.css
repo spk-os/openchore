@@ -193,6 +193,15 @@
   box-shadow: var(--lift);
 }
 .goalNudge { text-decoration: none; }
+.familyGoal { text-decoration: none; }
+.goalMid { display: flex; align-items: center; gap: var(--space-3); }
+.goalMid .bar { flex: 1; }
+.who { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }
+.whoOne { display: inline-flex; align-items: center; gap: 6px; font-size: var(--type-meta-size); line-height: var(--type-meta-line); font-weight: 600; color: var(--ink-muted); }
+.whoOne > span:first-of-type { color: var(--ink); }
+.whoAmt { color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.autoSaveHintLine { color: var(--waiting); font-weight: 700; }
+.grownUpsDone { color: var(--ink); font-weight: 700; }
 .goalHead { display: flex; align-items: center; gap: var(--space-3); }
 .goalHead > svg { color: var(--ink-muted); }
 .goalTitles { flex: 1; min-width: 0; display: flex; flex-direction: column; }

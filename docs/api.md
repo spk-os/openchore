@@ -107,6 +107,17 @@ instead of spending balance the moment it lands.
 | `DELETE` | `/api/commitments/{id}` | Break a commitment |
 | `GET` | `/api/pools/{id}` | Read a shared savings pool |
 
+**Family goals** need no separate endpoints: create the reward with
+`"shareable": true` and the first person to commit opens a shared pool
+(`SharedCommitmentPool`) that everyone's contributions fill together. The
+kid's Today screen shows the pot up front — each saver's part of the bar in
+their colour, the grown-ups who ticked off their own 0-point chore today,
+and the auto-save line. When the kid joins a pool, the daily coach note
+weaves the family's progress into the parent side too. A parent joins the
+pot like anyone else (commit to the same reward); to demonstrate
+participation without points, schedule a 0-point chore assigned to the
+grown-up — its check-in is what the kid's card reports.
+
 ### The kid's pet
 
 One named companion per user, gated by the `pet_enabled` setting (off by
