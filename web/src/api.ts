@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult } from './types';
 
 const API_BASE = '/api';
 
@@ -348,6 +348,19 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ title, category }),
       }),
+    listTemplates: () => fetchWithAuth<ChoreTemplate[]>('/admin/templates'),
+    tuneTemplate: (templateId: string, tasks: { title: string; category: string; points: number; estimated_minutes?: number }[], tweak: string) =>
+      fetchWithAuth<TemplateTune>(`/admin/templates/${encodeURIComponent(templateId)}/tune`, {
+        method: 'POST',
+        body: JSON.stringify({ tasks, tweak }),
+      }),
+    importTemplate: (req: TemplateImportRequest) =>
+      fetchWithAuth<TemplateImportResult>('/admin/templates/import', {
+        method: 'POST',
+        body: JSON.stringify(req),
+      }),
+    runningDaily: (userId: number, templateId: string) =>
+      fetchWithAuth<{ running: number }>(`/users/${userId}/running-daily?template_id=${encodeURIComponent(templateId)}`),
     regenerateAllTTS: () =>
       fetchWithAuth<{ status: string }>('/admin/tts/regenerate', { method: 'POST' }),
     getAISummary: (userId: number, period: string, date: string) =>

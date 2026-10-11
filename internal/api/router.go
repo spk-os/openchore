@@ -90,6 +90,12 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			// grown-ups read any kid's full note.
 			r.Get("/users/{id}/coach-note", coach.GetNote)
 
+			// Templates page conflict preview: how many open-ended daily
+			// schedules a stop-daily import would pause (admin-only UI, but
+			// the count itself harms nobody — any signed-in member can read
+			// their own household's schedule counts).
+			r.Get("/users/{id}/running-daily", chores.RunningDailySchedules)
+
 			// Any user can update their own profile preferences
 			r.Put("/users/{id}/theme", users.UpdateTheme)
 			r.Put("/users/{id}/avatar", users.UpdateAvatar)
@@ -208,6 +214,12 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Get("/admin/reports/ai-summary", reports.GetAISummary)
 				r.Post("/admin/tts/regenerate", chores.RegenerateAllTTS)
 				r.Post("/chores/{id}/tts/regenerate", chores.RegenerateChoreTTS)
+
+				// Built-in chore template packs (P2-9): browse, AI-tune,
+				// then import in one transaction (schedule swap included).
+				r.Get("/admin/templates", chores.ListTemplates)
+				r.Post("/admin/templates/{id}/tune", chores.TuneTemplate)
+				r.Post("/admin/templates/import", chores.ImportTemplate)
 
 				// Integration discovery: chores with triggers
 				r.Get("/chores/triggerable", triggers.ListTriggerable)

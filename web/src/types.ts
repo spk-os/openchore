@@ -518,3 +518,78 @@ export interface DailyCoachNote {
   child_audio_url?: string;
   parent_text?: string;
 }
+
+// --- Chore template packs (admin templates page) ---
+
+/** One chore inside an embedded template pack (see internal/config/templates). */
+export interface TemplateTask {
+  title: string;
+  description: string;
+  icon?: string;
+  /** required | core | bonus — maps to the design categories essential/daily/bonus. */
+  category: 'required' | 'core' | 'bonus';
+  points: number;
+  missed_penalty?: number;
+  estimated_minutes?: number;
+  /** daily / weekdays / weekends / mon..sun, expanded to schedules on import. */
+  days?: string[];
+  available_at?: string;
+  due_by?: string;
+  /** block | no_points | penalty, applied to each imported schedule. */
+  expiry?: 'block' | 'no_points' | 'penalty';
+}
+
+/** One importable scene×stage task pack, e.g. 初三学习日 or 考试周冲刺包. */
+export interface ChoreTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  scenario: string;
+  description: string;
+  tasks: TemplateTask[];
+  /** Packs that deliberately drop every bonus chore (exam week). */
+  bonus_paused?: boolean;
+}
+
+/** The AI tuner's answer: one-line summary plus per-task overrides. */
+export interface TemplateTune {
+  summary: string;
+  changes: {
+    index: number;
+    title?: string;
+    description?: string;
+    points?: number;
+    estimated_minutes?: number;
+  }[];
+}
+
+/** One task of an import, as the templates page sends it (tuner-adjusted). */
+export interface TemplateImportTask {
+  title: string;
+  description: string;
+  icon: string;
+  category: 'required' | 'core' | 'bonus';
+  points: number;
+  missed_penalty: number;
+  estimated_minutes: number;
+  days: string[];
+  available_at: string;
+  due_by: string;
+  expiry: 'block' | 'no_points' | 'penalty';
+}
+
+/** Import one pack's selected tasks for one kid (schedule swap included). */
+export interface TemplateImportRequest {
+  template_id: string;
+  assigned_to: number;
+  tasks: TemplateImportTask[];
+  /** End the kid's other open-ended daily schedules (exam-week swap). */
+  stop_daily: boolean;
+}
+
+/** What the import endpoint returns on 201. */
+export interface TemplateImportResult {
+  imported: number;
+  chores: Chore[];
+}
+

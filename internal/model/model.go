@@ -47,6 +47,13 @@ const (
 	PhotoSourceBoth     = "both"
 )
 
+// Where a chore came from. Template chores are imported from the built-in
+// packs (admin templates page), so the UI can badge them.
+const (
+	SourceManual   = "manual"
+	SourceTemplate = "template"
+)
+
 // Assignment types
 const (
 	AssignmentIndividual = "individual"
