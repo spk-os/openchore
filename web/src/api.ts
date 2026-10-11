@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse } from './types';
 
 const API_BASE = '/api';
 
@@ -302,6 +302,15 @@ export const api = {
     // The daily coaching note; date defaults to today on the server.
     getNote: (userId: number, date?: string) =>
       fetchWithAuth<DailyCoachNote>(`/users/${userId}/coach-note${date ? `?date=${date}` : ''}`),
+  },
+  pet: {
+    // The kid's pet (P4-13). 404 means the feature is off — hide the layer.
+    get: () => fetchWithAuth<PetResponse>('/pet'),
+    hatch: (name: string) => fetchWithAuth<Pet>('/pet/hatch', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+    feed: () => fetchWithAuth<Pet>('/pet/feed', { method: 'POST' }),
   },
   decay: {
     getConfig: (userId: number) => fetchWithAuth<UserDecayConfig>(`/admin/users/${userId}/decay`),

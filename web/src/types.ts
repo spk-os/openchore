@@ -519,6 +519,36 @@ export interface DailyCoachNote {
   parent_text?: string;
 }
 
+// --- The kid's pet (P4-13) ---
+
+/** Pet moods, computed server-side from the kid's chore record. */
+export type PetMood = 'happy' | 'calm' | 'hungry';
+
+/** The kid's pet with its server-computed mood and stage progress. */
+export interface Pet {
+  id: number;
+  user_id: number;
+  name: string;
+  /** 1 young, 2 junior, 3 grown — unlocked by cumulative feeding. */
+  stage: 1 | 2 | 3;
+  fed_value: number;
+  last_fed_at?: string;
+  hatched_at: string;
+  mood: PetMood;
+  /** Fed value the next stage unlocks at (0 once fully grown). */
+  next_stage_at: number;
+  /** 0-100 toward the next stage. */
+  stage_progress: number;
+}
+
+/** Before hatching: { hatched: false }. */
+export interface PetUnhatched {
+  hatched: false;
+}
+
+/** What GET /pet returns: the pet, or the "not yet" marker. */
+export type PetResponse = Pet | PetUnhatched;
+
 // --- Chore template packs (admin templates page) ---
 
 /** One chore inside an embedded template pack (see internal/config/templates). */

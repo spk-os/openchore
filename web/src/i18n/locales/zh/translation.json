@@ -290,6 +290,27 @@
       "toGo_other": "还差 {{count}} 分",
       "you": "你"
     },
+    "pet": {
+      "title": "我的小伙伴",
+      "hatchTitle": "领养你的小伙伴",
+      "hatchText": "给它起个名字，它会陪你一起做任务。",
+      "hatchPlaceholder": "小伙伴的名字",
+      "hatchBtn": "领养",
+      "nameLabel": "{{name}}",
+      "moodHappy": "开心",
+      "moodCalm": "平静",
+      "moodHungry": "饿了",
+      "moodHintHappy": "今天的任务都完成了，它蹦蹦跳跳！",
+      "moodHintCalm": "还有任务没完成，它在等你哦。",
+      "moodHintHungry": "连续两天没完成任务，它蔫蔫的——做完任务、喂喂它吧。",
+      "feedBtn": "喂食 -{{cost}} 分",
+      "feedToast": "{{name}} 吃得饱饱的！",
+      "notEnough": "积分不够啦，先去做任务赚分吧。",
+      "stage": "成长阶段 {{stage}}/3",
+      "nextStage": "再喂 {{count}} 点长大",
+      "grown": "已经长大啦",
+      "progressLabel": "成长值 {{fed}}/{{next}}"
+    },
     "me": {
       "changePicture": "更换头像",
       "changePin": "修改 PIN",
@@ -1278,6 +1299,12 @@
           "modelPlaceholder": "kokoro",
           "fromEnv": "由服务器上的 TTS_BASE_URL 环境变量设置，请到服务器上修改。"
         }
+      },
+      "pet": {
+        "petTitle": "小伙伴",
+        "petDescription": "开启后，孩子会领养一只专属小伙伴：心情跟随任务记录变化，喂食消耗积分，长期喂养会慢慢长大。默认关闭，家长按孩子的年龄和性格决定是否开启。",
+        "petLabel": "启用小伙伴",
+        "petSave": "保存"
       }
     },
     "skins": {

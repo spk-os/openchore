@@ -49,6 +49,11 @@ export const SettingsTab: React.FC = () => {
   const [discordSaving, setDiscordSaving] = useState(false);
   const [discordMessage, setDiscordMessage] = useState<Msg>(null);
 
+  // The kid's buddy (P4-13): pet_enabled, off by default.
+  const [petEnabled, setPetEnabled] = useState(false);
+  const [petSaving, setPetSaving] = useState(false);
+  const [petMessage, setPetMessage] = useState<Msg>(null);
+
   // AI settings state. What can be set depends on which services are
   // connected (in AIConnectionSection or AI_BASE_URL / TTS_BASE_URL).
   const aiStatus = useAIStatus();
@@ -116,6 +121,9 @@ export const SettingsTab: React.FC = () => {
         setTtsVoice(voice);
         setSavedTtsVoice(voice);
       });
+    api.admin.getSetting('pet_enabled')
+      .then(d => setPetEnabled(d.value === 'true'))
+      .catch(() => {});
   }, []);
 
   const handleSaveBaseUrl = async (e: React.FormEvent) => {
@@ -195,6 +203,19 @@ export const SettingsTab: React.FC = () => {
       setAiMessage({ type: 'error', text: t('admin.settingsTab.ai.saveError') });
     }
     setAiSaving(false);
+  };
+
+  const handleSavePet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPetSaving(true);
+    setPetMessage(null);
+    try {
+      await api.admin.setSetting('pet_enabled', petEnabled ? 'true' : 'false');
+      setPetMessage({ type: 'success', text: t('admin.settingsTab.ai.saveSuccess') });
+    } catch {
+      setPetMessage({ type: 'error', text: t('admin.settingsTab.ai.saveError') });
+    }
+    setPetSaving(false);
   };
 
   const handleCreateWebhook = async (e: React.FormEvent) => {
@@ -291,6 +312,23 @@ export const SettingsTab: React.FC = () => {
           </form>
 
           <AIConnectionSection />
+
+          {/* The kid's buddy (P4-13): off by default, so it's a separate
+              card, not part of the AI block (it works without AI). */}
+          <form className={clsx(ui.card, ui.section)} onSubmit={handleSavePet}>
+            <h3 className={ui.sectionTitle}>{t('admin.settingsTab.pet.petTitle')}</h3>
+            <p className={ui.sectionDesc}>{t('admin.settingsTab.pet.petDescription')}</p>
+            <label className={ui.check}>
+              <input type="checkbox" checked={petEnabled} onChange={e => setPetEnabled(e.target.checked)} />
+              <span className={ui.checkLabel}>{t('admin.settingsTab.pet.petLabel')}</span>
+            </label>
+            <FormMessage msg={petMessage} />
+            <div className={ui.actionsEnd}>
+              <button type="submit" className={ui.btnPrimary} disabled={petSaving}>
+                <Icon name="check" /> {t('admin.settingsTab.pet.petSave')}
+              </button>
+            </div>
+          </form>
 
           {(aiStatus.ai.configured || aiStatus.tts.configured) && (
             <form className={clsx(ui.card, ui.section)} onSubmit={handleSaveAISettings} aria-labelledby="settings-ai">

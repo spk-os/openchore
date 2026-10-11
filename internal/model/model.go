@@ -31,6 +31,7 @@ const (
 	ReasonMissedChore     = "missed_chore"
 	ReasonCommitToGoal    = "commit_to_goal"
 	ReasonGoalBreak       = "goal_break"
+	ReasonPetFeed         = "pet_feed"
 )
 
 // Commitment statuses
@@ -477,3 +478,36 @@ type DailyCoachNote struct {
 	ChildAudioURL string `json:"child_audio_url,omitempty"`
 	ParentText    string `json:"parent_text"`
 }
+
+// --- The kid's pet (P4-13) ---
+
+// Pet is the kid's companion: the "emotional balance" layer. One per kid,
+// fed with points (reason='pet_feed' in the ledger) and grown through
+// cumulative feeding. The mood is never stored — it is computed from the
+// kid's recent chore record, so it can't drift from reality. Pets never
+// die; the worst mood is hungry.
+type Pet struct {
+	ID        int64      `json:"id"`
+	UserID    int64      `json:"user_id"`
+	Name      string     `json:"name"`
+	Stage     int        `json:"stage"`      // 1 young, 2 junior, 3 grown
+	FedValue  int        `json:"fed_value"`  // cumulative feeding → stage
+	LastFedAt *time.Time `json:"last_fed_at,omitempty"`
+	HatchedAt time.Time  `json:"hatched_at"`
+}
+
+// Pet moods, computed server-side from the kid's chore record.
+const (
+	PetMoodHappy   = "happy"   // today's required chores are done
+	PetMoodCalm    = "calm"    // some required chores still open
+	PetMoodHungry  = "hungry"  // required chores missed two days running
+)
+
+// Stage thresholds: cumulative fed_value unlocks the next stage.
+const (
+	PetStage2FedValue = 100
+	PetStage3FedValue = 300
+)
+
+// FeedPetCost is what one feeding costs, in points.
+const FeedPetCost = 10

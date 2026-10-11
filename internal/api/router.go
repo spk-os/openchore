@@ -34,6 +34,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	webhooks := NewWebhookHandler(s)
 	triggers := NewTriggerHandler(s)
 	tokens := NewTokenHandler(s)
+	pets := NewPetHandler(s)
 	setup := NewSetupHandler(s, auth.Sessions)
 	reports := NewReportsHandler(s, dispatcher, discordNotifier, aiSvc)
 	coach := NewCoachHandler(s, aiSvc, chores)
@@ -81,6 +82,12 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			r.Get("/auth/me", authH.Me)
 			r.Post("/auth/logout-everywhere", authH.LogoutEverywhere)
 			r.Post("/auth/upload-link", authH.UploadLink)
+
+			// The kid's pet (P4-13): the "emotional balance" layer,
+			// gated by the pet_enabled setting (default off).
+			r.Get("/pet", pets.GetPet)
+			r.Post("/pet/hatch", pets.HatchPet)
+			r.Post("/pet/feed", pets.FeedPet)
 			r.Get("/users/{id}/identities", oidcH.ListIdentities)
 			r.Delete("/users/{id}/identities/{identityID}", oidcH.UnlinkIdentity)
 

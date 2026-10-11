@@ -693,6 +693,12 @@
           "modelPlaceholder": "kokoro",
           "fromEnv": "Über die Umgebungsvariable TTS_BASE_URL auf dem Server festgelegt. Ändere sie dort."
         }
+      },
+      "pet": {
+        "petTitle": "Begleiter des Kindes",
+        "petDescription": "Wenn aktiviert, adoptiert jedes Kind einen Begleiter: Die Stimmung folgt den Aufgaben, Füttern kostet Punkte, und beständige Pflege lässt ihn wachsen. Standardmäßig aus — Eltern entscheiden je nach Alter und Temperament.",
+        "petLabel": "Begleiter aktivieren",
+        "petSave": "Speichern"
       }
     },
     "skins": {
@@ -1137,6 +1143,27 @@
       "toGo_one": "Noch {{count}}",
       "toGo_other": "Noch {{count}}",
       "you": "Du"
+    },
+    "pet": {
+      "title": "Mein Begleiter",
+      "hatchTitle": "Begleiter adoptieren",
+      "hatchText": "Gib ihm einen Namen — er begleitet dich bei deinen Aufgaben.",
+      "hatchPlaceholder": "Name deines Begleiters",
+      "hatchBtn": "Adoptieren",
+      "nameLabel": "{{name}}",
+      "moodHappy": "Glücklich",
+      "moodCalm": "Ruhig",
+      "moodHungry": "Hungrig",
+      "moodHintHappy": "Alles erledigt — er hüpft vor Freude!",
+      "moodHintCalm": "Einige Aufgaben fehlen noch — er wartet auf dich.",
+      "moodHintHungry": "Zwei Tage ohne erledigte Aufgaben — er hängt durch. Erledige sie und füttere ihn.",
+      "feedBtn": "Füttern -{{cost}} P.",
+      "feedToast": "{{name}} ist satt und zufrieden!",
+      "notEnough": "Nicht genug Punkte — erst welche verdienen.",
+      "stage": "Stufe {{stage}}/3",
+      "nextStage": "Noch {{count}} bis zum Wachsen",
+      "grown": "Komplett ausgewachsen!",
+      "progressLabel": "Wachstum {{fed}}/{{next}}"
     },
     "me": {
       "changePicture": "Bild ändern",

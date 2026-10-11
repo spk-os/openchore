@@ -107,6 +107,20 @@ instead of spending balance the moment it lands.
 | `DELETE` | `/api/commitments/{id}` | Break a commitment |
 | `GET` | `/api/pools/{id}` | Read a shared savings pool |
 
+### The kid's pet
+
+One named companion per user, gated by the `pet_enabled` setting (off by
+default; enable it under Admin → Settings). Feeding debits the ledger with
+a `pet_feed` row and grows the pet through stages at 100 / 300 fed value.
+Moods (`happy` / `calm` / `hungry`) are computed server-side from the chore
+record — the pet never dies, the worst mood is hungry.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/pet` | Your pet with its mood, or `{"hatched": false}` before adopting. 404 when the feature is off |
+| `POST` | `/api/pet/hatch` | Adopt and name the pet (1–24 characters) |
+| `POST` | `/api/pet/feed` | Spend 10 points on pet food; 422 when the balance is too low |
+
 ### Profile preferences
 
 | Method | Path | Description |

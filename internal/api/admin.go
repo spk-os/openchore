@@ -21,6 +21,7 @@ var writableSettings = map[string]bool{
 	"tts_voice":                 true,
 	"base_url":                  true,
 	"discord_webhook_url":       true,
+	"pet_enabled":               true,
 }
 
 type AdminHandler struct {

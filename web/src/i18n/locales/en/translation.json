@@ -693,6 +693,12 @@
           "modelPlaceholder": "kokoro",
           "fromEnv": "Set by the TTS_BASE_URL environment variable on the server. Change it there."
         }
+      },
+      "pet": {
+        "petTitle": "Kid's buddy",
+        "petDescription": "When on, each kid adopts a buddy: its mood follows the chore record, feeding spends points, and steady care makes it grow. Off by default — parents opt in per kid's age and temperament.",
+        "petLabel": "Enable the buddy",
+        "petSave": "Save"
       }
     },
     "skins": {
@@ -1137,6 +1143,27 @@
       "toGo_one": "{{count}} to go",
       "toGo_other": "{{count}} to go",
       "you": "You"
+    },
+    "pet": {
+      "title": "My buddy",
+      "hatchTitle": "Adopt your buddy",
+      "hatchText": "Give it a name — it will do chores by your side.",
+      "hatchPlaceholder": "Your buddy's name",
+      "hatchBtn": "Adopt",
+      "nameLabel": "{{name}}",
+      "moodHappy": "Happy",
+      "moodCalm": "Calm",
+      "moodHungry": "Hungry",
+      "moodHintHappy": "All done today — it's bouncing around!",
+      "moodHintCalm": "Some chores are still open — it's waiting for you.",
+      "moodHintHungry": "Two days with chores undone — it's droopy. Finish them and feed it.",
+      "feedBtn": "Feed -{{cost}} pts",
+      "feedToast": "{{name}} is full and happy!",
+      "notEnough": "Not enough points — go earn some first.",
+      "stage": "Stage {{stage}}/3",
+      "nextStage": "{{count}} more to grow up",
+      "grown": "All grown up!",
+      "progressLabel": "Growth {{fed}}/{{next}}"
     },
     "me": {
       "changePicture": "Change picture",

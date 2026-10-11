@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, APIError } from '../../api';
 import type {
-  DailyCoachNote, PointsData, RedemptionHistory, Reward, ScheduledChore, User, UserStreakData,
+  DailyCoachNote, PetResponse, PointsData, RedemptionHistory, Reward, ScheduledChore, User, UserStreakData,
 } from '../../types';
 import { localDateStr } from '../../utils';
 
@@ -92,6 +92,33 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
     }
   }, [userId]);
 
+  // The kid's pet (P4-13). 404 means the feature is off for this household:
+  // keep petState null so Today hides the whole layer. Hatching happens in
+  // the card; feeding comes back through feedPet so the balance refreshes.
+  const [petState, setPetState] = useState<PetResponse | null>(null);
+  const loadPet = useCallback(async () => {
+    if (!userId) return;
+    try {
+      setPetState(await api.pet.get());
+    } catch (e) {
+      if (!(e instanceof APIError && e.status === 404)) console.error(e);
+      setPetState(null);
+    }
+  }, [userId]);
+
+  /** Feed the pet and refresh the debited balance. Returns the fed pet, or null. */
+  const feedPet = useCallback(async (): Promise<boolean> => {
+    try {
+      setPetState(await api.pet.feed());
+      await loadExtras();
+      return true;
+    } catch (e) {
+      if (e instanceof APIError && e.status === 422) throw e;
+      console.error(e);
+      return false;
+    }
+  }, [loadExtras]);
+
   const loadRewards = useCallback(async () => {
     if (!userId) return;
     try {
@@ -107,6 +134,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
   useEffect(() => { loadChores(); }, [loadChores]);
   useEffect(() => { loadExtras(); }, [loadExtras]);
   useEffect(() => { loadCoachNote(); }, [loadCoachNote, today]);
+  useEffect(() => { loadPet(); }, [loadPet, today]);
   useEffect(() => { if (opts.week) loadWeek(); }, [opts.week, loadWeek]);
   useEffect(() => { if (opts.rewards) loadRewards(); }, [opts.rewards, loadRewards]);
   // Family pots show each contributor in their colour: the profile list is
@@ -307,7 +335,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
 
   return {
     today, chores, weekChores, streak, points, rewards, redemptions, people,
-    coachNote, togglingIds, toast, showToast,
+    coachNote, petState, togglingIds, toast, showToast,
     reloadChores, refreshAll, loadRewards, toggle,
     commitmentFor, redeem, redeemingId, redeemedId, saveToward, savingTowardId,
     contribute, setAutoContribute, breakCommitment, busyGoals,

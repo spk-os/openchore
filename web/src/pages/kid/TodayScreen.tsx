@@ -4,6 +4,7 @@ import { DayProgress, Greeting, Icon, catFromCategory, salutationFor, type DayPr
 import type { ScheduledChore, User } from '../../types';
 import { gates, isDone, type ChoreView } from './choreView';
 import { GoalNudge } from './GoalCard';
+import { PetCard } from './PetCard';
 import { CAT_ORDER, ChoreGroups, Notice, PausedNotice } from './parts';
 import type { KidData } from './useKidData';
 import s from './kid.module.css';
@@ -91,6 +92,15 @@ export function TodayScreen({ user, data, now, topBar, viewOf, tts, onToggle, on
               </p>
             )}
           </section>
+        )}
+        {/* The kid's buddy (P4-13), when the household has it on: mood from
+            the chore record, feeding from the balance, growth over weeks. */}
+        {!user.paused && data.petState && (
+          <PetCard
+            initial={data.petState}
+            onToast={data.showToast}
+            onFed={() => { data.loadExtras(); }}
+          />
         )}
         {/* The coach's good-night note from yesterday: one warm line and a
             button to hear it read aloud (pre-recorded audio when TTS is on,

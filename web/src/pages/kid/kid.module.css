@@ -433,6 +433,101 @@
 
 .dayTitle { margin: var(--space-5) 2px 0; font-size: 17px; line-height: 22px; font-weight: 700; }
 
+/* ---------- the pet (P4-13) ---------- */
+.petCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: var(--lift);
+}
+.petHead { display: flex; align-items: center; gap: var(--space-3); }
+.petFace {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  font-size: 30px;
+  line-height: 1;
+  border-radius: 50%;
+  border: var(--outline-w) solid var(--line);
+  background: var(--chip);
+}
+.petTitles { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.petKicker {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+.petName { font-size: 17px; line-height: 22px; font-weight: 700; overflow-wrap: anywhere; }
+.petMood { font-size: var(--type-meta-size); line-height: var(--type-meta-line); font-weight: 600; color: var(--ink-muted); }
+.petHatchForm { display: flex; gap: var(--space-2); }
+.petNameInput {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--ink-muted);
+  border-radius: var(--oc-radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+.petNameInput { flex: 1; min-width: 0; }
+.petNameInput::placeholder { color: var(--ink-muted); }
+.petFeedBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  box-sizing: border-box;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.petFeedBtn:disabled { opacity: .5; cursor: default; }
+.petFeedBtn:focus-visible { outline: 2.5px solid var(--ink); outline-offset: 2px; }
+.petGrowth {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.petStage { color: var(--ink); font-weight: 700; }
+
+/* The buddy reacts: a gentle bounce when happy, a droop when hungry.
+   Skins own motion, so this honours their reduced-motion dial. */
+@media (prefers-reduced-motion: no-preference) {
+  .petFace[data-mood='happy'] { animation: petBounce 2.2s ease-in-out infinite; }
+}
+.petFace[data-mood='hungry'] { filter: grayscale(.6); }
+@keyframes petBounce {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+  55% { transform: translateY(0); }
+}
+
 /* ---------- Rewards ---------- */
 .rewards { display: flex; flex-direction: column; }
 .rewardsSide, .rewardsMain { min-width: 0; }
