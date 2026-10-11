@@ -115,6 +115,12 @@ a `pet_feed` row and grows the pet through stages at 100 / 300 fed value.
 Moods (`happy` / `calm` / `hungry`) are computed server-side from the chore
 record — the pet never dies, the worst mood is hungry.
 
+When the layer is on and a kid has hatched their buddy, the daily coach
+note speaks for it too: the AI is told the pet's name, mood and whether it
+was fed today, and appends one line in the pet's own voice to the kid's
+side of the note (read aloud with the rest by TTS) — the buddy becomes the
+note's personality.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/pet` | Your pet with its mood, or `{"hatched": false}` before adopting. 404 when the feature is off |

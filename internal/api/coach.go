@@ -215,14 +215,46 @@ func (h *CoachHandler) dayStats(ctx context.Context, kid model.User, date string
 	if err != nil {
 		return nil, err
 	}
-	return &llm.DailyNoteStats{
+	stats := &llm.DailyNoteStats{
 		KidName:        kid.Name,
 		CompletedCount: completed,
 		MissedCount:    missed,
 		TotalAssigned:  len(scheduled),
 		PointsEarned:   points,
 		CurrentStreak:  streak.CurrentStreak,
-	}, nil
+	}
+	// P4-13: when the pet layer is on and the kid hatched one, the buddy
+	// joins the note — the pet's own line in the child side, read aloud
+	// with the rest by TTS. Failures here never block the note.
+	if on, _ := h.store.GetSetting(ctx, petEnabledSetting); on == "true" {
+		h.addPetToStats(ctx, kid.ID, date, stats)
+	}
+	return stats, nil
+}
+
+// addPetToStats fills the pet fields of a day's stats when the kid has a
+// hatched pet. Errors are logged and swallowed: a pet hiccup must never
+// cost the kid their note.
+func (h *CoachHandler) addPetToStats(ctx context.Context, userID int64, date string, stats *llm.DailyNoteStats) {
+	pet, err := h.store.GetPet(ctx, userID)
+	if err != nil || pet == nil {
+		if err != nil {
+			log.Printf("coach: pet for %d: %v", userID, err)
+		}
+		return
+	}
+	mood, err := h.store.PetMood(ctx, userID, date)
+	if err != nil {
+		log.Printf("coach: pet mood for %d: %v", userID, err)
+		return
+	}
+	fedToday := false
+	if pet.LastFedAt != nil {
+		fedToday = pet.LastFedAt.Format(model.DateFormat) == date
+	}
+	stats.PetName = pet.Name
+	stats.PetMood = mood
+	stats.PetFedToday = fedToday
 }
 
 // saveCoachAudio writes one note's MP3 under the TTS directory and

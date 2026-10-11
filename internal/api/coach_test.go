@@ -204,3 +204,117 @@ func TestParseCoachTime(t *testing.T) {
 func itoa(n int) string {
 	return strconv.Itoa(n)
 }
+
+// P4-13 tie-in: when the pet layer is on and the kid hatched a buddy,
+// the daily coach's prompt carries the pet (name, mood, fed-today) and
+// the kid's line gains the pet's own sentence — spoken by TTS together
+// with the rest, so the buddy becomes the note's personality.
+func TestDailyCoachNoteSpeaksForThePet(t *testing.T) {
+	env, fake := setupAITest(t, true)
+	env.createAdmin(t)
+	kidID := env.createChild(t, "Kid")
+	enablePets(t, env)
+	seedCoachDay(t, env, kidID)
+	hatch(t, env, childHeaders(kidID), "豆豆")
+	env.setSetting(t, "ai_daily_coach", "true")
+
+	fake.mu.Lock()
+	fake.text = `{"child": "今天完成了全部任务！", "pet": "🐕 豆豆说：今天你把我喂得饱饱的，明天也要加油哦", "parent": "连续完成不错，建议保持固定节奏。"}`
+	fake.mu.Unlock()
+
+	today := time.Now().Format(model.DateFormat)
+	env.coach.WriteDailyNotes(t.Context(), today)
+
+	// The prompt told the model about the pet.
+	promptHasPet := false
+	for _, p := range fake.prompts() {
+		if strings.Contains(p, "豆豆") && strings.Contains(p, "pet companion") {
+			promptHasPet = true
+		}
+	}
+	if !promptHasPet {
+		t.Fatalf("expected the coach prompt to mention the pet, got %q", fake.prompts())
+	}
+
+	// The stored child side carries the pet's line, appended after the
+	// coach's own sentence.
+	note, err := env.store.GetDailyCoachNote(t.Context(), int64(kidID), today)
+	if err != nil || note == nil {
+		t.Fatalf("expected a stored note, got %+v (%v)", note, err)
+	}
+	wantChild := "今天完成了全部任务！ 🐕 豆豆说：今天你把我喂得饱饱的，明天也要加油哦"
+	if note.ChildText != wantChild {
+		t.Fatalf("child text = %q, want %q", note.ChildText, wantChild)
+	}
+
+	// TTS read the whole line aloud — the pet speaks, not just the coach.
+	found := false
+	for _, s := range fake.spoken() {
+		if s == wantChild {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected the pet line read aloud, got %q", fake.spoken())
+	}
+	if note.ChildAudioURL == "" {
+		t.Fatalf("expected child_audio_url on the note")
+	}
+}
+
+// Without a hatched pet the prompt stays pet-free even when the layer is
+// on: no half-hatched companions in the note.
+func TestDailyCoachNoteSkipsPetWhenNotHatched(t *testing.T) {
+	env, fake := setupAITest(t, true)
+	env.createAdmin(t)
+	kidID := env.createChild(t, "Kid")
+	enablePets(t, env) // layer on, but the kid never hatched
+	seedCoachDay(t, env, kidID)
+	env.setSetting(t, "ai_daily_coach", "true")
+
+	fake.mu.Lock()
+	fake.text = `{"child": "今晚整理书桌真棒！", "parent": "继续加油。"}`
+	fake.mu.Unlock()
+
+	today := time.Now().Format(model.DateFormat)
+	env.coach.WriteDailyNotes(t.Context(), today)
+
+	for _, p := range fake.prompts() {
+		if strings.Contains(p, "pet companion") {
+			t.Fatalf("prompt must not mention a pet before hatching, got %q", p)
+		}
+	}
+	note, err := env.store.GetDailyCoachNote(t.Context(), int64(kidID), today)
+	if err != nil || note == nil {
+		t.Fatalf("expected a stored note, got %+v (%v)", note, err)
+	}
+	if note.ChildText != "今晚整理书桌真棒！" {
+		t.Fatalf("child text = %q", note.ChildText)
+	}
+}
+
+// The pet layer off (the default) means the coach never sees the pet,
+// even for a kid who hatched one earlier.
+func TestDailyCoachNoteIgnoresPetWhenLayerOff(t *testing.T) {
+	env, fake := setupAITest(t, true)
+	env.createAdmin(t)
+	kidID := env.createChild(t, "Kid")
+	// pet_enabled left off; the pet row exists from an earlier opt-in.
+	enablePets(t, env)
+	hatch(t, env, childHeaders(kidID), "豆豆")
+	env.expectStatus(t, "PUT", "/api/admin/settings/pet_enabled",
+		map[string]any{"value": "false"}, adminHeaders(), http.StatusOK)
+	seedCoachDay(t, env, kidID)
+	env.setSetting(t, "ai_daily_coach", "true")
+
+	fake.mu.Lock()
+	fake.text = `{"child": "今天不错！", "parent": "保持。"}`
+	fake.mu.Unlock()
+
+	env.coach.WriteDailyNotes(t.Context(), time.Now().Format(model.DateFormat))
+	for _, p := range fake.prompts() {
+		if strings.Contains(p, "pet companion") {
+			t.Fatalf("prompt must not mention a pet when the layer is off, got %q", p)
+		}
+	}
+}

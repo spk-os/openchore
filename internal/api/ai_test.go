@@ -23,11 +23,12 @@ import (
 type fakeAI struct {
 	server *httptest.Server
 
-	mu         sync.Mutex
-	review     model.AIReviewResult // returned for image prompts
-	text       string               // returned for text prompts
-	chatCalls  int
-	speechText []string
+	mu          sync.Mutex
+	review      model.AIReviewResult // returned for image prompts
+	text        string               // returned for text prompts
+	chatCalls   int
+	speechText  []string
+	chatPrompts []string // the text prompt of every chat call, in order
 }
 
 func newFakeAI(t *testing.T) *fakeAI {
@@ -47,6 +48,15 @@ func newFakeAI(t *testing.T) *fakeAI {
 			if strings.Contains(string(body), `"image_url"`) {
 				b, _ := json.Marshal(f.review)
 				content = string(b)
+			}
+			var chat struct {
+				Messages []struct {
+					Content string `json:"content"`
+				} `json:"messages"`
+			}
+			_ = json.Unmarshal(body, &chat)
+			for _, m := range chat.Messages {
+				f.chatPrompts = append(f.chatPrompts, m.Content)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"choices": []any{map[string]any{"message": map[string]any{"role": "assistant", "content": content}}},
@@ -80,6 +90,14 @@ func (f *fakeAI) spoken() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]string(nil), f.speechText...)
+}
+
+// prompts returns the text prompt of every chat call, for asserting what
+// the coach actually told the model.
+func (f *fakeAI) prompts() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.chatPrompts...)
 }
 
 // setupAITest wires the fake server in as both AI and TTS, and runs the

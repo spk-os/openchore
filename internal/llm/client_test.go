@@ -166,3 +166,58 @@ func TestParseReviewResponse(t *testing.T) {
 		})
 	}
 }
+
+// P4-13: the pet's line survives a model that wraps its JSON in fences —
+// the defensive parse must keep both the coach's and the pet's sentences.
+func TestDailyNotePetLineParsesWrappedJSON(t *testing.T) {
+	srv, _ := fakeServer(t, "```json\n{\"child\": \"你做到了！\", \"pet\": \"🐕 豆豆说：谢谢你今天喂我\", \"parent\": \"很好。\"}\n```", http.StatusOK)
+	child, parent, err := New(srv.URL, "", "m").DailyNote(context.Background(), DailyNoteStats{
+		KidName: "Kid", CompletedCount: 2, TotalAssigned: 2, PetName: "豆豆", PetMood: "happy", PetFedToday: true,
+	})
+	if err != nil {
+		t.Fatalf("DailyNote: %v", err)
+	}
+	wantChild := "你做到了！ 🐕 豆豆说：谢谢你今天喂我"
+	if child != wantChild {
+		t.Fatalf("child = %q, want %q", child, wantChild)
+	}
+	if parent != "很好。" {
+		t.Fatalf("parent = %q", parent)
+	}
+}
+
+// Without a pet, a stray "pet" key the model dreamt up is ignored — the
+// kid's line stays just the coach's sentence.
+func TestDailyNoteIgnoresStrayPetWithoutPetStats(t *testing.T) {
+	srv, _ := fakeServer(t, `{"child": "很好", "pet": "🐕 Someone says hi", "parent": "不错"}`, http.StatusOK)
+	child, parent, err := New(srv.URL, "", "m").DailyNote(context.Background(), DailyNoteStats{
+		KidName: "Kid", CompletedCount: 1, TotalAssigned: 1,
+	})
+	if err != nil {
+		t.Fatalf("DailyNote: %v", err)
+	}
+	if child != "很好" {
+		t.Fatalf("child = %q, want just the coach line", child)
+	}
+	if parent != "不错" {
+		t.Fatalf("parent = %q", parent)
+	}
+}
+
+// The pet prompt asks for a third "pet" field in the reply JSON and
+// carries the buddy's name, mood and fed state.
+func TestDailyNotePromptCarriesPet(t *testing.T) {
+	srv, got := fakeServer(t, `{"child": "好", "pet": "🐕 豆豆说：好", "parent": "好"}`, http.StatusOK)
+	_, _, err := New(srv.URL, "", "m").DailyNote(context.Background(), DailyNoteStats{
+		KidName: "Kid", CompletedCount: 1, TotalAssigned: 1, PetName: "豆豆", PetMood: "hungry", PetFedToday: false,
+	})
+	if err != nil {
+		t.Fatalf("DailyNote: %v", err)
+	}
+	prompt := got.body["messages"].([]any)[0].(map[string]any)["content"].(string)
+	for _, want := range []string{"豆豆", "hungry", "not fed today yet", `"pet": "..."`} {
+		if !strings.Contains(prompt, want) {
+			t.Errorf("prompt missing %q: %s", want, prompt)
+		}
+	}
+}
