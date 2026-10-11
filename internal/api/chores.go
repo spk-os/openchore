@@ -1,9 +1,10 @@
 package api
 
 import (
-	"errors"
 	"context"
+	"errors"
 	"log"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -23,6 +24,17 @@ type ChoreHandler struct {
 	aiSvc      *AIServices    // optional AI and read-aloud audio
 	reviews    sync.WaitGroup // in-flight background photo reviews
 }
+
+// bonusDropEnabledSetting gates the surprise bonus on completion
+// ("true"/"false", default off) — the household opts in.
+const bonusDropEnabledSetting = "bonus_drop_enabled"
+
+// The roll's odds and range: 10% chance, 1-5 points — often enough to
+// feel lucky, small enough to stay a garnish on the real reward.
+const (
+	bonusDropChance            = 0.10
+	bonusDropMin, bonusDropMax = 1, 5
+)
 
 func NewChoreHandler(s *store.Store, d *webhook.Dispatcher, dn *discord.Notifier, ai *AIServices) *ChoreHandler {
 	return &ChoreHandler{store: s, dispatcher: d, discord: dn, aiSvc: ai}
@@ -53,6 +65,20 @@ func (h *ChoreHandler) List(w http.ResponseWriter, r *http.Request) {
 		chores = []model.Chore{}
 	}
 	writeJSON(w, http.StatusOK, chores)
+}
+
+// rollBonusDrop rolls the surprise bonus for an approved completion when
+// the household turned it on: 10% chance of 1-5 extra points, 0 otherwise.
+// A setting hiccup just means no surprise — it must never block the chore.
+func (h *ChoreHandler) rollBonusDrop(r *http.Request) int {
+	on, err := h.store.GetSetting(r.Context(), bonusDropEnabledSetting)
+	if err != nil || on != "true" {
+		return 0
+	}
+	if rand.Float64() >= bonusDropChance {
+		return 0
+	}
+	return bonusDropMin + rand.Intn(bonusDropMax-bonusDropMin+1)
 }
 
 func (h *ChoreHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -621,7 +647,16 @@ func (h *ChoreHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.store.CompleteChoreAndCreditPoints(r.Context(), completion, pts, expiryPenalty); err != nil {
+	// P4-15: the surprise bonus ("bonus drop") — with the household's
+	// bonus_drop_enabled setting on, an approved completion has a 10%
+	// chance to drop 1-5 extra points on top, as its own ledger row.
+	// Late completions gave up their points, so they gave up the fun too.
+	var bonusDrop int
+	if status == model.StatusApproved && !isExpired && pts > 0 {
+		bonusDrop = h.rollBonusDrop(r)
+	}
+
+	if err := h.store.CompleteChoreAndCreditPoints(r.Context(), completion, pts, expiryPenalty, bonusDrop); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to complete chore")
 		return
 	}
@@ -705,6 +740,7 @@ func (h *ChoreHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		"user_name":       completedByName,
 		"completion_date": req.CompletionDate,
 		"points_earned":   pts,
+		"bonus_drop":      bonusDrop,
 		"status":          status,
 		"photo_url":       absolutePhotoURL,
 		"photo_source":    photoSource,
@@ -740,7 +776,13 @@ func (h *ChoreHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 
-	writeJSON(w, http.StatusCreated, completion)
+	// The response carries the surprise so the client can celebrate it:
+	// a drop turns the regular completion confetti into a bonus party.
+	resp := struct {
+		*model.ChoreCompletion
+		BonusDrop int `json:"bonus_drop"`
+	}{completion, bonusDrop}
+	writeJSON(w, http.StatusCreated, resp)
 }
 
 func (h *ChoreHandler) Uncomplete(w http.ResponseWriter, r *http.Request) {
@@ -1183,8 +1225,6 @@ func (h *ChoreHandler) Excuse(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, completion)
 }
-
-
 
 // completerFor decides whose completion this is (and so who is credited).
 // It defaults to the schedule's assignee, so a parent ticking a kid's chore

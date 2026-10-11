@@ -12,12 +12,14 @@
       "minutesAgo_other": "{{count}}m ago",
       "reason": {
         "admin_adjust": "Admin adjustment",
+        "bonus_drop": "Lucky bonus",
         "chore_complete": "Chore completed",
         "chore_uncomplete": "Chore undone",
         "commit_to_goal": "Saved toward a goal",
         "expiry_penalty": "Late penalty",
         "goal_break": "Goal savings returned",
         "missed_chore": "Missed chore penalty",
+        "pet_feed": "Pet fed",
         "points_decay": "Points decay",
         "reward_redeem": "Reward redeemed",
         "streak_bonus": "Streak bonus"
@@ -699,6 +701,12 @@
         "petDescription": "When on, each kid adopts a buddy: its mood follows the chore record, feeding spends points, and steady care makes it grow. Off by default — parents opt in per kid's age and temperament.",
         "petLabel": "Enable the buddy",
         "petSave": "Save"
+      },
+      "bonusDrop": {
+        "bonusTitle": "Lucky bonus",
+        "bonusDescription": "When on, completing a chore has a small chance to drop 1-5 surprise points on top, so every tick-off carries a little suspense. Off by default.",
+        "bonusLabel": "Enable the lucky bonus",
+        "bonusSave": "Save"
       }
     },
     "skins": {
@@ -959,6 +967,10 @@
     },
     "celebration": {
       "back": "Back to my list",
+      "drop_one": "🎉 Lucky bonus +{{count}}!",
+      "drop_other": "🎉 Lucky bonus +{{count}}!",
+      "dropLabel_one": "A lucky bonus drop of {{count}} point",
+      "dropLabel_other": "A lucky bonus drop of {{count}} points",
       "headline": "Nailed <em>it!</em>",
       "next": "Next: {{title}}",
       "points": "+{{count}}",

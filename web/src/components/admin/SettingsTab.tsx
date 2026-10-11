@@ -54,6 +54,12 @@ export const SettingsTab: React.FC = () => {
   const [petSaving, setPetSaving] = useState(false);
   const [petMessage, setPetMessage] = useState<Msg>(null);
 
+  // The surprise bonus on completion (P4-15): bonus_drop_enabled, off by
+  // default — the household opts in to the extra excitement.
+  const [bonusDropEnabled, setBonusDropEnabled] = useState(false);
+  const [bonusDropSaving, setBonusDropSaving] = useState(false);
+  const [bonusDropMessage, setBonusDropMessage] = useState<Msg>(null);
+
   // AI settings state. What can be set depends on which services are
   // connected (in AIConnectionSection or AI_BASE_URL / TTS_BASE_URL).
   const aiStatus = useAIStatus();
@@ -123,6 +129,9 @@ export const SettingsTab: React.FC = () => {
       });
     api.admin.getSetting('pet_enabled')
       .then(d => setPetEnabled(d.value === 'true'))
+      .catch(() => {});
+    api.admin.getSetting('bonus_drop_enabled')
+      .then(d => setBonusDropEnabled(d.value === 'true'))
       .catch(() => {});
   }, []);
 
@@ -216,6 +225,19 @@ export const SettingsTab: React.FC = () => {
       setPetMessage({ type: 'error', text: t('admin.settingsTab.ai.saveError') });
     }
     setPetSaving(false);
+  };
+
+  const handleSaveBonusDrop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBonusDropSaving(true);
+    setBonusDropMessage(null);
+    try {
+      await api.admin.setSetting('bonus_drop_enabled', bonusDropEnabled ? 'true' : 'false');
+      setBonusDropMessage({ type: 'success', text: t('admin.settingsTab.ai.saveSuccess') });
+    } catch {
+      setBonusDropMessage({ type: 'error', text: t('admin.settingsTab.ai.saveError') });
+    }
+    setBonusDropSaving(false);
   };
 
   const handleCreateWebhook = async (e: React.FormEvent) => {
@@ -326,6 +348,23 @@ export const SettingsTab: React.FC = () => {
             <div className={ui.actionsEnd}>
               <button type="submit" className={ui.btnPrimary} disabled={petSaving}>
                 <Icon name="check" /> {t('admin.settingsTab.pet.petSave')}
+              </button>
+            </div>
+          </form>
+
+          {/* The surprise bonus (P4-15): off by default — a per-household
+              garnish on the regular chore points. */}
+          <form className={clsx(ui.card, ui.section)} onSubmit={handleSaveBonusDrop}>
+            <h3 className={ui.sectionTitle}>{t('admin.settingsTab.bonusDrop.bonusTitle')}</h3>
+            <p className={ui.sectionDesc}>{t('admin.settingsTab.bonusDrop.bonusDescription')}</p>
+            <label className={ui.check}>
+              <input type="checkbox" checked={bonusDropEnabled} onChange={e => setBonusDropEnabled(e.target.checked)} />
+              <span className={ui.checkLabel}>{t('admin.settingsTab.bonusDrop.bonusLabel')}</span>
+            </label>
+            <FormMessage msg={bonusDropMessage} />
+            <div className={ui.actionsEnd}>
+              <button type="submit" className={ui.btnPrimary} disabled={bonusDropSaving}>
+                <Icon name="check" /> {t('admin.settingsTab.bonusDrop.bonusSave')}
               </button>
             </div>
           </form>

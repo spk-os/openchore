@@ -195,7 +195,7 @@ export const api = {
     }),
     delete: (id: number) => fetchWithAuth(`/chores/${id}`, { method: 'DELETE' }),
     complete: (scheduleId: number, date: string, photoUrl?: string, opts?: { skipPhoto?: boolean }) =>
-      fetchWithAuth(`/schedules/${scheduleId}/complete`, {
+      fetchWithAuth<{ bonus_drop?: number }>(`/schedules/${scheduleId}/complete`, {
         method: 'POST',
         body: JSON.stringify({ completion_date: date, photo_url: photoUrl, skip_photo: opts?.skipPhoto || undefined }),
       }),

@@ -12,12 +12,14 @@
       "minutesAgo_other": "vor {{count}} Min.",
       "reason": {
         "admin_adjust": "Admin-Anpassung",
+        "bonus_drop": "Glücksbonus",
         "chore_complete": "Aufgabe erledigt",
         "chore_uncomplete": "Aufgabe zurückgesetzt",
         "commit_to_goal": "Für ein Ziel gespart",
         "expiry_penalty": "Verspätungsabzug",
         "goal_break": "Ersparnis zurückgebucht",
         "missed_chore": "Abzug für verpasste Aufgabe",
+        "pet_feed": "Begleiter gefüttert",
         "points_decay": "Punkte verfallen",
         "reward_redeem": "Belohnung eingelöst",
         "streak_bonus": "Streak-Bonus"
@@ -699,6 +701,12 @@
         "petDescription": "Wenn aktiviert, adoptiert jedes Kind einen Begleiter: Die Stimmung folgt den Aufgaben, Füttern kostet Punkte, und beständige Pflege lässt ihn wachsen. Standardmäßig aus — Eltern entscheiden je nach Alter und Temperament.",
         "petLabel": "Begleiter aktivieren",
         "petSave": "Speichern"
+      },
+      "bonusDrop": {
+        "bonusTitle": "Glücksbonus",
+        "bonusDescription": "Wenn aktiviert, hat das Erledigen einer Aufgabe eine kleine Chance, 1–5 Überraschungspunkte obendrauf fallen zu lassen — jeder Haken trägt etwas Spannung. Standardmäßig aus.",
+        "bonusLabel": "Glücksbonus aktivieren",
+        "bonusSave": "Speichern"
       }
     },
     "skins": {
@@ -959,6 +967,10 @@
     },
     "celebration": {
       "back": "Zurück zu meiner Liste",
+      "drop_one": "🎉 Glücksbonus +{{count}}!",
+      "drop_other": "🎉 Glücksbonus +{{count}}!",
+      "dropLabel_one": "Ein Glücksbonus von {{count}} Punkt",
+      "dropLabel_other": "Ein Glücksbonus von {{count}} Punkten",
       "headline": "Super <em>gemacht!</em>",
       "next": "Weiter: {{title}}",
       "points": "+{{count}}",

@@ -138,6 +138,16 @@ note's personality.
 | `POST` | `/api/pet/hatch` | Adopt and name the pet (1–24 characters) |
 | `POST` | `/api/pet/feed` | Spend 10 points on pet food; 422 when the balance is too low |
 
+### Bonus drops
+
+With the `bonus_drop_enabled` setting on (off by default; Admin →
+Settings), an immediately-approved completion has a 10% chance to drop 1–5
+surprise points on top of the regular credit — the completion response
+carries `bonus_drop`, the celebration shows it, and the ledger keeps it
+auditable as its own `bonus_drop` row next to the chore credit. Late
+completions gave up their points, so they gave up the fun too; no new
+endpoints — it rides the existing completion flow.
+
 ### Profile preferences
 
 | Method | Path | Description |

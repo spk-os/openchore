@@ -37,7 +37,7 @@ function readTts(id: number, age?: number): boolean {
   return age !== undefined && age <= 7;
 }
 
-interface Celebrating { chore: ScheduledChore; points: number }
+interface Celebrating { chore: ScheduledChore; points: number; bonusDrop?: number }
 
 export const KidApp: React.FC = () => {
   const { t } = useTranslation();
@@ -114,16 +114,16 @@ export const KidApp: React.FC = () => {
     speak(text);
   }, [speak]);
 
-  const celebrate = useCallback((chore: ScheduledChore) => {
+  const celebrate = useCallback((chore: ScheduledChore, bonusDrop = 0) => {
     playComplete();
     const late = chore.expired && chore.expiry_penalty !== 'block';
-    setCelebrating({ chore, points: late ? 0 : chore.points_value || 0 });
+    setCelebrating({ chore, points: late ? 0 : chore.points_value || 0, bonusDrop });
   }, [playComplete]);
 
   const onToggle = useCallback(async (c: ScheduledChore, view: ChoreView) => {
     const result = await data.toggle(c, { retry: view.retry });
     if (result.needsPhoto) setPhotoChore(c);
-    if (result.finished) celebrate(c);
+    if (result.finished) celebrate(c, result.bonusDrop || 0);
   }, [data, celebrate]);
 
   // The next thing to do after a celebration: the first open chore in order.
@@ -264,6 +264,7 @@ export const KidApp: React.FC = () => {
           points={celebrating.points}
           title={celebrating.chore.title}
           streak={data.streak?.current_streak}
+          bonusDrop={celebrating.bonusDrop}
           next={nextChore?.title}
           onNext={() => {
             setCelebrating(null);

@@ -16,6 +16,8 @@ export interface ToggleResult {
   finished?: boolean;
   /** A photo is needed first: open the photo sheet. */
   needsPhoto?: boolean;
+  /** The surprise bonus that dropped with this completion (P4-15). */
+  bonusDrop?: number;
 }
 
 export function useKidData(user: User | null, opts: { week: boolean; rewards: boolean }) {
@@ -210,12 +212,13 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
         await api.chores.uncomplete(chore.schedule_id, chore.date);
       }
       const needsPhoto = chore.requires_photo && (chore.photo_source || 'child') === 'child';
+      let bonusDrop = 0;
       try {
         // With a photo required this may still succeed: the server revives an
         // earlier completion from today (kept so an accidental uncheck and
         // recheck doesn't lose the photo). Otherwise it answers 400 "photo
         // required" and the photo sheet opens.
-        await api.chores.complete(chore.schedule_id, chore.date);
+        bonusDrop = await api.chores.complete(chore.schedule_id, chore.date);
       } catch (e) {
         if (needsPhoto && e instanceof APIError && e.status === 400) {
           if (opts2.retry) await refreshAll();
@@ -224,7 +227,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
         throw e;
       }
       await refreshAll();
-      return { finished: true };
+      return { finished: true, bonusDrop };
     } catch (err) {
       if (err instanceof APIError && (err.status === 400 || err.status === 422)) {
         // Validation errors surface through more specific paths (the photo sheet).

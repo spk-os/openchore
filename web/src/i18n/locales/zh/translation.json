@@ -105,6 +105,10 @@
     },
     "celebration": {
       "back": "回到我的清单",
+      "drop_one": "🎉 彩蛋 +{{count}} 分！",
+      "drop_other": "🎉 彩蛋 +{{count}} 分！",
+      "dropLabel_one": "惊喜彩蛋，多得了 {{count}} 分",
+      "dropLabel_other": "惊喜彩蛋，多得了 {{count}} 分",
       "headline": "完成得<em>漂亮！</em>",
       "next": "下一个：{{title}}",
       "points": "+{{count}}",
@@ -621,12 +625,14 @@
       "minutesAgo_other": "{{count}} 分钟前",
       "reason": {
         "admin_adjust": "管理员调整",
+        "bonus_drop": "彩蛋奖励",
         "chore_complete": "任务完成",
         "chore_uncomplete": "任务被撤销",
         "commit_to_goal": "存入目标",
         "expiry_penalty": "超时扣分",
         "goal_break": "目标存款退回",
         "missed_chore": "错过任务扣分",
+        "pet_feed": "宠物喂食",
         "points_decay": "积分衰减",
         "reward_redeem": "兑换奖励",
         "streak_bonus": "连续奖励"
@@ -1308,6 +1314,12 @@
         "petDescription": "开启后，孩子会领养一只专属小伙伴：心情跟随任务记录变化，喂食消耗积分，长期喂养会慢慢长大。默认关闭，家长按孩子的年龄和性格决定是否开启。",
         "petLabel": "启用小伙伴",
         "petSave": "保存"
+      },
+      "bonusDrop": {
+        "bonusTitle": "彩蛋奖励",
+        "bonusDescription": "开启后，完成任务时有小概率额外掉落 1~5 分惊喜奖励，让每次打卡都有一点小期待。默认关闭，家长按需开启。",
+        "bonusLabel": "启用彩蛋奖励",
+        "bonusSave": "保存"
       }
     },
     "skins": {

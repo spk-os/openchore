@@ -10,6 +10,8 @@ export interface CelebrationProps {
   title: string;
   /** Days in a row; omit or 0 for none. */
   streak?: number;
+  /** The surprise bonus that dropped with this completion (P4-15). */
+  bonusDrop?: number;
   /** The next chore's title; omit at the end of the day. */
   next?: string;
   /** Override the headline ("Nailed it!"). */
@@ -24,7 +26,7 @@ export interface CelebrationProps {
  * same in every skin; the skin's dials pick the decoration (sun, confetti or
  * ring). Entrance motion is skipped under prefers-reduced-motion.
  */
-export function Celebration({ points, title, streak, next, headline, onNext, onBack, className }: CelebrationProps) {
+export function Celebration({ points, title, streak, bonusDrop, next, headline, onNext, onBack, className }: CelebrationProps) {
   const { t } = useTranslation();
   const headId = useId();
   return (
@@ -64,6 +66,12 @@ export function Celebration({ points, title, streak, next, headline, onNext, onB
             <span className="oc-visually-hidden">{t('design.celebration.pointsLabel', { count: points })}</span>
           </div>
           <div className="oc-cele__what">{title}</div>
+          {!!bonusDrop && (
+            <div className="oc-cele__drop">
+              <span aria-hidden>🎉 {t('design.celebration.drop', { count: bonusDrop })}</span>
+              <span className="oc-visually-hidden">{t('design.celebration.dropLabel', { count: bonusDrop })}</span>
+            </div>
+          )}
           {!!streak && (
             <div className="oc-cele__streak">
               <Icon name="flame" />

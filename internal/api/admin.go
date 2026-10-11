@@ -22,6 +22,7 @@ var writableSettings = map[string]bool{
 	"base_url":                  true,
 	"discord_webhook_url":       true,
 	"pet_enabled":               true,
+	"bonus_drop_enabled":        true,
 }
 
 type AdminHandler struct {

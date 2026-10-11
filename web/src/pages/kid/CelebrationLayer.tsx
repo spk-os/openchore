@@ -9,6 +9,8 @@ interface CelebrationLayerProps {
   points: number;
   title: string;
   streak?: number;
+  /** The surprise bonus that dropped with this completion (P4-15). */
+  bonusDrop?: number;
   next?: string;
   onNext: () => void;
   onBack: () => void;
@@ -19,7 +21,7 @@ interface CelebrationLayerProps {
  * a tap anywhere, Escape or a few seconds' wait returns to the list, and
  * focus goes back where it was.
  */
-export function CelebrationLayer({ points, title, streak, next, onNext, onBack }: CelebrationLayerProps) {
+export function CelebrationLayer({ points, title, streak, bonusDrop, next, onNext, onBack }: CelebrationLayerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
@@ -56,7 +58,7 @@ export function CelebrationLayer({ points, title, streak, next, onNext, onBack }
         if (!(e.target as HTMLElement).closest('button')) onBack();
       }}
     >
-      <Celebration points={points} title={title} streak={streak || undefined} next={next} onNext={onNext} onBack={onBack} />
+      <Celebration points={points} title={title} streak={streak || undefined} bonusDrop={bonusDrop} next={next} onNext={onNext} onBack={onBack} />
     </div>
   );
 }

@@ -1284,7 +1284,7 @@ func TestPointsDecayChecker_AutoContributeCannotShelterPoints(t *testing.T) {
 		CompletedBy:     childID,
 		Status:          model.StatusApproved,
 		CompletionDate:  yesterday.Format(model.DateFormat),
-	}, 10, 0); err != nil {
+	}, 10, 0, 0); err != nil {
 		t.Fatalf("CompleteChoreAndCreditPoints: %v", err)
 	}
 
