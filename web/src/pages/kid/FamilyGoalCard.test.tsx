@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import i18n from '../../i18n';
@@ -11,13 +11,13 @@ beforeAll(async () => {
 });
 afterEach(cleanup);
 
-const base = { avatar_url: '', theme: 'light' as const, has_pin: false, auth_providers: [] as string[], created_at: '2026-10-01' };
+const base = { avatar_url: '', theme: 'sunroom' as const, has_pin: false, auth_providers: [] as string[], created_at: '2026-10-01' };
 const me: User = { ...base, id: 3, name: '小梦', role: 'child', paused: false };
 
 const people: User[] = [
   me,
   { ...base, id: 1, name: 'Dad', role: 'admin', paused: false },
-  { ...base, id: 3, name: '小梦', role: 'child', paused: false, color: 'teal' },
+  { ...base, id: 3, name: '小梦', role: 'child', paused: false, color: 'mint' },
 ];
 
 const family = (p: Partial<RewardCommitment> = {}): RewardCommitment => ({

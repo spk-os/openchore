@@ -218,7 +218,8 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
         // earlier completion from today (kept so an accidental uncheck and
         // recheck doesn't lose the photo). Otherwise it answers 400 "photo
         // required" and the photo sheet opens.
-        bonusDrop = await api.chores.complete(chore.schedule_id, chore.date);
+        const res = await api.chores.complete(chore.schedule_id, chore.date);
+        bonusDrop = res.bonus_drop ?? 0;
       } catch (e) {
         if (needsPhoto && e instanceof APIError && e.status === 400) {
           if (opts2.retry) await refreshAll();
@@ -373,7 +374,7 @@ export function useKidData(user: User | null, opts: { week: boolean; rewards: bo
   return {
     today, chores, weekChores, streak, points, rewards, redemptions, people,
     coachNote, petState, togglingIds, toast, showToast,
-    reloadChores, refreshAll, loadRewards, toggle,
+    reloadChores, refreshAll, loadRewards, toggle, loadExtras, feedPet,
     commitmentFor, redeem, redeemingId, redeemedId, saveToward, savingTowardId,
     contribute, setAutoContribute, breakCommitment, busyGoals,
     familyGoal, grownUpsDone,

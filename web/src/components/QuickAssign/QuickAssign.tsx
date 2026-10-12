@@ -152,7 +152,7 @@ const QuickAssign: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleDraft = async (regenerate = false) => {
     if (kidId === null) return;
-    if (mode === 'text' && !request.trim()) return;
+    if (mode === 'copilot' && !request.trim()) return;
     if (mode === 'flyer' && !photo) return;
     setDrafting(true);
     setDraftError('');

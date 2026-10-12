@@ -1,5 +1,10 @@
 FROM docker.io/library/golang:1.26-alpine AS builder
 
+# Injectable module proxy: set GOPROXY at build time when the default
+# proxy.golang.org is unreachable from the build network.
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
+
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
