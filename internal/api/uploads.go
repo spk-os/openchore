@@ -17,10 +17,12 @@ func init() {
 }
 
 func (h *ChoreHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
-	// Limit upload size to 10MB
-	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+	// Limit upload size to 100MB — photos stay well under it, but a short
+	// video of the chore being done is the point of video proof.
+	const maxUpload = 100 << 20
+	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		writeError(w, http.StatusBadRequest, "file too large (max 10MB)")
+		writeError(w, http.StatusBadRequest, "file too large (max 100MB)")
 		return
 	}
 
@@ -31,7 +33,9 @@ func (h *ChoreHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Validate MIME type by reading the first 512 bytes
+	// Validate MIME type by reading the first 512 bytes. Video proof and
+	// documents (e.g. a homework PDF) are accepted alongside photos; the
+	// AI reviewer only looks at images, anything else waits for a parent.
 	buf := make([]byte, 512)
 	n, err := file.Read(buf)
 	if err != nil && err != io.EOF {
@@ -40,13 +44,18 @@ func (h *ChoreHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 	mimeType := http.DetectContentType(buf[:n])
 	allowedTypes := map[string]bool{
-		"image/jpeg": true,
-		"image/png":  true,
-		"image/gif":  true,
-		"image/webp": true,
+		"image/jpeg":      true,
+		"image/png":       true,
+		"image/gif":       true,
+		"image/webp":      true,
+		"video/mp4":       true,
+		"video/webm":      true,
+		"video/quicktime": true,
+		"video/3gpp":      true,
+		"application/pdf": true,
 	}
 	if !allowedTypes[mimeType] {
-		writeError(w, http.StatusBadRequest, "only image files are allowed (JPEG, PNG, GIF, WebP)")
+		writeError(w, http.StatusBadRequest, "only photos, videos (MP4, WebM, MOV) and PDF files are allowed")
 		return
 	}
 	// Seek back to the beginning after reading for MIME detection
@@ -60,7 +69,19 @@ func (h *ChoreHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	// Generate unique filename
 	ext := filepath.Ext(header.Filename)
 	if ext == "" {
-		ext = ".jpg" // Fallback
+		// No extension to go on (some camera apps strip it) — infer from the
+		// detected type rather than assuming JPEG.
+		ext = map[string]string{
+			"image/jpeg":      ".jpg",
+			"image/png":       ".png",
+			"image/gif":       ".gif",
+			"image/webp":      ".webp",
+			"video/mp4":       ".mp4",
+			"video/webm":      ".webm",
+			"video/quicktime": ".mov",
+			"video/3gpp":      ".3gp",
+			"application/pdf": ".pdf",
+		}[mimeType]
 	}
 	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), "upload", ext)
 	path := filepath.Join(uploadDir, filename)

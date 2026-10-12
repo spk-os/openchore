@@ -204,7 +204,10 @@ export const api = {
         method: 'DELETE',
       }),
     upload: async (file: File) => {
-      const resized = await resizeImage(file, 1280);
+      // Only photos are downscaled; videos and documents go up untouched
+      // (resizing a video in a canvas isn't a thing, and shrinking a PDF
+      // would ruin it).
+      const resized = file.type.startsWith('image/') ? await resizeImage(file, 1280) : file;
       const formData = new FormData();
       formData.append('photo', resized);
       return fetchWithAuth<{ url: string }>('/upload', {

@@ -55,6 +55,8 @@
       "aiLooksDone": "KI: sieht erledigt aus",
       "aiLooksNotDone": "KI: sieht nicht erledigt aus",
       "approveButton": "Genehmigen",
+      "beforeAfterDone": "Erledigt-Foto",
+      "beforeAfterRef": "Eltern-Beispiel",
       "cardLabel": "{{title}} für {{name}}",
       "emptyState": "Alles erledigt! Keine ausstehenden Freigaben.",
       "loading": "Wird geladen...",
@@ -62,16 +64,16 @@
       "noPhotoSkippedHint": "{{name}} hat das Foto übersprungen, also schau selbst nach.",
       "noPhotoYet": "Noch kein Foto",
       "noPhotoYetHint": "Das Foto kann noch von einem anderen Gerät hinzugefügt werden.",
+      "openFile": "Datei öffnen",
       "openPhoto": "Foto öffnen",
+      "openVideo": "Video öffnen",
       "photoAlt": "Nachweis",
       "rejectButton": "Ablehnen",
       "rejectConfirm": "Möchtest du wirklich ablehnen?",
       "tickedOffBy": "Abgehakt von {{name}}",
       "title": "Freigaben",
       "waitingForReview_one": "{{count}} Aufgabe wartet auf Prüfung",
-      "waitingForReview_other": "{{count}} Aufgaben warten auf Prüfung",
-      "beforeAfterRef": "Eltern-Beispiel",
-      "beforeAfterDone": "Erledigt-Foto"
+      "waitingForReview_other": "{{count}} Aufgaben warten auf Prüfung"
     },
     "choresTab": {
       "addChore": "Aufgabe hinzufügen",
@@ -708,6 +710,15 @@
         "bonusDescription": "Wenn aktiviert, hat das Erledigen einer Aufgabe eine kleine Chance, 1–5 Überraschungspunkte obendrauf fallen zu lassen — jeder Haken trägt etwas Spannung. Standardmäßig aus.",
         "bonusLabel": "Glücksbonus aktivieren",
         "bonusSave": "Speichern"
+      },
+      "theme": {
+        "auto": "Auto",
+        "autoHelp": "Auto: persönliche Anmeldungen folgen der Systemeinstellung; gemeinsame Bildschirme wechseln 19:30–07:00 auf Dunkel.",
+        "dark": "Dunkel",
+        "description": "Auf diesem Gerät Hell oder Dunkel festlegen – oder die App entscheiden lassen.",
+        "light": "Hell",
+        "pickHelp": "Dieses Gerät verwendet jetzt immer das gewählte Thema. „Auto“ stellt die automatischen Regeln wieder her.",
+        "title": "Anzeigethema"
       }
     },
     "skins": {
@@ -1247,7 +1258,9 @@
       "referenceTitle": "Beispielbild der Eltern",
       "referenceAlt": "Beispielbild der Eltern für „{{title}}“",
       "referenceHelp": "Schau dir an, wie fertig aussieht, und mach ein ähnliches Foto.",
-      "referenceZoomHint": "Zum Schließen irgendwo tippen"
+      "referenceZoomHint": "Zum Schließen irgendwo tippen",
+      "takeVideo": "Hier ein Video aufnehmen",
+      "uploadFile": "Datei hochladen"
     },
     "rewards": {
       "cost_one": "{{count}} Pkt.",

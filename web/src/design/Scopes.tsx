@@ -1,6 +1,11 @@
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import clsx from 'clsx';
-import { msUntilNextMinute, resolveHouseTheme } from './theme';
+import {
+  getHouseModePreference,
+  msUntilNextMinute,
+  resolveHouseTheme,
+  subscribeHouseModePreference,
+} from './theme';
 import type { HouseMode, HouseTheme, PersonColor, Skin } from './types';
 
 type DivProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'color'>;
@@ -73,17 +78,25 @@ export function useMinuteClock(enabled = true): Date {
   return now;
 }
 
+/** The device's stored light/dark pick, live (settings changes apply at once). */
+export function useHouseModePreference(): HouseMode {
+  return useSyncExternalStore(subscribeHouseModePreference, getHouseModePreference, () => 'auto');
+}
+
 /**
  * House or House Dark for shared screens.
+ * - An explicit pick on this device (settings) wins over everything.
  * - mode `light` / `dark` force it.
  * - `auto` + persistent (personal / OIDC session) follows prefers-color-scheme.
  * - `auto` otherwise (shared device, ambient display) follows the schedule:
  *   dark 19:30 – 07:00 local time, re-evaluated each minute.
  */
 export function useHouseTheme(mode: HouseMode = 'auto', persistent = false): HouseTheme {
+  const pick = useHouseModePreference();
+  const effective = pick !== 'auto' ? pick : mode;
   const prefersDark = usePrefersDark();
-  const now = useMinuteClock(mode === 'auto' && !persistent);
-  return resolveHouseTheme({ mode, persistent, prefersDark, now });
+  const now = useMinuteClock(effective === 'auto' && !persistent);
+  return resolveHouseTheme({ mode: effective, persistent, prefersDark, now });
 }
 
 export interface HouseScopeProps extends DivProps {

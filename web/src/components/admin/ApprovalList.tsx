@@ -23,6 +23,43 @@ function formatDay(date: string, lang: string): string {
   return new Date(date + 'T00:00:00').toLocaleDateString(lang, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+// Proof is no longer only a photo: a chore can be checked off with a short
+// video or a document (e.g. the finished worksheet as PDF). Each kind gets
+// its native element; the surrounding link still opens the raw file.
+const isVideoProof = (url: string) => /\.(mp4|webm|mov|m4v|3gp|3gpp)$/i.test(url);
+const isPdfProof = (url: string) => /\.pdf$/i.test(url);
+const proofHintKey = (url: string) =>
+  isVideoProof(url) ? 'admin.approvalsTab.openVideo' : isPdfProof(url) ? 'admin.approvalsTab.openFile' : 'admin.approvalsTab.openPhoto';
+
+function ProofMedia({ url, alt, hint }: { url: string; alt: string; hint?: string }) {
+  const { t } = useTranslation();
+  const hintEl = hint ? (
+    <span className={styles.photoHint}><Icon name={isVideoProof(url) ? 'film' : 'camera'} />{t(hint)}</span>
+  ) : null;
+  if (isVideoProof(url)) {
+    return (
+      <>
+        <video src={url} controls preload="metadata" />
+        {hintEl}
+      </>
+    );
+  }
+  if (isPdfProof(url)) {
+    return (
+      <>
+        <span className={styles.docTile}><Icon name="book" />PDF</span>
+        {hintEl}
+      </>
+    );
+  }
+  return (
+    <>
+      <img src={url} alt={alt} loading="lazy" />
+      {hintEl}
+    </>
+  );
+}
+
 /**
  * Chores waiting for a grown-up: who, what, the photo and the AI photo
  * review's advisory note, with Approve / Reject. Parents open the app mostly for this.
@@ -83,14 +120,12 @@ export const ApprovalList: React.FC<Props> = ({ pending, users, onChanged }) => 
                   <span className={styles.photoHint}><Icon name="book" />{t('admin.approvalsTab.beforeAfterRef')}</span>
                 </a>
                 <a className={styles.beforeAfterItem} href={p.photo_url} target="_blank" rel="noreferrer">
-                  <img src={p.photo_url} alt={t('admin.approvalsTab.beforeAfterDone')} loading="lazy" />
-                  <span className={styles.photoHint}><Icon name="camera" />{t('admin.approvalsTab.beforeAfterDone')}</span>
+                  <ProofMedia url={p.photo_url} alt={t('admin.approvalsTab.beforeAfterDone')} hint={proofHintKey(p.photo_url)} />
                 </a>
               </div>
             ) : p.photo_url ? (
               <a className={styles.photo} href={p.photo_url} target="_blank" rel="noreferrer">
-                <img src={p.photo_url} alt={t('admin.approvalsTab.photoAlt')} loading="lazy" />
-                <span className={styles.photoHint}><Icon name="camera" />{t('admin.approvalsTab.openPhoto')}</span>
+                <ProofMedia url={p.photo_url} alt={t('admin.approvalsTab.photoAlt')} hint={proofHintKey(p.photo_url)} />
               </a>
             ) : p.reference_photo_url ? (
               <a className={styles.photo} href={p.reference_photo_url} target="_blank" rel="noreferrer">

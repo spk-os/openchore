@@ -68,6 +68,29 @@
   font-size: 13px;
 }
 
+/* Display theme: three side-by-side picks, the active one filled in. */
+.themeChoices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.themeChoice {
+  composes: chip from './ui.module.css';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  font-size: 13px;
+  opacity: 0.72;
+}
+
+.themeChoice[data-active] {
+  opacity: 1;
+  font-weight: 700;
+}
+
 /* Webhooks and tokens: an inset list inside the card. */
 .subList {
   display: flex;

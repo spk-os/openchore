@@ -62,6 +62,49 @@ export function msUntilNextMinute(now: Date): number {
   return 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds());
 }
 
+/**
+ * An explicit light/dark pick for this device, kept in localStorage.
+ * `auto` (the default) removes the key and restores the built-in rules.
+ */
+export type HouseModePreference = HouseMode;
+
+const HOUSE_MODE_KEY = 'oc.house-mode';
+const HOUSE_MODE_EVENT = 'oc:house-mode';
+
+/** The device's stored theme pick: 'light' / 'dark', or 'auto' when unset. */
+export function getHouseModePreference(): HouseModePreference {
+  if (typeof localStorage === 'undefined') return 'auto';
+  try {
+    const v = localStorage.getItem(HOUSE_MODE_KEY);
+    return v === 'light' || v === 'dark' ? v : 'auto';
+  } catch {
+    // Storage unavailable (private mode): fall back to the automatic rules.
+    return 'auto';
+  }
+}
+
+/** Store the device's theme pick; notifies live pages so they re-resolve. */
+export function setHouseModePreference(mode: HouseModePreference): void {
+  try {
+    if (mode === 'auto') localStorage.removeItem(HOUSE_MODE_KEY);
+    else localStorage.setItem(HOUSE_MODE_KEY, mode);
+  } catch {
+    // Storage unavailable: the pick still applies for this page visit.
+  }
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(HOUSE_MODE_EVENT));
+}
+
+/** Subscribe to theme-pick changes (same tab via the event, other tabs via storage). */
+export function subscribeHouseModePreference(cb: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(HOUSE_MODE_EVENT, cb);
+  window.addEventListener('storage', cb);
+  return () => {
+    window.removeEventListener(HOUSE_MODE_EVENT, cb);
+    window.removeEventListener('storage', cb);
+  };
+}
+
 export type Salutation = 'morning' | 'afternoon' | 'evening';
 
 /** The greeting for a time of day: morning before 12, afternoon before 18. */

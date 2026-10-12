@@ -8,8 +8,9 @@ export { Icon, type IconProps } from './Icon';
 export { resolveChoreIcon, CATEGORY_ICON } from './choreIcon';
 export {
   resolveSkin, resolveHouseTheme, isScheduledDark, msUntilNextMinute, salutationFor,
+  getHouseModePreference, setHouseModePreference,
   BLOCKS_UNDER_AGE, DARK_FROM_MINUTES, DARK_UNTIL_MINUTES,
-  type HouseThemeInput, type Salutation,
+  type HouseThemeInput, type HouseModePreference, type Salutation,
 } from './theme';
 export {
   Greeting, Avatar, blobFor, PointsChip, CategoryMark, CategoryHeader, Button, FamilyMember,
@@ -21,6 +22,6 @@ export { DayProgress, type DayProgressProps, type DayProgressItem } from './DayP
 export { TabBar, TABS, type TabBarProps, type TabLinkProps } from './TabBar';
 export { Celebration, type CelebrationProps } from './Celebration';
 export {
-  SkinScope, HouseScope, useHouseTheme, usePrefersDark, useMinuteClock,
+  SkinScope, HouseScope, useHouseTheme, useHouseModePreference, usePrefersDark, useMinuteClock,
   type SkinScopeProps, type HouseScopeProps,
 } from './Scopes';

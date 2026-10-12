@@ -55,6 +55,8 @@
       "aiLooksDone": "AI: looks done",
       "aiLooksNotDone": "AI: doesn't look done",
       "approveButton": "Approve",
+      "beforeAfterDone": "Done photo",
+      "beforeAfterRef": "Parent's example",
       "cardLabel": "{{title}} for {{name}}",
       "emptyState": "All caught up! No pending approvals.",
       "loading": "Loading...",
@@ -62,16 +64,16 @@
       "noPhotoSkippedHint": "{{name}} skipped the photo, so check this one yourself.",
       "noPhotoYet": "No photo yet",
       "noPhotoYetHint": "The photo can still be added from another device.",
+      "openFile": "Open file",
       "openPhoto": "Open photo",
+      "openVideo": "Open video",
       "photoAlt": "Proof",
       "rejectButton": "Reject",
       "rejectConfirm": "Are you sure you want to reject this completion?",
       "tickedOffBy": "Ticked off by {{name}}",
       "title": "Approvals",
       "waitingForReview_one": "{{count}} chore waiting for review",
-      "waitingForReview_other": "{{count}} chores waiting for review",
-      "beforeAfterRef": "Parent's example",
-      "beforeAfterDone": "Done photo"
+      "waitingForReview_other": "{{count}} chores waiting for review"
     },
     "choresTab": {
       "addChore": "Add Chore",
@@ -708,6 +710,15 @@
         "bonusDescription": "When on, completing a chore has a small chance to drop 1-5 surprise points on top, so every tick-off carries a little suspense. Off by default.",
         "bonusLabel": "Enable the lucky bonus",
         "bonusSave": "Save"
+      },
+      "theme": {
+        "auto": "Auto",
+        "autoHelp": "Auto: personal sign-ins follow the system setting; shared screens go dark 19:30–07:00.",
+        "dark": "Dark",
+        "description": "Choose light or dark on this device, or let the app decide.",
+        "light": "Light",
+        "pickHelp": "This device now always uses the theme above. Pick Auto to restore the automatic rules.",
+        "title": "Display theme"
       }
     },
     "skins": {
@@ -1247,7 +1258,9 @@
       "referenceTitle": "Parent's example",
       "referenceAlt": "Parent's example photo for \"{{title}}\"",
       "referenceHelp": "See what done looks like, then snap one like it.",
-      "referenceZoomHint": "Tap anywhere to close"
+      "referenceZoomHint": "Tap anywhere to close",
+      "takeVideo": "Record a video here",
+      "uploadFile": "Upload a file"
     },
     "rewards": {
       "cost_one": "{{count}} pt",

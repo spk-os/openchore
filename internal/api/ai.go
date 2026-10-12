@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/liftedkilt/openchore/internal/model"
@@ -15,6 +17,17 @@ import (
 // defaultAutoApproveThreshold is the confidence the reviewer must reach
 // before a photo is auto-approved (when auto-approval is switched on).
 const defaultAutoApproveThreshold = 0.85
+
+// isImageProof reports whether a stored proof URL points at an image the
+// AI reviewer can look at. Videos and PDFs are parent-review only.
+func isImageProof(photoURL string) bool {
+	switch strings.ToLower(filepath.Ext(photoURL)) {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp":
+		return true
+	default:
+		return false
+	}
+}
 
 // queueReview runs the AI photo review for a pending completion in the
 // background. The kid is never kept waiting on it and it never rejects:
@@ -38,6 +51,11 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 	}
 	c, err := h.store.GetCompletion(ctx, completionID)
 	if err != nil || c == nil || c.Status != model.StatusPending || c.PhotoURL == "" {
+		return
+	}
+	// The reviewer is image-only: video and document proof (an AI-proof of
+	// its own, in a way) always waits for the parent's eyes.
+	if !isImageProof(c.PhotoURL) {
 		return
 	}
 	photoPath, err := resolveUploadPath(c.PhotoURL)

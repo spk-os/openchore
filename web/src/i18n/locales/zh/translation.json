@@ -364,7 +364,9 @@
       "referenceTitle": "家长示例图",
       "referenceAlt": "「{{title}}」的家长示例图",
       "referenceHelp": "先看看达标长什么样，再拍一张一样的。",
-      "referenceZoomHint": "点一下任意处关闭"
+      "referenceZoomHint": "点一下任意处关闭",
+      "takeVideo": "在这里录一段视频",
+      "uploadFile": "上传文件"
     },
     "rewards": {
       "cost_one": "{{count}} 分",
@@ -668,6 +670,8 @@
       "aiLooksDone": "AI：看起来已完成",
       "aiLooksNotDone": "AI：看起来未完成",
       "approveButton": "通过",
+      "beforeAfterDone": "完成照",
+      "beforeAfterRef": "家长示例",
       "cardLabel": "{{name}} 的「{{title}}」",
       "emptyState": "全部处理完毕！没有待审批项。",
       "loading": "加载中…",
@@ -675,16 +679,16 @@
       "noPhotoSkippedHint": "{{name}} 跳过了拍照，请家长自行确认这一条。",
       "noPhotoYet": "还没有照片",
       "noPhotoYetHint": "照片仍可从其他设备补传。",
+      "openFile": "打开文件",
       "openPhoto": "查看照片",
+      "openVideo": "查看视频",
       "photoAlt": "证明",
       "rejectButton": "驳回",
       "rejectConfirm": "确定驳回这次完成记录吗？",
       "tickedOffBy": "由 {{name}} 打勾",
       "title": "审批",
       "waitingForReview_one": "{{count}} 个任务待审",
-      "waitingForReview_other": "{{count}} 个任务待审",
-      "beforeAfterRef": "家长示例",
-      "beforeAfterDone": "完成照"
+      "waitingForReview_other": "{{count}} 个任务待审"
     },
     "choresTab": {
       "addChore": "添加任务",
@@ -1321,6 +1325,15 @@
         "bonusDescription": "开启后，完成任务时有小概率额外掉落 1~5 分惊喜奖励，让每次打卡都有一点小期待。默认关闭，家长按需开启。",
         "bonusLabel": "启用彩蛋奖励",
         "bonusSave": "保存"
+      },
+      "theme": {
+        "auto": "自动",
+        "autoHelp": "自动：个人登录跟随系统深浅色设置；公共屏幕每天 19:30–07:00 自动切换深色。",
+        "dark": "深色",
+        "description": "在本设备上固定浅色或深色，也可以交给应用自动决定。",
+        "light": "浅色",
+        "pickHelp": "本设备现在固定使用上面选择的主题。选「自动」可恢复默认规则。",
+        "title": "显示主题"
       }
     },
     "skins": {

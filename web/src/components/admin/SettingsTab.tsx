@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { Trash2, X } from 'lucide-react';
 import { api } from '../../api';
 import type { Webhook, WebhookDelivery } from '../../types';
-import { Icon } from '../../design';
+import { Icon, setHouseModePreference, useHouseModePreference } from '../../design';
 import { ExportConfigSection } from './ExportConfigSection';
 import { APITokensSection } from './APITokensSection';
 import { PhotoReviewTester } from './PhotoReviewTester';
@@ -36,6 +36,48 @@ const WEBHOOK_EVENT_IDS: { id: string; key: string }[] = [
   { id: 'auth.identity.linked', key: 'identityLinked' },
   { id: 'auth.identity.unlinked', key: 'identityUnlinked' },
 ];
+
+// The display-theme picks, in the order the built-in rules read them.
+const THEME_OPTIONS: { value: 'auto' | 'light' | 'dark'; icon: 'clock' | 'spark' | 'moon' }[] = [
+  { value: 'auto', icon: 'clock' },
+  { value: 'light', icon: 'spark' },
+  { value: 'dark', icon: 'moon' },
+];
+
+/**
+ * Display theme for this device: an explicit light/dark pick that overrides
+ * the automatic rules, or auto to restore them. Stored on the device, so it
+ * needs no account and no save button — tapping applies at once.
+ */
+const ThemeSection: React.FC = () => {
+  const { t } = useTranslation();
+  const pick = useHouseModePreference();
+  return (
+    <section className={clsx(ui.card, ui.section)}>
+      <h3 className={ui.sectionTitle}>{t('admin.settingsTab.theme.title')}</h3>
+      <p className={ui.sectionDesc}>{t('admin.settingsTab.theme.description')}</p>
+      <div className={styles.themeChoices} role="radiogroup" aria-label={t('admin.settingsTab.theme.title')}>
+        {THEME_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={pick === opt.value}
+            className={styles.themeChoice}
+            data-active={pick === opt.value || undefined}
+            onClick={() => setHouseModePreference(opt.value)}
+          >
+            <Icon name={opt.icon} />
+            {t(`admin.settingsTab.theme.${opt.value}`)}
+          </button>
+        ))}
+      </div>
+      <span className={ui.help}>
+        {pick === 'auto' ? t('admin.settingsTab.theme.autoHelp') : t('admin.settingsTab.theme.pickHelp')}
+      </span>
+    </section>
+  );
+};
 
 export const SettingsTab: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -290,6 +332,8 @@ export const SettingsTab: React.FC = () => {
 
       <div className={styles.columns}>
         <div className={ui.cardStack}>
+          <ThemeSection />
+
           <form className={clsx(ui.card, ui.section)} onSubmit={handleSaveBaseUrl}>
             <h3 className={ui.sectionTitle}>{t('admin.settingsTab.baseUrl.title')}</h3>
             <p className={ui.sectionDesc}>

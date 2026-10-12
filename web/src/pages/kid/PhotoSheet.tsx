@@ -34,6 +34,8 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
   const [uploadToken, setUploadToken] = useState<string | null>(null);
   const alreadyCompleted = chore.completed;
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+  const docRef = useRef<HTMLInputElement>(null);
   const [refZoom, setRefZoom] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,8 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
 
   const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset the input so picking the same file again still fires onChange.
+    e.target.value = '';
     if (!file) return;
     setUploading(true);
     setUploadError(null);
@@ -149,6 +153,16 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
           {uploading ? t('kid.photo.uploading') : t('kid.photo.takePhoto')}
         </button>
         <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleDirectUpload} hidden />
+        <button type="button" className={s.secondaryAction} onClick={() => videoRef.current?.click()} disabled={uploading}>
+          <Icon name="film" />
+          {t('kid.photo.takeVideo')}
+        </button>
+        <input ref={videoRef} type="file" accept="video/*" capture="environment" onChange={handleDirectUpload} hidden />
+        <button type="button" className={s.secondaryAction} onClick={() => docRef.current?.click()} disabled={uploading}>
+          <Icon name="book" />
+          {t('kid.photo.uploadFile')}
+        </button>
+        <input ref={docRef} type="file" onChange={handleDirectUpload} hidden />
         <button type="button" className={s.secondaryAction} onClick={handleCopyLink}>
           {copied ? t('kid.photo.copied') : t('kid.photo.copyLink')}
         </button>

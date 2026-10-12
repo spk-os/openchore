@@ -121,6 +121,33 @@
   height: 13px;
 }
 
+/* Video and document proof share the photo's frame; the video keeps its
+   own controls, the PDF gets a plain tile until the parent opens it. */
+.photo video,
+.beforeAfterItem video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--surface-sunk);
+}
+
+.docTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.docTile svg {
+  width: 22px;
+  height: 22px;
+}
+
 .ai {
   display: flex;
   gap: 10px;
