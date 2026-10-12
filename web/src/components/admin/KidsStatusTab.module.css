@@ -120,6 +120,31 @@
   transform: scale(0.97);
 }
 
+/* The yellow state's nudge (prototype "remind-now"): same pill as the
+   excuse button, in the waiting colour — a word from the parent, not a
+   push. */
+.glanceRemind {
+  flex: none;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid var(--waiting);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--waiting);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.glanceRemind:hover {
+  background: color-mix(in oklab, var(--waiting) 8%, var(--surface-raised));
+}
+
+.glanceRemind:active {
+  transform: scale(0.97);
+}
+
 @media (max-width: 640px) {
   .glance {
     position: static;
@@ -317,6 +342,16 @@
 
 .waiting {
   color: var(--waiting);
+}
+
+/* The kid's pet in the status line (P4-13 admin view, prototype
+   "stat-pet"): "豆豆 · 开心", the paw leading. */
+.petStat {
+  color: var(--ink-muted);
+}
+
+.petStat svg {
+  color: var(--star);
 }
 
 /* ---------- details ---------- */

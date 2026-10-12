@@ -372,8 +372,11 @@
         "yellowDetail": "Still time — a word from you beats a buzz from the app.",
         "redDetail": "Bonus points won't release. Excuse it and start fresh tomorrow.",
         "excuseButton": "Excuse",
-        "excuseAllConfirm": "Excuse all {{count}} missed must-do chores today ({{names}})? Streaks stay intact."
-      }
+        "excuseAllConfirm": "Excuse all {{count}} missed must-do chores today ({{names}})? Streaks stay intact.",
+        "remindButton": "Remind them"
+      },
+      "petStat": "{{name}} · {{mood}}",
+      "petStatLabel": "Pet status"
     },
     "modal": {
       "close": "Close"
@@ -457,7 +460,12 @@
       "streakSubtitle": "Bonus points for days in a row.",
       "subtitle": "What points can buy.",
       "unlimited": "Unlimited",
-      "update": "Update"
+      "update": "Update",
+      "fillTemplate": "✨ Fill 9 templates",
+      "filling": "Filling…",
+      "fillDone": "Added 9 reward templates",
+      "emptyRowTitle": "One-tap fill for an empty reward list",
+      "emptyRowDesc": "When the reward list is empty, fill in 9 starter rewards at once (30 min of games / one episode / a family outing / a new book / a big wish …)"
     },
     "scheduleManager": {
       "ariaDeleteSchedule": "Delete schedule",
@@ -1289,7 +1297,8 @@
       "spent_other": "−{{count}} pts",
       "stock_one": "{{count}} left",
       "stock_other": "{{count}} left",
-      "title": "Rewards"
+      "title": "Rewards",
+      "dropHistory": "🎉 Bonus drops: {{list}}"
     },
     "sheet": {
       "back": "Back",
@@ -1506,7 +1515,13 @@
     "familyToday": "The family today",
     "chartTitle": "Today so far",
     "chartDesc": "How much of their day each person has done, hour by hour. Now: {{summary}}.",
-    "chartPerson": "{{name}} {{pct}}%"
+    "chartPerson": "{{name}} {{pct}}%",
+    "familyGoalStrip": "🎯 Family goal: {{name}}",
+    "goalProgress": "Progress",
+    "goalAmounts": "{{saved}} / {{target}} pts",
+    "goalAutoSave": "✨ Auto-saving",
+    "goalSavers": "Saving together",
+    "goalNoAmounts": "· amounts stay private"
   },
   "boost": {
     "kicker": "A grandparent's cheer",

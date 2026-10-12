@@ -557,6 +557,21 @@
 .balanceStar { width: 40px; height: 40px; color: var(--star); stroke-width: 1.5; }
 .balanceSub { font-size: 14px; font-weight: 600; color: var(--ink-muted); }
 
+/* The bonus-drop trail under the balance (P4-15, prototype .drop). */
+.drop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border: var(--outline-w) solid var(--star);
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--waiting);
+}
+
 .goals { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-5); }
 
 .rewardList { list-style: none; margin: 0; padding: 0; }

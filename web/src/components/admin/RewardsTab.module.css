@@ -109,3 +109,35 @@
   height: 16px;
   color: var(--star);
 }
+
+/* The empty-store ops shortcut (P0, prototype parent-settings
+   "reward-template-row"): one tap fills nine starter rewards. */
+.emptyFill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--surface-raised);
+}
+
+.emptyFillTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.emptyFillDesc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--ink-muted);
+}
+
+.fillBtn {
+  flex: none;
+}

@@ -372,8 +372,11 @@
         "yellowDetail": "Noch Zeit — ein Wort von dir hilft mehr als ein Ton aus der App.",
         "redDetail": "Bonuspunkte werden nicht freigegeben. Entschuldigen und morgen neu starten.",
         "excuseButton": "Entschuldigen",
-        "excuseAllConfirm": "Alle {{count}} verpassten Pflichtaufgaben von heute entschuldigen ({{names}})? Der Streak bleibt erhalten."
-      }
+        "excuseAllConfirm": "Alle {{count}} verpassten Pflichtaufgaben von heute entschuldigen ({{names}})? Der Streak bleibt erhalten.",
+        "remindButton": "Erinnern"
+      },
+      "petStat": "{{name}} · {{mood}}",
+      "petStatLabel": "Haustier-Status"
     },
     "modal": {
       "close": "Schließen"
@@ -457,7 +460,12 @@
       "streakSubtitle": "Bonuspunkte für Tage am Stück.",
       "subtitle": "Was man sich mit Punkten holen kann.",
       "unlimited": "Unbegrenzt",
-      "update": "Aktualisieren"
+      "update": "Aktualisieren",
+      "fillTemplate": "✨ 9 Vorlagen einfügen",
+      "filling": "Füge ein…",
+      "fillDone": "9 Belohnungsvorlagen eingefügt",
+      "emptyRowTitle": "Leere Belohnungsliste mit einem Tipp füllen",
+      "emptyRowDesc": "Füllt die leere Belohnungsliste mit 9 Start-Belohnungen (30 Minuten Spielen / eine Folge / ein Familienausflug / ein neues Buch / ein großer Wunsch …)"
     },
     "scheduleManager": {
       "ariaDeleteSchedule": "Zeitplan löschen",
@@ -1289,7 +1297,8 @@
       "spent_other": "−{{count}} Pkt.",
       "stock_one": "Noch {{count}}",
       "stock_other": "Noch {{count}}",
-      "title": "Belohnungen"
+      "title": "Belohnungen",
+      "dropHistory": "🎉 Überraschungspunkte: {{list}}"
     },
     "sheet": {
       "back": "Zurück",
@@ -1506,7 +1515,13 @@
     "familyToday": "Die Familie heute",
     "chartTitle": "Heute bisher",
     "chartDesc": "Wie viel jede Person von ihrem Tag geschafft hat, Stunde für Stunde. Jetzt: {{summary}}.",
-    "chartPerson": "{{name}} {{pct}} %"
+    "chartPerson": "{{name}} {{pct}} %",
+    "familyGoalStrip": "🎯 Familienziel: {{name}}",
+    "goalProgress": "Fortschritt",
+    "goalAmounts": "{{saved}} / {{target}} Pkt.",
+    "goalAutoSave": "✨ Spart automatisch",
+    "goalSavers": "Sparen zusammen",
+    "goalNoAmounts": "· Beträge bleiben privat"
   },
   "boost": {
     "kicker": "Zuspruch der Großeltern",

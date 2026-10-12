@@ -120,6 +120,31 @@ func (h *PetHandler) FeedPet(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, h.state(r, pet))
 }
 
+// GetPetForAdmin returns any kid's pet for the parent dashboard's status
+// card (the prototype's "stat-pet" line). Same shape as GetPet: 404 when
+// the feature is off, {"hatched": false} when the kid hasn't hatched one.
+func (h *PetHandler) GetPetForAdmin(w http.ResponseWriter, r *http.Request) {
+	userID, err := urlParamInt64(r, "userID")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	if !h.petEnabled(r) {
+		writeError(w, http.StatusNotFound, "pet feature is not enabled")
+		return
+	}
+	pet, err := h.store.GetPet(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load pet")
+		return
+	}
+	if pet == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"hatched": false})
+		return
+	}
+	writeJSON(w, http.StatusOK, h.state(r, pet))
+}
+
 // state computes the mood and stage progress for a stored pet.
 func (h *PetHandler) state(r *http.Request, pet *model.Pet) petState {
 	mood, err := h.store.PetMood(r.Context(), pet.UserID, time.Now().Format(model.DateFormat))

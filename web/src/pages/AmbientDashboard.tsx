@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { api, fetchPublicUserData } from '../api';
-import type { User, ScheduledChore, UserStreakData, PointsData } from '../types';
+import type { User, ScheduledChore, UserStreakData, PointsData, RewardCommitment } from '../types';
 import { localDateStr } from '../utils';
 import {
   Avatar, ChoreRow, DayProgress, FamilyMember, HouseScope, Icon, SkinScope,
@@ -26,6 +26,8 @@ interface PersonDay {
   streak: number;
   /** Completion times, oldest first. */
   doneAt: Date[];
+  /** The family's shared pot, seen from this member's commitments. */
+  familyGoal: RewardCommitment | null;
 }
 
 const REFRESH_MS = 45_000;
@@ -138,6 +140,9 @@ async function loadPerson(user: User, today: string): Promise<PersonDay> {
   return {
     user,
     chores,
+    // The family goal strip reads the shared pot from anyone's open
+    // commitments — every member's payload carries the same pool.
+    familyGoal: pointsData.active_commitments.find(c => c.pool) ?? null,
     completed: done.length,
     total: chores.length,
     pointsToday: done.reduce((sum, c) => sum + c.points_value, 0),
@@ -203,6 +208,11 @@ export const AmbientDashboard: React.FC = () => {
   const start = () => navigate('/login');
   // Past a handful of lines the chart stops being readable; the strip stays.
   const showChart = people.filter((p) => p.total > 0).length <= MAX_CHART_LINES;
+  // The family goal strip (P4-14 on the wall): the first shared pot anyone
+  // is saving toward — read across members so the strip survives a paused
+  // or chore-less saver.
+  const familyGoal = people.find((p) => p.familyGoal)?.familyGoal ?? null;
+  const goalPool = familyGoal?.pool ?? null;
 
   return (
     <HouseScope mode="auto" persistent={false} className={styles.wall} onClick={start}>
@@ -236,6 +246,51 @@ export const AmbientDashboard: React.FC = () => {
           <div className={styles.doors}>
             {people.map((p) => <Door key={p.user.id} p={p} now={now} fmtTime={fmtTime} />)}
           </div>
+
+          {goalPool && (
+            <section
+              className={clsx(styles.goalStrip, goalPool.amount_saved >= goalPool.target_cost && styles.goalStripDone)}
+              aria-label={t('wall.goalSavers')}
+              data-test="family-goal-strip"
+            >
+              <div className={styles.goalTitle}>
+                {t('wall.familyGoalStrip', { name: goalPool.reward_name ?? '' })}
+              </div>
+              <div className={styles.goalMid}>
+                <div className={styles.goalLine}>
+                  <span>{t('wall.goalProgress')}</span>
+                  <b className={styles.goalAmounts} data-test="goal-progress-value">
+                    {t('wall.goalAmounts', { saved: goalPool.amount_saved, target: goalPool.target_cost })}
+                  </b>
+                  <span className={styles.goalContrib} data-test="goal-strip-people">
+                    {(goalPool.contributors ?? []).map((c) => (
+                      <span key={c.user_id}>
+                        <i
+                          aria-hidden
+                          data-person={people.find((p) => p.user.id === c.user_id)?.user.color || undefined}
+                        />
+                        {c.user_name}
+                      </span>
+                    ))}
+                    <span className={styles.goalNoAmounts}>{t('wall.goalNoAmounts')}</span>
+                  </span>
+                </div>
+                <div
+                  className={styles.goalBar}
+                  role="img"
+                  aria-label={t('wall.goalAmounts', { saved: goalPool.amount_saved, target: goalPool.target_cost })}
+                  data-test="goal-strip-progress"
+                >
+                  <i style={{ width: `${Math.min(100, (goalPool.amount_saved / goalPool.target_cost) * 100)}%` }} />
+                </div>
+              </div>
+              {familyGoal && familyGoal.auto_contribute_percent > 0 && (
+                <span className={styles.goalAuto} data-test="goal-auto">
+                  {t('wall.goalAutoSave')}
+                </span>
+              )}
+            </section>
+          )}
 
           {people.length > 0 && (
             <section className={clsx(styles.family, !showChart && styles.familyWide)} aria-labelledby="wall-family">

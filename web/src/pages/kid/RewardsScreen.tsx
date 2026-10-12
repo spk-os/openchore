@@ -27,6 +27,12 @@ export function RewardsScreen({ user, data, topBar, onRedeemed }: RewardsProps) 
   const commitments = data.points?.active_commitments ?? [];
   const hasPersonalGoal = commitments.some(c => !c.shared_pool_id);
   const rewards = data.rewards;
+  // The bonus-drop trail (P4-15, prototype "drop-history"): every surprise
+  // point that dropped on completion, newest first — the balance line's
+  // reminder that finishing things keeps paying off.
+  const drops = (data.points?.transactions ?? [])
+    .filter(tx => tx.reason === 'bonus_drop' && tx.amount > 0)
+    .map(tx => tx.amount);
 
   const redeem = async (reward: Reward) => {
     if (await data.redeem(reward)) onRedeemed();
@@ -46,6 +52,12 @@ export function RewardsScreen({ user, data, topBar, onRedeemed }: RewardsProps) 
             {committed > 0 ? t('kid.rewards.spendableSaved', { count: balance, saved: committed }) : t('kid.rewards.spendable', { count: balance })}
           </span>
         </div>
+
+        {drops.length > 0 && (
+          <div className={s.drop} role="note" data-test="drop-history">
+            {t('kid.rewards.dropHistory', { list: drops.map(d => `+${d}`).join(' · ') })}
+          </div>
+        )}
 
         {commitments.length > 0 && (
           <section className={s.goals} aria-label={t('kid.goal.title')}>

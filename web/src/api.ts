@@ -314,6 +314,8 @@ export const api = {
       body: JSON.stringify({ name }),
     }),
     feed: () => fetchWithAuth<Pet>('/pet/feed', { method: 'POST' }),
+    // Admin view of any kid's pet (the parent status card). 404 hides it.
+    getForAdmin: (userId: number) => fetchWithAuth<PetResponse>(`/admin/users/${userId}/pet`),
   },
   boost: {
     // The elder's boost page (P4-16): public, token-addressed, no session.

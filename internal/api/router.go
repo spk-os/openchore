@@ -197,6 +197,10 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Post("/admin/users/{userID}/boost-links", boosts.CreateLink)
 				r.Delete("/admin/users/{userID}/boost-links/{linkID}", boosts.RevokeLink)
 
+				// Any kid's pet for the parent status card (P4-13,
+				// admin view of the pet's mood — same payload as /pet).
+				r.Get("/admin/users/{userID}/pet", pets.GetPetForAdmin)
+
 				// Config export
 				r.Get("/admin/export-config", admin.ExportConfig)
 

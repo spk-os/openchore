@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { api } from '../../api';
-import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote } from '../../types';
+import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote, Pet, PetResponse } from '../../types';
 import { Avatar, CategoryHeader, CategoryMark, Icon, catFromCategory } from '../../design';
 import { localDateStr } from '../../utils';
 import { ApprovalList } from './ApprovalList';
@@ -19,6 +19,8 @@ interface KidStatus {
   streak: number;
   pendingApprovals: number;
   coachNote: DailyCoachNote | null;
+  /** The kid's pet when it has hatched (null hides the status line). */
+  pet: Pet | null;
   loadError: boolean;
 }
 
@@ -121,7 +123,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
       const results = await Promise.all(
         children.map(async (kid): Promise<KidStatus> => {
           try {
-            const [chores, streakData, coachNote] = await Promise.all([
+            const [chores, streakData, coachNote, petState] = await Promise.all([
               api.users.getChores(kid.id, 'daily', today),
               api.streaks.getForUser(kid.id).catch<UserStreakData>(() => ({
                 current_streak: 0,
@@ -130,6 +132,9 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               })),
               // Today's coach note (parent view: observation + the kid's line).
               api.coach.getNote(kid.id).catch<DailyCoachNote | null>(() => null),
+              // Their pet's mood for the status card (P4-13 admin view).
+              // 404 (feature off) or load errors just hide the line.
+              api.pet.getForAdmin(kid.id).catch<PetResponse | null>(() => null),
             ]);
             const bal = balances.find(b => b.user_id === kid.id)?.balance ?? 0;
             return {
@@ -139,6 +144,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               streak: streakData.current_streak,
               pendingApprovals: pendingByAssignee.get(kid.id) || 0,
               coachNote: coachNote && (coachNote.parent_text || coachNote.child_text) ? coachNote : null,
+              pet: petState && 'name' in petState ? petState : null,
               loadError: false,
             };
           } catch (e) {
@@ -150,6 +156,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               streak: 0,
               pendingApprovals: pendingByAssignee.get(kid.id) || 0,
               coachNote: null,
+              pet: null,
               loadError: true,
             };
           }
@@ -307,6 +314,19 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               {t('admin.kidsStatusTab.glance.excuseButton')}
             </button>
           )}
+          {glance.level === 'yellow' && (
+            <button
+              type="button"
+              className={styles.glanceRemind}
+              data-test="remind-now"
+              // The prototype's "remind-now": a nudge that's a word from the
+              // parent, not a push. Nothing to send — the tap is the reminder,
+              // the note says so and the bar moves on with the next refresh.
+              onClick={() => window.alert(t('admin.kidsStatusTab.glance.yellowDetail'))}
+            >
+              {t('admin.kidsStatusTab.glance.remindButton')}
+            </button>
+          )}
         </section>
       )}
 
@@ -417,6 +437,15 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
                 <span className={styles.stats}>
                   <span><Icon name="flame" fill className={styles.flame} /> {t('admin.kidsStatusTab.streak', { count: kid.streak })}</span>
                   <span><Icon name="star" fill className={styles.star} /> {t('admin.kidsStatusTab.points', { count: kid.balance })}</span>
+                  {kid.pet && (
+                    <span className={styles.petStat} title={t('admin.kidsStatusTab.petStatLabel')}>
+                      <Icon name="paw" />{' '}
+                      {t('admin.kidsStatusTab.petStat', {
+                        name: kid.pet.name,
+                        mood: t(`kid.pet.mood${kid.pet.mood.charAt(0).toUpperCase()}${kid.pet.mood.slice(1)}`),
+                      })}
+                    </span>
+                  )}
                   {kid.pendingApprovals > 0 && (
                     <span className={styles.waiting}>
                       <Icon name="clock" /> {t('admin.kidsStatusTab.awaitingApproval', { count: kid.pendingApprovals })}

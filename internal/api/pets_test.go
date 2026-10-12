@@ -162,3 +162,43 @@ func TestPetMoodFollowsChoreRecord(t *testing.T) {
 		t.Fatalf("mood after completing everything = %v, want happy", pet["mood"])
 	}
 }
+
+// The parent status card reads any kid's pet through the admin endpoint
+// (the prototype's "stat-pet" line: "豆豆 · 开心"). Same payload as the
+// kid's own /pet, gated the same way by pet_enabled.
+func TestAdminPetEndpointForKidsStatus(t *testing.T) {
+	env := setupTest(t)
+	env.createAdmin(t)
+	kid := env.createChild(t, "Kid")
+	other := env.createChild(t, "Other")
+
+	// Feature off → 404, so the status card hides the line.
+	env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/users/%d/pet", kid), nil, adminHeaders(), http.StatusNotFound)
+
+	enablePets(t, env)
+	// Not hatched yet → hatched=false.
+	resp := env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/users/%d/pet", kid), nil, adminHeaders(), http.StatusOK)
+	var state map[string]any
+	decodeBody(t, resp, &state)
+	if state["hatched"] != false {
+		t.Fatalf("expected hatched=false, got %v", state)
+	}
+
+	// The kid hatches; the admin view mirrors it, mood included.
+	hatch(t, env, childHeaders(kid), "豆豆")
+	resp = env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/users/%d/pet", kid), nil, adminHeaders(), http.StatusOK)
+	decodeBody(t, resp, &state)
+	if state["name"] != "豆豆" || state["mood"] != "happy" {
+		t.Fatalf("unexpected admin pet state: %v", state)
+	}
+
+	// Another kid's empty pet stays hatched=false.
+	resp = env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/users/%d/pet", other), nil, adminHeaders(), http.StatusOK)
+	decodeBody(t, resp, &state)
+	if state["hatched"] != false {
+		t.Fatalf("expected hatched=false for other kid, got %v", state)
+	}
+
+	// A non-admin session must not read someone else's pet.
+	env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/users/%d/pet", kid), nil, childHeaders(other), http.StatusForbidden)
+}

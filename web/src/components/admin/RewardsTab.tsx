@@ -238,6 +238,7 @@ export const RewardsTab: React.FC = () => {
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [showStreakForm, setShowStreakForm] = useState(false);
   const [expandedAssignments, setExpandedAssignments] = useState<number | null>(null);
+  const [filling, setFilling] = useState(false);
 
   const load = useCallback(async () => {
     const [r, sr, u] = await Promise.all([api.rewards.listAll(), api.streaks.listRewards(), api.users.list()]);
@@ -256,6 +257,41 @@ export const RewardsTab: React.FC = () => {
   const handleDeleteStreakReward = async (id: number) => {
     await api.streaks.deleteReward(id);
     load();
+  };
+
+  // The P0 ops shortcut (prototype parent-settings "reward-template-row"):
+  // an empty reward list fills with nine starter rewards in one tap, so a
+  // fresh household isn't staring at a blank store.
+  const REWARD_TEMPLATES: { name: string; description: string; icon: string; cost: number; shareable?: boolean }[] = [
+    { name: '30 分钟游戏时间', description: '自己挑，计时开始', icon: 'screen', cost: 20 },
+    { name: '看一集动画片', description: '自己挑一集', icon: 'film', cost: 15 },
+    { name: '一次冰淇淋', description: '口味自己选', icon: 'cone', cost: 10 },
+    { name: '周末晚睡半小时', description: '周五或周六晚上', icon: 'moon', cost: 15 },
+    { name: '一本新书', description: '自己挑想读的', icon: 'book', cost: 40 },
+    { name: '周末全家出游', description: '公园、博物馆或郊外', icon: 'bike', cost: 100, shareable: true },
+    { name: '一次心愿餐', description: '晚饭自己点', icon: 'bowl', cost: 30 },
+    { name: '一个大心愿', description: '和爸妈商量着定', icon: 'rocket', cost: 200, shareable: true },
+    { name: '一件小玩具', description: '自己挑一件', icon: 'toy', cost: 60 },
+  ];
+  const handleFillTemplates = async () => {
+    setFilling(true);
+    try {
+      for (const tpl of REWARD_TEMPLATES) {
+        await api.rewards.create({
+          name: tpl.name,
+          description: tpl.description,
+          icon: tpl.icon,
+          cost: tpl.cost,
+          active: true,
+          shareable: !!tpl.shareable,
+        });
+      }
+      await load();
+    } catch (err) {
+      console.error('Failed to fill reward templates', err);
+      await load();
+    }
+    setFilling(false);
   };
 
   const toggleAssignments = (id: number) => {
@@ -284,7 +320,21 @@ export const RewardsTab: React.FC = () => {
       )}
 
       {rewards.length === 0 ? (
-        <p className={ui.emptyInline}>{t('admin.rewardsTab.noRewards')}</p>
+        <div className={styles.emptyFill}>
+          <div>
+            <h3 className={styles.emptyFillTitle}>{t('admin.rewardsTab.emptyRowTitle')}</h3>
+            <p className={styles.emptyFillDesc}>{t('admin.rewardsTab.emptyRowDesc')}</p>
+          </div>
+          <button
+            type="button"
+            className={clsx(ui.btnPrimary, styles.fillBtn)}
+            onClick={handleFillTemplates}
+            disabled={filling}
+            data-test="reward-template-fill-btn"
+          >
+            <Icon name="spark" /> {filling ? t('admin.rewardsTab.filling') : t('admin.rewardsTab.fillTemplate')}
+          </button>
+        </div>
       ) : (
         <div className={ui.list}>
           {rewards.map(r => {

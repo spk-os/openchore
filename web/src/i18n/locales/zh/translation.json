@@ -395,7 +395,8 @@
       "spent_other": "−{{count}} 分",
       "stock_one": "剩 {{count}} 份",
       "stock_other": "剩 {{count}} 份",
-      "title": "奖励"
+      "title": "奖励",
+      "dropHistory": "🎉 彩蛋记录：{{list}}"
     },
     "sheet": {
       "back": "返回",
@@ -612,7 +613,13 @@
     "familyToday": "全家今天",
     "chartTitle": "今日进度",
     "chartDesc": "每位成员当天逐小时的完成进度。当前：{{summary}}。",
-    "chartPerson": "{{name}} {{pct}}%"
+    "chartPerson": "{{name}} {{pct}}%",
+    "familyGoalStrip": "🎯 全家共同目标：{{name}}",
+    "goalProgress": "进度",
+    "goalAmounts": "{{saved}} / {{target}} 分",
+    "goalAutoSave": "✨ 自动攒分中",
+    "goalSavers": "参与攒分",
+    "goalNoAmounts": "· 不显示各自数额"
   },
   "admin": {
     "activityTab": {
@@ -987,8 +994,11 @@
         "yellowDetail": "现在提醒还来得及——口头提醒即可，不用催。",
         "redDetail": "将影响加分项释放。可以豁免，明天再开始。",
         "excuseButton": "豁免",
-        "excuseAllConfirm": "把今天 {{count}} 项未完成的必做任务全部豁免（{{names}}）？连击不受影响。"
-      }
+        "excuseAllConfirm": "把今天 {{count}} 项未完成的必做任务全部豁免（{{names}}）？连击不受影响。",
+        "remindButton": "提醒一下"
+      },
+      "petStat": "{{name}} · {{mood}}",
+      "petStatLabel": "宠物状态"
     },
     "modal": {
       "close": "关闭"
@@ -1072,7 +1082,12 @@
       "streakSubtitle": "连续完成天数可获额外积分。",
       "subtitle": "积分能换什么。",
       "unlimited": "不限量",
-      "update": "更新"
+      "update": "更新",
+      "fillTemplate": "✨ 填充 9 项模板",
+      "filling": "填充中…",
+      "fillDone": "已填入 9 项奖励模板",
+      "emptyRowTitle": "奖励空态一键填充",
+      "emptyRowDesc": "奖励列表为空时，一键填入 9 项中文奖励模板（30 分钟游戏 / 一集动画 / 全家出游 / 一本新书 / 大心愿 …）"
     },
     "scheduleManager": {
       "ariaDeleteSchedule": "删除排期",
