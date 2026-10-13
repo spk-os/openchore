@@ -67,7 +67,7 @@ describe('TabBar', () => {
 
   it('renders buttons without hrefs', () => {
     render(<TabBar />);
-    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(screen.getAllByRole('button')).toHaveLength(4);
   });
 });
 

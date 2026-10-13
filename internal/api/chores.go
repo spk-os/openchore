@@ -23,6 +23,7 @@ type ChoreHandler struct {
 	discord    *discord.Notifier
 	aiSvc      *AIServices    // optional AI and read-aloud audio
 	reviews    sync.WaitGroup // in-flight background photo reviews
+	analyses   sync.WaitGroup // in-flight background paper analyses (L1)
 }
 
 // bonusDropEnabledSetting gates the surprise bonus on completion

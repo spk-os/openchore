@@ -1191,3 +1191,302 @@
 
   .dayMark { width: 44px; height: 44px; }
 }
+
+/* ---------- L1: the wrong-question book (errorbook) ---------- */
+.ebScreen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 600px;
+}
+
+.ebScene {
+  margin: 0 2px;
+  font-size: var(--type-meta-size);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.ebLoading {
+  margin: var(--space-4) 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* Subject filter chips, each with its live count. */
+.ebFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.ebFilter {
+  height: 36px;
+  padding: 0 14px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--chip);
+  color: var(--on-chip);
+  font-family: var(--font-text);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ebFilterOn {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+
+.ebError {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--waiting) 18%, transparent);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+/* The card list: one column, room to read a question. */
+.ebList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.ebCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+
+.ebCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.ebCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ebSubject {
+  padding: 2px 9px;
+  border-radius: var(--r-chip);
+  background: var(--cat-essential-soft);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.ebCause {
+  padding: 2px 9px;
+  border-radius: var(--r-chip);
+  background: color-mix(in srgb, var(--waiting) 20%, transparent);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+/* The mastery badge: green ✅ / amber 🔁 / neutral 🆕. */
+.ebMastery {
+  padding: 2px 9px;
+  border-radius: var(--r-chip);
+  background: var(--chip);
+  color: var(--on-chip);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.ebCard[data-mastery='mastered'] .ebMastery {
+  background: color-mix(in srgb, var(--celebrate) 26%, transparent);
+}
+
+.ebCard[data-mastery='reviewing'] .ebMastery {
+  background: color-mix(in srgb, var(--waiting) 24%, transparent);
+}
+
+/* Question stem: bigger, with KaTeX blocks breathing. */
+.ebStem {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.ebStem .katex-display {
+  margin: var(--space-2) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* "You wrote" — the kid's own answer, kept visually muted. */
+.ebWrote,
+.ebAnswer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.ebWrote > span,
+.ebAnswer > span {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.ebWrote p,
+.ebAnswer p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+/* The AI explanation card: the star of the show. */
+.ebAiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3);
+  border: var(--outline-w) solid var(--line);
+  border-radius: 14px;
+  background: var(--cat-bonus-soft);
+}
+
+.ebAiTitle {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.ebAiNote {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+.ebTags {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.ebNext {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-muted);
+}
+
+.ebNote {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* The two actions: confirm the correction / ask for another go. */
+.ebCardActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.ebDoneBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-chip);
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-text);
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ebDoneBtn:active { transform: scale(0.98); }
+.ebDoneBtn:disabled { opacity: 0.55; cursor: default; }
+
+.ebAgainBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 16px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--chip);
+  color: var(--on-chip);
+  font-family: var(--font-text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* The empty state: nothing wrong yet — a good thing. */
+.ebEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  border: 1.5px dashed var(--line);
+  border-radius: var(--oc-radius-lg);
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.ebEmpty svg { width: 30px; height: 30px; }
+.ebEmpty p { margin: 0; font-size: 14.5px; font-weight: 600; }
+
+.ebEmptyTitle {
+  font-size: 17px !important;
+  font-weight: 750 !important;
+  color: var(--ink) !important;
+}
+
+.ebEmptyCta { opacity: 0.85; }
+
+.ebFoot {
+  margin: var(--space-3) 2px 0;
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* Tablet: the book shares the two-column frame, card column capped. */
+@media (min-width: 900px) {
+  .ebScreen { max-width: 680px; padding-top: var(--space-2); }
+}

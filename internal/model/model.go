@@ -594,8 +594,8 @@ type CompletionAttachment struct {
 
 // AttachmentReviewResult pairs an attachment with the reviewer's verdict.
 type AttachmentReviewResult struct {
-	AttachmentID int64              `json:"attachment_id"`
-	Review       AIReviewResult     `json:"review"`
+	AttachmentID int64          `json:"attachment_id"`
+	Review       AIReviewResult `json:"review"`
 }
 
 // --- Task templates (L0) ---
@@ -621,4 +621,119 @@ type TaskTemplate struct {
 	IsArchived        bool      `json:"is_archived"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
+}
+
+// --- Error items / wrong-question loop (L1) ---
+
+// Paper analysis statuses. A run is a small state machine: pending →
+// running → done/failed; Stage tracks where inside running the two-stage
+// parse is (segmenting vs judging) so the parent's progress bar can say
+// more than a spinner.
+const (
+	AnalysisPending = "pending"
+	AnalysisRunning = "running"
+	AnalysisDone    = "done"
+	AnalysisFailed  = "failed"
+)
+
+// Analysis stages (segment-then-judge, per the L1 spec's two-stage
+// protocol).
+const (
+	StageQueued     = "queued"
+	StageSegmenting = "segmenting"
+	StageJudging    = "judging"
+	StageDone       = "done"
+)
+
+// Mistake statuses: whether the student attempted the question at all —
+// orthogonal to error_type (why it went wrong). 'unknown' is the degraded
+// state when AI parsing failed; those items land in the manual queue
+// (wrong-notebook's design intent: a failed parse never blocks the
+// photo flow).
+const (
+	MistakeNotAttempted = "not_attempted"
+	MistakeWrongAttempt = "wrong_attempt"
+	MistakeUnknown      = "unknown"
+)
+
+// Error types (why it went wrong). calculation/concept are the workable
+// starter set per the wrong-notebook evidence; reading/method extend it.
+const (
+	ErrorTypeCalculation = "calculation"
+	ErrorTypeConcept     = "concept"
+	ErrorTypeReading     = "reading"
+	ErrorTypeMethod      = "method"
+)
+
+// Mastery levels (wrong-notebook masteryLevel, verbatim): does the kid
+// know how to do this question now?
+const (
+	MasteryNew       = 0
+	MasteryReviewing = 1
+	MasteryMastered  = 2
+)
+
+// PaperAnalysis is one async whole-paper parse (POST /api/admin/analyses).
+// The parent polls it; the report (Summary) holds the diagnosis JSON:
+// error-type distribution, weak knowledge tags, and the per-question
+// verdicts the report page renders.
+type PaperAnalysis struct {
+	ID             int64     `json:"id"`
+	CompletionID   int64     `json:"completion_id"`
+	UserID         int64     `json:"user_id"`
+	CreatedBy      int64     `json:"created_by"`
+	Subject        string    `json:"subject"`
+	Status         string    `json:"status"`
+	Stage          string    `json:"stage"`
+	Progress       int       `json:"progress"`
+	TotalQuestions int       `json:"total_questions"`
+	WrongCount     int       `json:"wrong_count"`
+	Error          string    `json:"error,omitempty"`
+	Summary        string    `json:"summary,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// ErrorItem is one wrong question (wrong-notebook ErrorItem, field for
+// field, plus the OpenChore traceability columns). MasteryLevel is the
+// three-state machine; NextReviewAt is a denormalized ordering column —
+// L4's FSRS scheduler owns the real schedule.
+type ErrorItem struct {
+	ID               int64          `json:"id"`
+	UserID           int64          `json:"user_id"`
+	CompletionID     *int64         `json:"completion_id,omitempty"`
+	AnalysisID       *int64         `json:"analysis_id,omitempty"`
+	Subject          string         `json:"subject"`
+	OriginalImageURL string         `json:"original_image_url"`
+	OCRText          string         `json:"ocr_text,omitempty"`
+	QuestionText     string         `json:"question_text,omitempty"`
+	AnswerText       string         `json:"answer_text,omitempty"`
+	WrongAnswerText  string         `json:"wrong_answer_text,omitempty"`
+	Analysis         string         `json:"analysis,omitempty"`
+	MistakeAnalysis  string         `json:"mistake_analysis,omitempty"`
+	MistakeStatus    string         `json:"mistake_status"`
+	ErrorType        string         `json:"error_type,omitempty"`
+	Difficulty       string         `json:"difficulty,omitempty"`
+	AIConfidence     float64        `json:"ai_confidence,omitempty"`
+	PaperLevel       string         `json:"paper_level,omitempty"`
+	GradeSemester    string         `json:"grade_semester,omitempty"`
+	Source           string         `json:"source,omitempty"`
+	MasteryLevel     int            `json:"mastery_level"`
+	NextReviewAt     *time.Time     `json:"next_review_at,omitempty"`
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	Tags             []KnowledgeTag `json:"tags,omitempty"`
+}
+
+// KnowledgeTag is one knowledge point. Adjacency list, never JSON: the
+// upstream project's own [DEPRECATED] marker on its JSON column is the
+// lesson learned the hard way.
+type KnowledgeTag struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Subject   string `json:"subject"`
+	ParentID  *int64 `json:"parent_id,omitempty"`
+	Code      string `json:"code,omitempty"`
+	SortOrder int    `json:"sort_order"`
+	IsSystem  bool   `json:"is_system"`
 }

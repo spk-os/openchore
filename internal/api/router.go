@@ -130,6 +130,13 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			r.Get("/completions/{id}/attachments", chores.ListAttachments)
 			r.Get("/attachment-files/{id}", chores.GetAttachmentFile)
 
+			// L1 wrong-question book: the kid sees their own error items
+			// and reports retry outcomes; parents can list any kid's via
+			// ?user_id= (the admin report lives under /admin).
+			r.Get("/error-items", chores.ListErrorItems)
+			r.Get("/error-items/{id}", chores.GetErrorItem)
+			r.Post("/error-items/{id}/review-result", chores.SubmitReviewResult)
+
 			// Any user can view and redeem rewards
 			r.Get("/rewards", rewards.List)
 			r.Post("/rewards/{id}/redeem", rewards.Redeem)
@@ -269,6 +276,15 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				// card, then apply through the same paths as a manual create.
 				r.Post("/admin/copilot/draft", chores.DraftWithCopilot)
 				r.Post("/admin/copilot/apply", chores.ApplyCopilotDraft)
+
+				// L1 error items / wrong-question loop: whole-paper async
+				// parse (poll the job), the wrong-question book the kid
+				// reviews, and the correction chore hook.
+				r.Post("/admin/analyses", chores.StartPaperAnalysis)
+				r.Get("/admin/analyses/{id}", chores.GetPaperAnalysis)
+				r.Get("/admin/users/{userID}/error-book-report", chores.GetErrorBookReport)
+				r.Post("/admin/error-items/{id}/correction-task", chores.CreateCorrectionTask)
+				r.Put("/admin/error-items/{id}", chores.UpdateErrorItem)
 
 				// Integration discovery: chores with triggers
 				r.Get("/chores/triggerable", triggers.ListTriggerable)

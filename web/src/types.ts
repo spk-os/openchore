@@ -801,3 +801,106 @@ export interface BoostSnapshot {
   daily_limit: number;
   amounts: number[];
 }
+
+// --- L1 error items / wrong-question loop ---
+
+/** Knowledge point on an error item. Adjacency list server-side. */
+export interface KnowledgeTag {
+  id: number;
+  name: string;
+  subject: string;
+  parent_id?: number;
+  code?: string;
+  sort_order: number;
+  is_system: boolean;
+}
+
+/** One wrong question in the kid's error book. */
+export interface ErrorItem {
+  id: number;
+  user_id: number;
+  completion_id?: number;
+  analysis_id?: number;
+  subject: string;
+  original_image_url: string;
+  ocr_text?: string;
+  question_text?: string;
+  answer_text?: string;
+  wrong_answer_text?: string;
+  analysis?: string;
+  mistake_analysis?: string;
+  mistake_status: 'not_attempted' | 'wrong_attempt' | 'unknown';
+  error_type?: 'calculation' | 'concept' | 'reading' | 'method';
+  difficulty?: 'easy' | 'medium' | 'hard';
+  ai_confidence?: number;
+  paper_level?: string;
+  grade_semester?: string;
+  source?: string;
+  mastery_level: 0 | 1 | 2;
+  next_review_at?: string;
+  created_at: string;
+  updated_at: string;
+  tags?: KnowledgeTag[];
+}
+
+/** The async whole-paper parse job the parent polls. */
+export interface PaperAnalysis {
+  id: number;
+  completion_id: number;
+  user_id: number;
+  created_by: number;
+  subject: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+  stage: 'queued' | 'segmenting' | 'judging' | 'done';
+  progress: number;
+  total_questions: number;
+  wrong_count: number;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+  /** Present when status is done: the diagnosis report. */
+  summary?: PaperAnalysisSummary;
+}
+
+/** One question's verdict inside the diagnosis report. */
+export interface AnalysisQuestion {
+  number: string;
+  question_text: string;
+  attempted: boolean;
+  is_wrong: boolean;
+  wrong_answer_text?: string;
+  answer_text?: string;
+  mistake_analysis?: string;
+  error_type?: string;
+  knowledge_points?: string[];
+  confidence: number;
+  error_item_id?: number;
+}
+
+/** The diagnosis report stored on a finished analysis. */
+export interface PaperAnalysisSummary {
+  questions: AnalysisQuestion[];
+  error_type_counts: Record<string, number>;
+  weak_tags: WeakTagStat[];
+  notes?: string[];
+}
+
+/** One knowledge point's error tally (the weak-points ranking). */
+export interface WeakTagStat {
+  tag_id: number;
+  name: string;
+  subject: string;
+  wrong_count: number;
+}
+
+/** Error-type distribution row. */
+export interface ErrorTypeStat {
+  error_type: string;
+  count: number;
+}
+
+/** Aggregate view of a kid's whole error book. */
+export interface ErrorBookReport {
+  error_types: ErrorTypeStat[];
+  weak_tags: WeakTagStat[];
+}

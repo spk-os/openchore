@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport } from './types';
 
 const API_BASE = '/api';
 
@@ -440,6 +440,26 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(req),
       }),
+    // L1 whole-paper parse: start the async job, poll it, then act on the
+    // extracted wrong questions.
+    startPaperAnalysis: (completionId: number, subject?: string) =>
+      fetchWithAuth<PaperAnalysis>('/admin/analyses', {
+        method: 'POST',
+        body: JSON.stringify({ completion_id: completionId, subject }),
+      }),
+    getPaperAnalysis: (id: number) => fetchWithAuth<PaperAnalysis>(`/admin/analyses/${id}`),
+    errorBookReport: (userId: number) =>
+      fetchWithAuth<ErrorBookReport>(`/admin/users/${userId}/error-book-report`),
+    createCorrectionTask: (errorItemId: number, points?: number, specificDate?: string, dueBy?: string) =>
+      fetchWithAuth<{ chore: Chore; schedule: ChoreSchedule }>(`/admin/error-items/${errorItemId}/correction-task`, {
+        method: 'POST',
+        body: JSON.stringify({ points, specific_date: specificDate, due_by: dueBy }),
+      }),
+    updateErrorItem: (id: number, data: Partial<ErrorItem>) =>
+      fetchWithAuth<ErrorItem>(`/admin/error-items/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
     runningDaily: (userId: number, templateId: string) =>
       fetchWithAuth<{ running: number }>(`/users/${userId}/running-daily?template_id=${encodeURIComponent(templateId)}`),
     regenerateAllTTS: () =>
@@ -485,6 +505,26 @@ export const api = {
       }),
     delete: (triggerId: number) =>
       fetchWithAuth(`/triggers/${triggerId}`, { method: 'DELETE' }),
+  },
+  // L1 error items / wrong-question loop.
+  errorItems: {
+    /** The kid's own book (parents pass ?user_id=). */
+    list: (params?: { user_id?: number; mastery?: number; subject?: string; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.user_id != null) q.set('user_id', String(params.user_id));
+      if (params?.mastery != null) q.set('mastery', String(params.mastery));
+      if (params?.subject) q.set('subject', params.subject);
+      if (params?.limit != null) q.set('limit', String(params.limit));
+      const qs = q.toString();
+      return fetchWithAuth<ErrorItem[]>(`/error-items${qs ? '?' + qs : ''}`);
+    },
+    get: (id: number) => fetchWithAuth<ErrorItem>(`/error-items/${id}`),
+    /** The kid reports a retry outcome ("我订正完了" + parent's check). */
+    submitReviewResult: (id: number, isCorrect: boolean) =>
+      fetchWithAuth<ErrorItem>(`/error-items/${id}/review-result`, {
+        method: 'POST',
+        body: JSON.stringify({ is_correct: isCorrect }),
+      }),
   },
   tokens: {
     list: () => fetchWithAuth<APIToken[]>('/admin/tokens'),

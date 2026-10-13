@@ -44,4 +44,4 @@ export function catFromCategory(category: string | null | undefined): Cat {
 }
 
 export type ChoreState = 'todo' | 'done' | 'waiting' | 'locked';
-export type TabId = 'today' | 'week' | 'rewards';
+export type TabId = 'today' | 'week' | 'errorbook' | 'rewards';

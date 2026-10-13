@@ -8,6 +8,7 @@ import type { TabId } from './types';
 export const TABS: readonly { id: TabId; icon: IconName }[] = [
   { id: 'today', icon: 'home' },
   { id: 'week', icon: 'cal' },
+  { id: 'errorbook', icon: 'book' },
   { id: 'rewards', icon: 'gift' },
 ];
 

@@ -5,6 +5,7 @@ import { api } from '../../api';
 import { Icon, catFromCategory } from '../../design';
 import type { CompletionAttachment, PendingCompletion, User } from '../../types';
 import { CategoryLabel, IconWell, PersonName } from './pickers';
+import { PaperAnalysisModal } from './PaperAnalysisCard';
 import ui from './ui.module.css';
 import styles from './ApprovalList.module.css';
 
@@ -110,6 +111,10 @@ export const ApprovalList: React.FC<Props> = ({ pending, users, onChanged }) => 
   const { t, i18n } = useTranslation();
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState('');
+  // L1: which completion's paper the parent is analysing (the modal), and
+  // a transient success toast (task created / item corrected).
+  const [analysisFor, setAnalysisFor] = useState<PendingCompletion | null>(null);
+  const [toast, setToast] = useState('');
 
   const act = async (id: number, action: 'approve' | 'reject') => {
     if (action === 'reject' && !confirm(t('admin.approvalsTab.rejectConfirm'))) return;
@@ -128,10 +133,14 @@ export const ApprovalList: React.FC<Props> = ({ pending, users, onChanged }) => 
   return (
     <div className={styles.list}>
       {error && <p className={ui.msgError} role="alert">{error}</p>}
+      {toast && <p className={styles.toast} role="status">{toast}</p>}
       {pending.map(p => {
         const assignee = users.find(u => u.id === p.assigned_user_id);
         const byOther = p.completed_by != null && p.completed_by !== p.assigned_user_id;
         const cat = catFromCategory(p.category);
+        // L1: the paper analysis needs at least one image to parse — the
+        // legacy photo_url counts (completions predating L0 attachments).
+        const hasImageProof = !!p.photo_url;
         return (
           <article key={p.id} className={styles.card} aria-label={t('admin.approvalsTab.cardLabel', { title: p.chore_title, name: assignee?.name ?? p.child_name })}>
             <div className={styles.head}>
@@ -218,9 +227,31 @@ export const ApprovalList: React.FC<Props> = ({ pending, users, onChanged }) => 
                 <X aria-hidden /> {t('admin.approvalsTab.rejectButton')}
               </button>
             </div>
+
+            {/* L1: whole-paper diagnosis. Only offered when there is image
+                proof to parse — a video/PDF-only completion has no page
+                images for the two-stage pipeline. */}
+            {hasImageProof && (
+              <button
+                type="button"
+                className={styles.analysisBtn}
+                data-test="approval-analysis-btn"
+                onClick={() => setAnalysisFor(p)}
+              >
+                <Icon name="spark" /> {t('admin.analysis.startBtn')}
+              </button>
+            )}
           </article>
         );
       })}
+
+      {analysisFor && (
+        <PaperAnalysisModal
+          completionId={analysisFor.id}
+          onClose={() => setAnalysisFor(null)}
+          onToast={(msg) => setToast(msg)}
+        />
+      )}
     </div>
   );
 };
