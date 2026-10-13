@@ -123,6 +123,13 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			r.Post("/upload", chores.UploadPhoto)
 			r.Put("/completions/{id}/photo", chores.AttachPhoto)
 
+			// L0 multi-file proof: a completion can carry several photos
+			// (up to 9), one video or one PDF. The single-photo channel
+			// above stays; photo_url keeps the first image for list views.
+			r.Post("/completions/{id}/attachments", chores.UploadAttachments)
+			r.Get("/completions/{id}/attachments", chores.ListAttachments)
+			r.Get("/attachment-files/{id}", chores.GetAttachmentFile)
+
 			// Any user can view and redeem rewards
 			r.Get("/rewards", rewards.List)
 			r.Post("/rewards/{id}/redeem", rewards.Redeem)
@@ -243,6 +250,19 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Get("/admin/templates", chores.ListTemplates)
 				r.Post("/admin/templates/{id}/tune", chores.TuneTemplate)
 				r.Post("/admin/templates/import", chores.ImportTemplate)
+
+				// L0 task templates: a parent's own saved chores, reusable
+				// in one tap. Distinct namespace from the built-in packs.
+				r.Get("/admin/task-templates", chores.ListTaskTemplates)
+				r.Post("/admin/task-templates", chores.CreateTaskTemplate)
+				r.Put("/admin/task-templates/{id}", chores.UpdateTaskTemplate)
+				r.Delete("/admin/task-templates/{id}", chores.ArchiveTaskTemplate)
+				r.Post("/admin/task-templates/{id}/instantiate", chores.InstantiateTaskTemplate)
+				r.Post("/admin/task-templates/{id}/sync", chores.SyncTaskTemplate)
+
+				// L0: a parent removing one proof file from a pending
+				// completion (soft delete — reversible).
+				r.Delete("/admin/attachments/{id}", chores.DeleteAttachment)
 
 				// Parent Copilot (P3-10/11): draft a task plan from a
 				// sentence or a photographed school notice, review card by

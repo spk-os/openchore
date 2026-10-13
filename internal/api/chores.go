@@ -1042,6 +1042,10 @@ func (h *ChoreHandler) AttachPhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to attach photo")
 		return
 	}
+	// The legacy single-photo channel also lands in the attachments table
+	// (L0): it is the first grid cell, seeded here so multi-file views and
+	// single-file views agree. Duplicates (same path) are skipped.
+	_ = h.store.SeedAttachmentFromCompletionPhoto(r.Context(), id, req.PhotoURL, "legacy_"+req.PhotoURL)
 	h.queueReview(id)
 
 	writeJSON(w, http.StatusOK, map[string]any{

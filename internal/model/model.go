@@ -174,23 +174,28 @@ type OIDCProvider struct {
 }
 
 type Chore struct {
-	ID                 int64     `json:"id"`
-	Title              string    `json:"title"`
-	Description        string    `json:"description"`
-	Category           string    `json:"category"`
-	Icon               string    `json:"icon,omitempty"`
-	PointsValue        int       `json:"points_value"`
-	MissedPenaltyValue int       `json:"missed_penalty_value"`
-	EstimatedMinutes   *int      `json:"estimated_minutes,omitempty"`
-	RequiresApproval   bool      `json:"requires_approval"`
-	RequiresPhoto      bool      `json:"requires_photo"`
-	PhotoSource        string    `json:"photo_source"`
-	ReferencePhotoURL  string    `json:"reference_photo_url"`
-	Source             string    `json:"source"`
-	ExternalID         string    `json:"external_id,omitempty"`
-	TTSAudioURL        string    `json:"tts_audio_url,omitempty"`
-	CreatedBy          int64     `json:"created_by"`
-	CreatedAt          time.Time `json:"created_at"`
+	ID                 int64  `json:"id"`
+	Title              string `json:"title"`
+	Description        string `json:"description"`
+	Category           string `json:"category"`
+	Icon               string `json:"icon,omitempty"`
+	PointsValue        int    `json:"points_value"`
+	MissedPenaltyValue int    `json:"missed_penalty_value"`
+	EstimatedMinutes   *int   `json:"estimated_minutes,omitempty"`
+	RequiresApproval   bool   `json:"requires_approval"`
+	RequiresPhoto      bool   `json:"requires_photo"`
+	PhotoSource        string `json:"photo_source"`
+	ReferencePhotoURL  string `json:"reference_photo_url"`
+	Source             string `json:"source"`
+	// TemplateID, when set, points at the task template this chore was
+	// instantiated from (L0); TemplateSyncedAt is the cursor for template
+	// updates pushed to instances.
+	TemplateID       *int64     `json:"template_id,omitempty"`
+	TemplateSyncedAt *time.Time `json:"template_synced_at,omitempty"`
+	ExternalID       string     `json:"external_id,omitempty"`
+	TTSAudioURL      string     `json:"tts_audio_url,omitempty"`
+	CreatedBy        int64      `json:"created_by"`
+	CreatedAt        time.Time  `json:"created_at"`
 }
 
 type ChoreSchedule struct {
@@ -542,3 +547,78 @@ const (
 	BoostDefaultDailyLimit = 3
 	BoostDefaultDays       = 90
 )
+
+// --- Completion attachments (L0) ---
+
+// MimeClass buckets a proof file for rendering: images render inline and go
+// to the AI reviewer, video and PDF are parent-review only (Canvas
+// mime_class).
+const (
+	MimeClassImage = "image"
+	MimeClassVideo = "video"
+	MimeClassPdf   = "pdf"
+)
+
+// MaxImageAttachments / MaxVideoAttachments / MaxPdfAttachments cap one
+// completion's proof set. Nine photos is a full multi-page workbook; a
+// video or a PDF takes the place of the photos (one proof stream, not a
+// pile of everything).
+const (
+	MaxImageAttachments = 9
+	MaxVideoAttachments = 1
+	MaxPdfAttachments   = 1
+)
+
+// CompletionAttachment is one proof file on a completion. PhotoURL on the
+// completion itself stays as the first-image convenience; this table is the
+// source of truth for "what did the kid hand in".
+type CompletionAttachment struct {
+	ID            int64      `json:"id"`
+	CompletionID  int64      `json:"completion_id"`
+	FilePath      string     `json:"file_path"` // "/uploads/…" — the URL clients use
+	DisplayName   string     `json:"display_name"`
+	MimeType      string     `json:"mime_type"`
+	SizeBytes     int64      `json:"size_bytes"`
+	MimeClass     string     `json:"mime_class"`
+	ThumbnailPath string     `json:"thumbnail_path,omitempty"`
+	SHA256        string     `json:"sha256"`
+	SortOrder     int        `json:"sort_order"`
+	DeletedAt     *time.Time `json:"deleted_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	// Per-attachment AI review (L0): the reviewer judges each image on its
+	// own; the completion-level rollup is computed from these.
+	AIFeedback   string  `json:"ai_feedback,omitempty"`
+	AIConfidence float64 `json:"ai_confidence,omitempty"`
+	AIComplete   *bool   `json:"ai_complete,omitempty"`
+}
+
+// AttachmentReviewResult pairs an attachment with the reviewer's verdict.
+type AttachmentReviewResult struct {
+	AttachmentID int64              `json:"attachment_id"`
+	Review       AIReviewResult     `json:"review"`
+}
+
+// --- Task templates (L0) ---
+
+// TaskTemplate is a saved chore: a parent tunes a chore once (points, AI
+// review prompt, reference photo, TTS) and instantiates it repeatedly.
+// Archiving (IsArchived) replaces deleting — instantiated chores survive.
+// ScheduleJSON snapshots the schedule shape (day_of_week / specific_date /
+// recurrence) so instantiation can recreate it without guessing.
+type TaskTemplate struct {
+	ID                int64     `json:"id"`
+	Name              string    `json:"name"`
+	Category          string    `json:"category"`
+	Points            int       `json:"points"`
+	Description       string    `json:"description"`
+	RequiresPhoto     bool      `json:"requires_photo"`
+	PhotoSource       string    `json:"photo_source"`
+	ReferencePhotoURL string    `json:"reference_photo_url,omitempty"`
+	TTSAudioURL       string    `json:"tts_audio_url,omitempty"`
+	AIPrompt          string    `json:"ai_prompt,omitempty"`
+	ScheduleJSON      string    `json:"schedule_json"`
+	CreatedBy         int64     `json:"created_by"`
+	IsArchived        bool      `json:"is_archived"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}

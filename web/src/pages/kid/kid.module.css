@@ -1000,6 +1000,146 @@
 }
 .skipAction:disabled { opacity: .5; cursor: default; }
 
+/* ---------- L0: the multi-attachment grid in the photo sheet ---------- */
+/* Caption line above the grid ("upload attachments"). */
+.attsCaption {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+/* The 3×3 grid: picked + attached proof, one kind per completion
+   (9 photos / 1 video / 1 PDF). Cells are square, gaps tight. */
+.atts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.att {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-sunk);
+  overflow: hidden;
+}
+.attThumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.attDocIcon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+}
+.attDocIcon svg { width: 34%; height: 34%; }
+/* mime-class corner mark (IMG / VID / PDF). */
+.attBadge {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  z-index: 1;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--ink) 76%, transparent);
+  color: var(--surface);
+}
+/* The remove button: a small circle at the top-right corner. */
+.attDel {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.attDel svg { width: 10px; height: 10px; transform: rotate(45deg); }
+.attDel:hover:not(:disabled) { color: var(--ink); }
+.attDel:disabled { opacity: 0; cursor: default; }
+/* Filename strip at the cell bottom, one ellipsised line. */
+.attName {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--surface-raised) 86%, transparent);
+  border-radius: 6px;
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The dashed "+" cell keeps adding until the caps are hit. */
+.attAdd {
+  border-style: dashed;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.attAdd:hover:not(:disabled) { color: var(--waiting); background: var(--celebrate); }
+.attAdd:disabled { opacity: .5; cursor: default; }
+/* Filler cells: quiet diagonal stripes so the 3×3 shape stays legible. */
+.attEmpty {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background-image:
+    linear-gradient(45deg, color-mix(in srgb, var(--line) 60%, transparent) 25%, transparent 25% 75%, color-mix(in srgb, var(--line) 60%, transparent) 75%),
+    linear-gradient(45deg, color-mix(in srgb, var(--line) 60%, transparent) 25%, transparent 25% 75%, color-mix(in srgb, var(--line) 60%, transparent) 75%);
+  background-size: 14px 14px;
+  background-position: 0 0, 7px 7px;
+}
+
+/* Count line under the grid: "3 / 9 picked" + the caps hint. */
+.ats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.ats b { font-size: 12.5px; font-weight: 800; color: var(--waiting); white-space: nowrap; }
+
+/* Submit row: "think again" next to the gold submit with its count. */
+.submitRow { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
+.submitRow .secondaryAction, .submitAction { flex: 1; }
+.submitAction {
+  flex: 1.4;
+  min-height: 52px;
+  padding: 0 var(--space-5);
+  box-sizing: border-box;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--star);
+  color: var(--ink);
+  box-shadow: var(--lift);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.submitAction:disabled { opacity: .5; cursor: default; }
+
+
 .spinner {
   display: inline-block;
   width: 20px;

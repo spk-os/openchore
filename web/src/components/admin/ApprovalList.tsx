@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { api } from '../../api';
 import { Icon, catFromCategory } from '../../design';
-import type { PendingCompletion, User } from '../../types';
+import type { CompletionAttachment, PendingCompletion, User } from '../../types';
 import { CategoryLabel, IconWell, PersonName } from './pickers';
 import ui from './ui.module.css';
 import styles from './ApprovalList.module.css';
-
 
 // Before/after pair: the parent's example photo vs. the kid's completion
 // shot, each taking half the card width.
@@ -23,46 +22,89 @@ function formatDay(date: string, lang: string): string {
   return new Date(date + 'T00:00:00').toLocaleDateString(lang, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-// Proof is no longer only a photo: a chore can be checked off with a short
-// video or a document (e.g. the finished worksheet as PDF). Each kind gets
-// its native element; the surrounding link still opens the raw file.
-const isVideoProof = (url: string) => /\.(mp4|webm|mov|m4v|3gp|3gpp)$/i.test(url);
-const isPdfProof = (url: string) => /\.pdf$/i.test(url);
-const proofHintKey = (url: string) =>
-  isVideoProof(url) ? 'admin.approvalsTab.openVideo' : isPdfProof(url) ? 'admin.approvalsTab.openFile' : 'admin.approvalsTab.openPhoto';
-
-function ProofMedia({ url, alt, hint }: { url: string; alt: string; hint?: string }) {
-  const { t } = useTranslation();
-  const hintEl = hint ? (
-    <span className={styles.photoHint}><Icon name={isVideoProof(url) ? 'film' : 'camera'} />{t(hint)}</span>
-  ) : null;
-  if (isVideoProof(url)) {
-    return (
-      <>
-        <video src={url} controls preload="metadata" />
-        {hintEl}
-      </>
-    );
-  }
-  if (isPdfProof(url)) {
-    return (
-      <>
-        <span className={styles.docTile}><Icon name="book" />PDF</span>
-        {hintEl}
-      </>
-    );
-  }
-  return (
-    <>
-      <img src={url} alt={alt} loading="lazy" />
-      {hintEl}
-    </>
-  );
-}
+/** Cells shown before the "+N" fold; the rest expand on tap (OD: 3 + fold). */
+const FOLDED_AT = 4;
 
 /**
- * Chores waiting for a grown-up: who, what, the photo and the AI photo
- * review's advisory note, with Approve / Reject. Parents open the app mostly for this.
+ * The kid's whole proof set: a grid of attachment cells, each with its own
+ * AI verdict badge (✅ 92% / ⚠ 76% 存疑) when a per-attachment review has
+ * run — Canvas's per-submission-comment model. Past FOLDED_AT the rest
+ * collapse behind a "+N" cell.
+ */
+const AttachmentGrid: React.FC<{ completionId: number }> = ({ completionId }) => {
+  const { t } = useTranslation();
+  const [atts, setAtts] = useState<CompletionAttachment[] | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    api.chores.listAttachments(completionId)
+      .then(a => { if (live) setAtts(a); })
+      .catch(() => { if (live) setAtts([]); });
+    return () => { live = false; };
+  }, [completionId]);
+
+  if (atts === null || atts.length === 0) return null;
+  const shown = expanded ? atts : atts.slice(0, FOLDED_AT);
+  const folded = atts.length - shown.length;
+
+  return (
+    <div>
+      <p className={styles.gridHead}>
+        {t('admin.approvalsTab.allAttachments', { count: atts.length })}
+        <span>{t('admin.approvalsTab.perAttachmentHint')}</span>
+      </p>
+      <div className={styles.attGrid} data-test="approval-grid" role="group" aria-label={t('admin.approvalsTab.gridLabel', { count: atts.length })}>
+        {shown.map((a, i) => {
+          const reviewed = a.ai_complete != null;
+          const good = a.ai_complete === true;
+          return (
+            <a
+              key={a.id}
+              className={styles.attCell}
+              data-test={`approval-att-${i + 1}`}
+              href={a.file_path}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('admin.approvalsTab.attAria', { index: i + 1, name: a.display_name })}
+            >
+              {a.mime_class === 'image' && <img src={a.file_path} alt={a.display_name} loading="lazy" />}
+              {a.mime_class === 'video' && <span className={styles.attDoc}><Icon name="film" /></span>}
+              {a.mime_class === 'pdf' && <span className={styles.attDoc}><Icon name="book" /></span>}
+              {reviewed && (
+                <span
+                  className={`${styles.attBadge} ${good ? styles.attBadgeGood : styles.attBadgeWarn}`}
+                  data-test="approval-att-badge"
+                  title={a.ai_feedback}
+                >
+                  {good ? '✅' : '⚠'} {Math.round(a.ai_confidence * 100)}%{!good ? ` ${t('admin.approvalsTab.flagged')}` : ''}
+                </span>
+              )}
+              <span className={styles.attName}>{a.display_name}</span>
+            </a>
+          );
+        })}
+        {folded > 0 && (
+          <button
+            type="button"
+            className={styles.attFold}
+            data-test="approval-att-fold"
+            onClick={() => setExpanded(true)}
+            aria-label={t('admin.approvalsTab.expandFold', { count: folded })}
+          >
+            <b>＋{folded}</b>
+            <span>{t('admin.approvalsTab.expand')}</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Chores waiting for a grown-up: who, what, the proof (before/after pair
+ * plus the full attachment grid) and the AI review's advisory note, with
+ * Approve / Reject. Parents open the app mostly for this.
  */
 export const ApprovalList: React.FC<Props> = ({ pending, users, onChanged }) => {
   const { t, i18n } = useTranslation();
@@ -111,30 +153,19 @@ export const ApprovalList: React.FC<Props> = ({ pending, users, onChanged }) => 
               </div>
             </div>
 
-            {p.reference_photo_url && p.photo_url ? (
-              // Before/after: the parent's example next to what the kid
-              // actually shot, so "matches?" can be judged at a glance.
-              <div className={styles.beforeAfter}>
-                <a className={styles.beforeAfterItem} href={p.reference_photo_url} target="_blank" rel="noreferrer">
-                  <img src={p.reference_photo_url} alt={t('admin.approvalsTab.beforeAfterRef')} loading="lazy" />
-                  <span className={styles.photoHint}><Icon name="book" />{t('admin.approvalsTab.beforeAfterRef')}</span>
-                </a>
-                <a className={styles.beforeAfterItem} href={p.photo_url} target="_blank" rel="noreferrer">
-                  <ProofMedia url={p.photo_url} alt={t('admin.approvalsTab.beforeAfterDone')} hint={proofHintKey(p.photo_url)} />
-                </a>
-              </div>
-            ) : p.photo_url ? (
-              <a className={styles.photo} href={p.photo_url} target="_blank" rel="noreferrer">
-                <ProofMedia url={p.photo_url} alt={t('admin.approvalsTab.photoAlt')} hint={proofHintKey(p.photo_url)} />
-              </a>
-            ) : p.reference_photo_url ? (
+            {/* The full proof set first: every attachment in a grid, each
+                with its own AI verdict. Falls back to the legacy single
+                photo pair below when the completion predates attachments. */}
+            <AttachmentGrid completionId={p.id} />
+
+            {!p.photo_url && p.reference_photo_url ? (
               <a className={styles.photo} href={p.reference_photo_url} target="_blank" rel="noreferrer">
                 <img src={p.reference_photo_url} alt={t('admin.approvalsTab.beforeAfterRef')} loading="lazy" />
                 <span className={styles.photoHint}><Icon name="book" />{t('admin.approvalsTab.beforeAfterRef')}</span>
               </a>
             ) : null}
 
-            {p.requires_photo && !p.photo_url && (
+            {p.requires_photo && !p.photo_url && !p.reference_photo_url && (
               // A "child" photo chore pending without a photo was finished
               // with "No photo? Finish anyway"; otherwise it may still come.
               <div className={styles.ai}>

@@ -50,19 +50,48 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 		return
 	}
 	c, err := h.store.GetCompletion(ctx, completionID)
-	if err != nil || c == nil || c.Status != model.StatusPending || c.PhotoURL == "" {
+	if err != nil || c == nil || c.Status != model.StatusPending {
 		return
 	}
-	// The reviewer is image-only: video and document proof (an AI-proof of
-	// its own, in a way) always waits for the parent's eyes.
-	if !isImageProof(c.PhotoURL) {
-		return
-	}
-	photoPath, err := resolveUploadPath(c.PhotoURL)
+
+	// L0: the attachments table is the source of truth for the proof set;
+	// the legacy photo_url column is the first-image convenience. Review
+	// every image attachment (AI verdict per attachment), then roll the
+	// verdicts up into the completion-level note. Videos and PDFs are
+	// parent-review only, as before.
+	attachments, err := h.store.ListCompletionAttachments(ctx, completionID)
 	if err != nil {
-		log.Printf("ai: skipping review of completion %d: %v", completionID, err)
+		log.Printf("ai: listing attachments of completion %d: %v", completionID, err)
 		return
 	}
+	var images []model.CompletionAttachment
+	for _, a := range attachments {
+		if a.MimeClass == model.MimeClassImage {
+			images = append(images, a)
+		}
+	}
+	if len(images) == 0 && c.PhotoURL == "" {
+		return
+	}
+	// A legacy single-photo completion (no attachments yet): seed the
+	// column photo as attachment #1 so the per-attachment path handles
+	// both worlds with one code path.
+	if len(images) == 0 && c.PhotoURL != "" && isImageProof(c.PhotoURL) {
+		_ = h.store.SeedAttachmentFromCompletionPhoto(ctx, completionID, c.PhotoURL, "legacy_"+c.PhotoURL)
+		attachments, err = h.store.ListCompletionAttachments(ctx, completionID)
+		if err != nil {
+			return
+		}
+		for _, a := range attachments {
+			if a.MimeClass == model.MimeClassImage {
+				images = append(images, a)
+			}
+		}
+	}
+	if len(images) == 0 {
+		return
+	}
+
 	var title, description, refPhotoPath string
 	if schedule, _ := h.store.GetSchedule(ctx, c.ChoreScheduleID); schedule != nil {
 		if chore, _ := h.store.GetChore(ctx, schedule.ChoreID); chore != nil {
@@ -79,26 +108,45 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 	if ai == nil {
 		return
 	}
+
+	// Per-attachment review (Canvas's per-submission-comment model): each
+	// image gets its own verdict, stored on the attachment row, and the
+	// completion-level rollup (worst confidence, joint feedback) drives
+	// auto-approve exactly as the single-photo path did.
 	start := time.Now()
-	result, err := ai.ReviewPhoto(ctx, title, description, photoPath, refPhotoPath)
-	if err != nil {
-		log.Printf("ai: review of completion %d failed: %v", completionID, err)
+	var results []model.AttachmentReviewResult
+	for _, att := range images {
+		photoPath, err := resolveUploadPath(att.FilePath)
+		if err != nil {
+			log.Printf("ai: skipping review of attachment %d: %v", att.ID, err)
+			continue
+		}
+		result, err := ai.ReviewPhoto(ctx, title, description, photoPath, refPhotoPath)
+		if err != nil {
+			log.Printf("ai: review of attachment %d (completion %d) failed: %v", att.ID, completionID, err)
+			continue
+		}
+		_ = h.store.SetAttachmentAIReview(ctx, att.ID, *result)
+		results = append(results, model.AttachmentReviewResult{AttachmentID: att.ID, Review: *result})
+	}
+	if len(results) == 0 {
 		return
 	}
-	log.Printf("ai: reviewed completion %d in %s — complete=%v confidence=%.2f",
-		completionID, time.Since(start).Round(time.Millisecond), result.Complete, result.Confidence)
+	result := rollupAttachmentReviews(results)
+	log.Printf("ai: reviewed completion %d (%d image%s) in %s — complete=%v confidence=%.2f",
+		completionID, len(results), plural(len(results)), time.Since(start).Round(time.Millisecond), result.Complete, result.Confidence)
 
 	// The photo may have been replaced, or the chore approved or
 	// unchecked, while the model was thinking.
 	cur, err := h.store.GetCompletion(ctx, completionID)
-	if err != nil || cur == nil || cur.PhotoURL != c.PhotoURL || cur.UncompletedAt != nil {
+	if err != nil || cur == nil || cur.UncompletedAt != nil || cur.Status != model.StatusPending {
 		return
 	}
-	if err := h.store.SetCompletionAIReview(ctx, completionID, *result); err != nil {
+	if err := h.store.SetCompletionAIReview(ctx, completionID, result); err != nil {
 		log.Printf("ai: saving review of completion %d: %v", completionID, err)
 		return
 	}
-	if cur.Status != model.StatusPending || !h.shouldAutoApprove(ctx, result) {
+	if !h.shouldAutoApprove(ctx, &result) {
 		return
 	}
 	if err := h.approveCompletion(ctx, cur, nil); err != nil {
@@ -106,6 +154,44 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 		return
 	}
 	log.Printf("ai: auto-approved completion %d", completionID)
+}
+
+// rollupAttachmentReviews folds per-image verdicts into one completion-
+// level verdict: complete only if every reviewed image passed, confidence
+// is the weakest link, feedback stitches the notes in order.
+func rollupAttachmentReviews(results []model.AttachmentReviewResult) model.AIReviewResult {
+	rollup := model.AIReviewResult{Complete: true, Confidence: 1.0}
+	var parts []string
+	for i, r := range results {
+		if !r.Review.Complete {
+			rollup.Complete = false
+		}
+		if r.Review.Confidence < rollup.Confidence {
+			rollup.Confidence = r.Review.Confidence
+		}
+		if r.Review.Feedback != "" {
+			if i > 0 {
+				parts = append(parts, "；")
+			}
+			parts = append(parts, r.Review.Feedback)
+		}
+	}
+	rollup.Feedback = strings.Join(parts, "")
+	if rollup.Feedback == "" {
+		if rollup.Complete {
+			rollup.Feedback = "all proof images passed review"
+		} else {
+			rollup.Feedback = "one or more proof images did not pass review"
+		}
+	}
+	return rollup
+}
+
+func plural(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
 }
 
 func (h *ChoreHandler) shouldAutoApprove(ctx context.Context, r *model.AIReviewResult) bool {

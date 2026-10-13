@@ -188,3 +188,136 @@
 .actions > button:first-child {
   flex: 1;
 }
+
+/* L0: the full proof set as a 4-column grid — every attachment with its
+   own AI verdict, extra ones behind a "+N" fold cell (OD .ag). */
+.gridHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.gridHead span {
+  font-weight: 500;
+  color: var(--ink-muted);
+  opacity: 0.85;
+}
+
+.attGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.attCell {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-sunk);
+  min-width: 0;
+}
+
+.attCell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Videos and PDFs have no thumbnail here; a plain icon tile opens them. */
+.attDoc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--ink-muted);
+}
+
+.attDoc svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Per-attachment AI verdict: green pass / amber flag (OD .badge.g / .badge.w). */
+.attBadge {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  max-width: calc(100% - 8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attBadgeGood {
+  background: color-mix(in srgb, var(--celebrate) 88%, transparent);
+  color: var(--ink);
+}
+
+.attBadgeWarn {
+  background: color-mix(in srgb, var(--waiting) 92%, transparent);
+  color: var(--ink);
+}
+
+.attName {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 6px 3px;
+  font-size: 10px;
+  line-height: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--ink) 72%, transparent));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The "+N" cell hiding the attachments past the fold. */
+.attFold {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  aspect-ratio: 1 / 1;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.attFold b {
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.attFold:hover {
+  border-color: var(--waiting);
+  color: var(--waiting);
+}

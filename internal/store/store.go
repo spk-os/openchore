@@ -360,9 +360,9 @@ func (s *Store) CreateChore(ctx context.Context, c *model.Chore) error {
 		photoSource = model.PhotoSourceChild
 	}
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO chores (title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, created_by)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		c.Title, c.Description, c.Category, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.TTSAudioURL, c.CreatedBy)
+		`INSERT INTO chores (title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, template_id, created_by)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.Title, c.Description, c.Category, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.TTSAudioURL, c.TemplateID, c.CreatedBy)
 	if err != nil {
 		return err
 	}
@@ -370,39 +370,44 @@ func (s *Store) CreateChore(ctx context.Context, c *model.Chore) error {
 	return nil
 }
 
-func (s *Store) GetChore(ctx context.Context, id int64) (*model.Chore, error) {
+// choreColumns is the shared SELECT column list for chores — every reader
+// uses it so a new column only has to be added here plus the matching Scan.
+const choreColumns = `id, title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, template_id, created_by, created_at`
+
+func scanChore(row interface{ Scan(...any) error }) (*model.Chore, error) {
 	c := &model.Chore{}
 	var reqApp, reqPho int
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, created_by, created_at
-		 FROM chores WHERE id = ?`, id).
-		Scan(&c.ID, &c.Title, &c.Description, &c.Category, &c.Icon, &c.PointsValue, &c.MissedPenaltyValue, &c.EstimatedMinutes, &reqApp, &reqPho, &c.PhotoSource, &c.ReferencePhotoURL, &c.Source, &c.ExternalID, &c.TTSAudioURL, &c.CreatedBy, &c.CreatedAt)
-	if err == sql.ErrNoRows {
-		return nil, nil
+	if err := row.Scan(&c.ID, &c.Title, &c.Description, &c.Category, &c.Icon, &c.PointsValue, &c.MissedPenaltyValue, &c.EstimatedMinutes, &reqApp, &reqPho, &c.PhotoSource, &c.ReferencePhotoURL, &c.Source, &c.ExternalID, &c.TTSAudioURL, &c.TemplateID, &c.CreatedBy, &c.CreatedAt); err != nil {
+		return nil, err
 	}
 	c.RequiresApproval = reqApp == 1
 	c.RequiresPhoto = reqPho == 1
+	return c, nil
+}
+
+func (s *Store) GetChore(ctx context.Context, id int64) (*model.Chore, error) {
+	c, err := scanChore(s.db.QueryRowContext(ctx,
+		`SELECT `+choreColumns+` FROM chores WHERE id = ?`, id))
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	return c, err
 }
 
 func (s *Store) ListChores(ctx context.Context) ([]model.Chore, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, created_by, created_at
-		 FROM chores ORDER BY title`)
+		`SELECT ` + choreColumns + ` FROM chores ORDER BY title`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var chores []model.Chore
 	for rows.Next() {
-		var c model.Chore
-		var reqApp, reqPho int
-		if err := rows.Scan(&c.ID, &c.Title, &c.Description, &c.Category, &c.Icon, &c.PointsValue, &c.MissedPenaltyValue, &c.EstimatedMinutes, &reqApp, &reqPho, &c.PhotoSource, &c.ReferencePhotoURL, &c.Source, &c.ExternalID, &c.TTSAudioURL, &c.CreatedBy, &c.CreatedAt); err != nil {
+		c, err := scanChore(rows)
+		if err != nil {
 			return nil, err
 		}
-		c.RequiresApproval = reqApp == 1
-		c.RequiresPhoto = reqPho == 1
-		chores = append(chores, c)
+		chores = append(chores, *c)
 	}
 	return chores, rows.Err()
 }
@@ -1139,6 +1144,17 @@ func (s *Store) SetCompletionAIReview(ctx context.Context, id int64, r model.AIR
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE chore_completions SET ai_feedback = ?, ai_confidence = ?, ai_complete = ? WHERE id = ?`,
 		r.Feedback, r.Confidence, r.Complete, id)
+	return err
+}
+
+// UpdateCompletionPhotoOnly replaces a completion's photo_url without
+// clearing the AI review — used when the multi-file channel promotes the
+// first image to the legacy column; the attachments table is the truth,
+// this is just the list-view convenience copy.
+func (s *Store) UpdateCompletionPhotoOnly(ctx context.Context, id int64, photoURL string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE chore_completions SET photo_url = ? WHERE id = ? AND photo_url = ''`,
+		photoURL, id)
 	return err
 }
 

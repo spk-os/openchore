@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance } from './types';
 
 const API_BASE = '/api';
 
@@ -194,8 +194,10 @@ export const api = {
       body: JSON.stringify(data),
     }),
     delete: (id: number) => fetchWithAuth(`/chores/${id}`, { method: 'DELETE' }),
+    // The response carries the completion's id (for attaching more proof
+    // through the multi-file channel) plus the surprise bonus drop.
     complete: (scheduleId: number, date: string, photoUrl?: string, opts?: { skipPhoto?: boolean }) =>
-      fetchWithAuth<{ bonus_drop?: number }>(`/schedules/${scheduleId}/complete`, {
+      fetchWithAuth<{ id?: number; status?: string; bonus_drop?: number }>(`/schedules/${scheduleId}/complete`, {
         method: 'POST',
         body: JSON.stringify({ completion_date: date, photo_url: photoUrl, skip_photo: opts?.skipPhoto || undefined }),
       }),
@@ -220,6 +222,25 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ photo_url: photoUrl }),
       }),
+    // L0 multi-file proof: several photos (up to 9), one video or one PDF
+    // travel in one request. Duplicate files come back skipped, not errors.
+    uploadAttachments: async (completionId: number, files: File[]) => {
+      // Downscale photos client-side (same reasons as upload()); videos
+      // and PDFs go up untouched.
+      const resized = await Promise.all(files.map(f =>
+        f.type.startsWith('image/') ? resizeImage(f, 1280) : Promise.resolve(f)));
+      const formData = new FormData();
+      for (const f of resized) formData.append('files[]', f);
+      return fetchWithAuth<{ added: CompletionAttachment[]; skipped: number; count: number }>(
+        `/completions/${completionId}/attachments`,
+        { method: 'POST', body: formData },
+        true,
+      );
+    },
+    listAttachments: (completionId: number) =>
+      fetchWithAuth<CompletionAttachment[]>(`/completions/${completionId}/attachments`),
+    deleteAttachment: (attachmentId: number) =>
+      fetchWithAuth(`/admin/attachments/${attachmentId}`, { method: 'DELETE' }),
     listPending: () => fetchWithAuth<PendingCompletion[]>('/completions/pending'),
     approve: (completionId: number) => fetchWithAuth(`/completions/${completionId}/approve`, { method: 'POST' }),
     reject: (completionId: number) => fetchWithAuth(`/completions/${completionId}/reject`, { method: 'POST' }),
@@ -372,6 +393,33 @@ export const api = {
         body: JSON.stringify({ title, category }),
       }),
     listTemplates: () => fetchWithAuth<ChoreTemplate[]>('/admin/templates'),
+    // L0 task templates: a saved chore (Habitica-style), instantiated and
+    // pushed to not-yet-done instances. Distinct from the built-in packs
+    // above (/admin/templates).
+    listTaskTemplates: (includeArchived?: boolean) =>
+      fetchWithAuth<TaskTemplateWithUsage[]>(`/admin/task-templates${includeArchived ? '?archived=1' : ''}`),
+    createTaskTemplate: (data: Partial<TaskTemplate> & { from_chore_id?: number }) =>
+      fetchWithAuth<TaskTemplate>('/admin/task-templates', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateTaskTemplate: (id: number, data: Partial<TaskTemplate>) =>
+      fetchWithAuth<TaskTemplate>(`/admin/task-templates/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    archiveTaskTemplate: (id: number) =>
+      fetchWithAuth(`/admin/task-templates/${id}`, { method: 'DELETE' }),
+    instantiateTaskTemplate: (id: number, data: { assigned_to: number; specific_date?: string; available_at?: string; due_by?: string }) =>
+      fetchWithAuth<TaskTemplateInstance>(`/admin/task-templates/${id}/instantiate`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    syncTaskTemplate: (id: number, instanceIds?: number[]) =>
+      fetchWithAuth<{ updated: number }>(`/admin/task-templates/${id}/sync`, {
+        method: 'POST',
+        body: JSON.stringify({ instance_ids: instanceIds ?? [] }),
+      }),
     tuneTemplate: (templateId: string, tasks: { title: string; category: string; points: number; estimated_minutes?: number }[], tweak: string) =>
       fetchWithAuth<TemplateTune>(`/admin/templates/${encodeURIComponent(templateId)}/tune`, {
         method: 'POST',

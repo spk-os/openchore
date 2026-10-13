@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Trash2 } from 'lucide-react';
+import { Bookmark, Trash2 } from 'lucide-react';
 import { api } from '../../api';
 import type { Chore, User } from '../../types';
 import { CategoryHeader, Icon, catFromCategory } from '../../design';
@@ -17,6 +17,9 @@ export const ChoresTab: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [editingChore, setEditingChore] = useState<Chore | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  // Saving-as-template is one tap on the row: a toast line says where it went.
+  const [savedTemplate, setSavedTemplate] = useState<string | null>(null);
+  const [savingTemplateId, setSavingTemplateId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const [c, u] = await Promise.all([api.chores.list(), api.users.list()]);
@@ -30,6 +33,21 @@ export const ChoresTab: React.FC = () => {
     if (!confirm(t('admin.choresTab.confirmDelete', { name: chore.title }))) return;
     await api.chores.delete(chore.id);
     load();
+  };
+
+  // Habitica-style "save as template": the tuned chore (points, AI prompt,
+  // reference photo, cadence snapshot) lands in the templates tab for
+  // repeat use. No confirmation needed — archiving is the undo.
+  const handleSaveAsTemplate = async (chore: Chore) => {
+    setSavingTemplateId(chore.id);
+    try {
+      await api.admin.createTaskTemplate({ from_chore_id: chore.id });
+      setSavedTemplate(chore.title);
+      setTimeout(() => setSavedTemplate(null), 4000);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : t('admin.choresTab.saveTemplateFailed'));
+    }
+    setSavingTemplateId(null);
   };
 
   return (
@@ -66,6 +84,12 @@ export const ChoresTab: React.FC = () => {
         }}
         users={users}
       />
+
+      {savedTemplate && (
+        <p className={ui.msg} role="status">
+          {t('admin.choresTab.savedTemplate', { name: savedTemplate })}
+        </p>
+      )}
 
       {chores.length === 0 && (
         <div className={ui.empty}>
@@ -110,6 +134,16 @@ export const ChoresTab: React.FC = () => {
                     <Icon name="chev" />
                   </button>
                   <div className={ui.rowActions}>
+                    <button
+                      type="button"
+                      className={ui.iconBtn}
+                      title={t('admin.choresTab.saveTemplateTitle')}
+                      aria-label={t('admin.choresTab.saveTemplateAria', { name: chore.title })}
+                      onClick={() => handleSaveAsTemplate(chore)}
+                      disabled={savingTemplateId === chore.id}
+                    >
+                      <Bookmark aria-hidden />
+                    </button>
                     <button
                       type="button"
                       className={`${ui.iconBtn} ${ui.iconBtnDanger}`}

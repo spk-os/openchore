@@ -510,6 +510,73 @@ export interface AIReviewResult {
   elapsed_ms: number;
 }
 
+// --- Completion attachments (L0) ---
+
+/** Canvas-style mime class: a completion's proof stream is images, a video, or a PDF. */
+export type MimeClass = 'image' | 'video' | 'pdf';
+
+/**
+ * One proof file on a completion. Rows live in completion_attachments;
+ * the completion's photo_url column only mirrors the first image. Each
+ * image carries its own AI verdict (per-attachment review, Canvas's
+ * per-submission-comment model).
+ */
+export interface CompletionAttachment {
+  id: number;
+  completion_id: number;
+  file_path: string;
+  display_name: string;
+  mime_type: string;
+  size_bytes: number;
+  mime_class: MimeClass;
+  thumbnail_path?: string;
+  sha256: string;
+  sort_order: number;
+  deleted_at?: string | null;
+  ai_feedback: string;
+  ai_confidence: number;
+  ai_complete?: boolean | null;
+  created_at: string;
+}
+
+// --- Task templates (L0) ---
+
+/**
+ * A saved chore: the parent tunes it once (points, AI review prompt,
+ * reference photo, TTS) and instantiates it repeatedly. Archiving
+ * replaces deleting — instantiated chores survive. schedule_json
+ * snapshots the cadence so instantiation recreates it.
+ */
+export interface TaskTemplate {
+  id: number;
+  name: string;
+  category: 'required' | 'core' | 'bonus';
+  points: number;
+  description: string;
+  requires_photo: boolean;
+  photo_source: 'child' | 'external' | 'both';
+  reference_photo_url?: string;
+  tts_audio_url?: string;
+  ai_prompt?: string;
+  schedule_json: string;
+  created_by: number;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A template row as listed, with usage counts for the "N uses" badge. */
+export interface TaskTemplateWithUsage extends TaskTemplate {
+  instance_count: number;
+  open_instances: number;
+}
+
+/** What instantiate returns: the fresh chore plus its schedule. */
+export interface TaskTemplateInstance {
+  chore: Chore;
+  schedule: ChoreSchedule;
+}
+
 /** One day's two-sided coaching note. Kids' views hide parent_text. */
 export interface DailyCoachNote {
   user_id: number;
