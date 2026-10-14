@@ -798,6 +798,22 @@
         "light": "Hell",
         "pickHelp": "Dieses Gerät verwendet jetzt immer das gewählte Thema. „Auto“ stellt die automatischen Regeln wieder her.",
         "title": "Anzeigethema"
+      },
+      "learning": {
+        "title": "Lernen (verteilte Wiederholung)",
+        "description": "Wiedervorlagekarten folgen der Vergessenskurve (FSRS): täglich eine kleine Portion auf der Kinderseite, jede Antwort plant sofort um. Hier die Intensität pro Kind einstellen.",
+        "kidLabel": "Kind",
+        "retentionLabel": "Gewünschte Behaltensrate",
+        "retentionHelp": "Höher heißt häufigere Wiederholungen; 0.90 ist der Empfehlungswert (Anki-Standard). 0.95 erhöht die Tageslast etwa um das 1,6-Fache.",
+        "saveButton": "Speichern",
+        "saveSuccess": "Gespeichert",
+        "saveError": "Speichern fehlgeschlagen, bitte erneut versuchen",
+        "limitLabel": "Tageslimit neuer Karten",
+        "limitSave": "Limit speichern",
+        "limitHelp": "Neue Karten ver-zehnfachen die spätere Last; ≤20 empfohlen (Anki-Standard).",
+        "limitUp": "Um 5 erhöhen",
+        "limitDown": "Um 5 verringern",
+        "statsLine": "{{name}}: {{streak}} Tage Serie · {{total}} Karten · heute {{due}} fällig"
       }
     },
     "skins": {
@@ -1155,7 +1171,8 @@
       "rewards": "Belohnungen",
       "today": "Heute",
       "week": "Woche",
-      "errorbook": "Fehlerheft"
+      "errorbook": "Fehlerheft",
+      "review": "Wiederholen"
     }
   },
   "entry": {
@@ -1524,6 +1541,39 @@
       "streakDays_one": "{{count}} Tag in Folge",
       "streakDays_other": "{{count}} Tage in Folge",
       "title": "Diese Woche"
+    },
+    "review": {
+      "title": "Heutige Wiederholung",
+      "scene": "Ein paar Minuten am Tag halten Gelerntes frisch",
+      "loading": "Wiederholungsschlange wird geladen…",
+      "loadFailed": "Laden fehlgeschlagen, nochmal versuchen",
+      "progressAria": "Heutige Wiederholung: {{done}} von {{total}} Karten",
+      "progressCount": "{{done}} / {{total}} Karten",
+      "eta": "ca. {{minutes}} Min · alle fertig für +6 Punkte",
+      "etaPoints": "Alle fertig für +6 Punkte",
+      "etaStreak": "🔥 {{count}} Tage in Folge",
+      "cardAria": "Wiederholungskarte: {{subject}} {{front}}",
+      "cardNo": "Karte {{current}} von {{total}}",
+      "fromSource": "Von: {{source}}",
+      "flip": "Antwort zeigen",
+      "answerLabel": "Antwort",
+      "analysisLabel": "Erklärung",
+      "forgot": "Vergessen",
+      "remembered": "Gewusst",
+      "honestNote": "„Vergessen\" kostet nichts — die Karte kommt nur früher zurück. Richtig gemacht macht sie sich selbstständig.",
+      "emptyTitle": "Heute keine Karten fällig",
+      "emptyText": "Karten entstehen aus deinen falschen Aufgaben und erscheinen hier, wenn sie fällig sind.",
+      "doneTitle": "🎉 Tägliche Wiederholung fertig! +6 Punkte",
+      "doneStats": "{{count}} Karten geschafft · morgen ist schon geplant",
+      "streakLine": "{{count}} Tage Wiederholung in Folge",
+      "queueTitle": "Als Nächstes dran",
+      "today": "Heute",
+      "inDays": "in {{count}} Tagen",
+      "foot": "Die Abstände plant FSRS — wiederholen kurz vorm Vergessen, nicht öfter.",
+      "entryTitle": "Heutige Wiederholung",
+      "entryCount": "{{count}} Karten",
+      "entryMeta": "Ein paar Minuten am Tag",
+      "entryStart": "Starten →"
     }
   },
   "linkedAccounts": {

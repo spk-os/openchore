@@ -19,6 +19,7 @@ import { TodayScreen } from './TodayScreen';
 import { WeekScreen } from './WeekScreen';
 import { RewardsScreen } from './RewardsScreen';
 import { ErrorBookScreen } from './ErrorBookScreen';
+import { ReviewScreen } from './ReviewScreen';
 import { PhotoSheet } from './PhotoSheet';
 import { MeSheet } from './MeSheet';
 import { CelebrationLayer } from './CelebrationLayer';
@@ -26,7 +27,7 @@ import { choreDomId } from './ChoreItem';
 import { catFromCategory } from '../../design';
 import s from './kid.module.css';
 
-const HREFS: Record<TabId, string> = { today: '/', week: '/week', errorbook: '/errorbook', rewards: '/rewards' };
+const HREFS: Record<TabId, string> = { today: '/', week: '/week', errorbook: '/errorbook', review: '/review', rewards: '/rewards' };
 
 const ttsKey = (id: number) => `openchore_tts_${id}`;
 function readTts(id: number, age?: number): boolean {
@@ -53,6 +54,7 @@ export const KidApp: React.FC = () => {
 
   const tab: TabId = location.pathname.startsWith('/week') ? 'week'
     : location.pathname.startsWith('/errorbook') ? 'errorbook'
+    : location.pathname.startsWith('/review') ? 'review'
     : location.pathname.startsWith('/rewards') ? 'rewards' : 'today';
   const data = useKidData(user, { week: tab === 'week', rewards: tab === 'rewards' });
 
@@ -191,6 +193,7 @@ export const KidApp: React.FC = () => {
           <Route index element={<TodayScreen {...shared} now={now} />} />
           <Route path="week" element={<WeekScreen {...shared} />} />
           <Route path="errorbook" element={<ErrorBookScreen topBar={topBar} />} />
+          <Route path="review" element={<ReviewScreen topBar={topBar} />} />
           <Route path="rewards" element={<RewardsScreen user={user} data={data} topBar={topBar} onRedeemed={playComplete} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

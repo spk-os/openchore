@@ -6,6 +6,7 @@ import { gates, isDone, type ChoreView } from './choreView';
 import { GoalNudge } from './GoalCard';
 import { FamilyGoalCard } from './FamilyGoalCard';
 import { PetCard } from './PetCard';
+import { ReviewEntryCard } from './ReviewEntryCard';
 import { CAT_ORDER, ChoreGroups, Notice, PausedNotice } from './parts';
 import type { KidData } from './useKidData';
 import s from './kid.module.css';
@@ -106,6 +107,9 @@ export function TodayScreen({ user, data, now, topBar, viewOf, tts, onToggle, on
             grownUpsDone={data.grownUpsDone}
           />
         )}
+        {/* The review entry (L4): due cards count and the door into the
+            session. Hides itself when nothing is due today. */}
+        {!user.paused && <ReviewEntryCard />}
         {/* The kid's buddy (P4-13), when the household has it on: mood from
             the chore record, feeding from the balance, growth over weeks. */}
         {!user.paused && data.petState && (

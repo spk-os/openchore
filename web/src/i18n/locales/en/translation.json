@@ -798,6 +798,22 @@
         "light": "Light",
         "pickHelp": "This device now always uses the theme above. Pick Auto to restore the automatic rules.",
         "title": "Display theme"
+      },
+      "learning": {
+        "title": "Learning (spaced repetition)",
+        "description": "Review cards follow the memory curve (FSRS): a small daily batch on the kid's side, rescheduled instantly on each answer. Tune each kid's intensity here.",
+        "kidLabel": "Kid",
+        "retentionLabel": "Desired retention",
+        "retentionHelp": "Higher means more frequent reviews; 0.90 is the recommended value (Anki's official default). 0.95 adds roughly 1.6× the daily load.",
+        "saveButton": "Save",
+        "saveSuccess": "Saved",
+        "saveError": "Failed to save, please retry",
+        "limitLabel": "Daily new-card limit",
+        "limitSave": "Save limit",
+        "limitHelp": "New cards amplify ~10× into future reviews; keep it ≤20 (Anki's default).",
+        "limitUp": "Increase by 5",
+        "limitDown": "Decrease by 5",
+        "statsLine": "{{name}}: {{streak}}-day streak · {{total}} cards · {{due}} due today"
       }
     },
     "skins": {
@@ -1155,7 +1171,8 @@
       "rewards": "Rewards",
       "today": "Today",
       "week": "Week",
-      "errorbook": "Mistakes"
+      "errorbook": "Mistakes",
+      "review": "Review"
     }
   },
   "entry": {
@@ -1524,6 +1541,39 @@
       "streakDays_one": "{{count}} day in a row",
       "streakDays_other": "{{count}} days in a row",
       "title": "This week"
+    },
+    "review": {
+      "title": "Today's Review",
+      "scene": "A few minutes a day keeps what you learned from slipping away",
+      "loading": "Loading your review queue…",
+      "loadFailed": "Failed to load, try again",
+      "progressAria": "Today's review: {{done}} of {{total}} cards done",
+      "progressCount": "{{done}} / {{total}} cards",
+      "eta": "~{{minutes}} min · finish all for +6 points",
+      "etaPoints": "Finish all for +6 points",
+      "etaStreak": "🔥 {{count}}-day streak",
+      "cardAria": "Review card: {{subject}} {{front}}",
+      "cardNo": "Card {{current}} of {{total}}",
+      "fromSource": "From: {{source}}",
+      "flip": "Show answer",
+      "answerLabel": "Answer",
+      "analysisLabel": "Explanation",
+      "forgot": "Forgot",
+      "remembered": "Got it",
+      "honestNote": "\"Forgot\" costs nothing — the card just comes back sooner. Get it right and it graduates.",
+      "emptyTitle": "No cards due today",
+      "emptyText": "Cards are created from your wrong questions and show up here when they are due.",
+      "doneTitle": "🎉 Daily review complete! +6 points earned",
+      "doneStats": "{{count}} cards done · tomorrow is already scheduled",
+      "streakLine": "{{count}}-day review streak",
+      "queueTitle": "Coming up next",
+      "today": "Today",
+      "inDays": "in {{count}} days",
+      "foot": "Intervals are scheduled by FSRS — review just before you would forget, not more.",
+      "entryTitle": "Today's review",
+      "entryCount": "{{count}} cards",
+      "entryMeta": "A few minutes a day",
+      "entryStart": "Start →"
     }
   },
   "linkedAccounts": {

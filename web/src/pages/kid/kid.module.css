@@ -1490,3 +1490,353 @@
 @media (min-width: 900px) {
   .ebScreen { max-width: 680px; padding-top: var(--space-2); }
 }
+
+/* ---------- L4: spaced repetition (review) ---------- */
+.rvScreen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 600px;
+}
+
+/* Progress row: the bar plus "3 / 12 张". */
+.rvProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rvPb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.rvPb .bar {
+  flex: 1;
+}
+
+.rvProgressNum {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rvEta {
+  margin: 0;
+  font-size: var(--type-meta-size);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* The card: one question, flipped to its answer. */
+.rvCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+
+.rvCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Subject badge: the review screen's only splash of colour. */
+.rvK {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--r-chip);
+  background: color-mix(in srgb, var(--celebrate) 30%, transparent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.rvCardSrc {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* The question well. */
+.rvQ {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3);
+  border-radius: var(--r-well);
+  background: var(--surface-sunk);
+}
+
+.rvNo {
+  margin: 0;
+  font-size: var(--type-meta-size);
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.rvF {
+  margin: 0;
+  font-size: 17px;
+  line-height: 25px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.rvF .katex-display {
+  margin: var(--space-2) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Flip button: the ink pill. */
+.rvFlip {
+  align-self: stretch;
+  height: 46px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: var(--ink);
+  color: var(--on-accent);
+  font-family: var(--font-text);
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.rvFlip:active { transform: scale(0.98); }
+
+/* The answer side: reference answer, then the analysis. */
+.rvAns,
+.rvWhy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.rvAnsLabel {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.rvAnsText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+/* The two honest buttons: Again (muted) / Good (done-coloured). */
+.rvKeys {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.rvKey {
+  height: 46px;
+  border-radius: var(--r-btn);
+  font-family: var(--font-text);
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.rvKey:active { transform: scale(0.98); }
+.rvKey:disabled { opacity: 0.55; cursor: default; }
+
+.rvAgain {
+  border: var(--outline-w) solid var(--line);
+  background: var(--chip);
+  color: var(--on-chip);
+}
+
+.rvGood {
+  border: 0;
+  background: var(--done);
+  color: var(--on-done);
+}
+
+/* The honest note under the buttons. */
+.rvHonestNote {
+  margin: 0 2px;
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* The completion banner: celebrate colours, centred. */
+.rvDone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-6) var(--space-4);
+  border: var(--outline-w) solid var(--star);
+  border-radius: var(--oc-radius-lg);
+  background: color-mix(in srgb, var(--celebrate) 32%, var(--surface));
+  text-align: center;
+}
+
+.rvDoneTitle {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.rvDoneStats {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.rvStreak {
+  margin: var(--space-1) 0 0;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+/* The upcoming queue preview: one line per future card. */
+.rvQueue {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) var(--space-4);
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+}
+
+.rvQueueTitle {
+  margin: 0 0 4px;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.rqRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.rqRow:last-child { border-bottom: 0; padding-bottom: 2px; }
+
+.rqIc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+}
+
+.rqTt {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rqWhen {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rvFoot {
+  margin: var(--space-3) 2px 0;
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* Tablet: the review screen shares the two-column frame. */
+@media (min-width: 900px) {
+  .rvScreen { max-width: 680px; padding-top: var(--space-2); }
+}
+
+/* The review entry card on Today (L4): the queue's front door. */
+.reviewEntry {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+  text-decoration: none;
+  color: inherit;
+}
+
+.reviewEntryIc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+  font-size: 19px;
+}
+
+.reviewEntryBd {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reviewEntryTitle {
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.reviewEntryMeta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.reviewEntryBtn {
+  flex: none;
+  padding: 9px 14px;
+  border-radius: var(--r-btn);
+  background: var(--ink);
+  color: var(--on-accent);
+  font-size: 13.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}

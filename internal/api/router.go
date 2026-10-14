@@ -39,6 +39,10 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	setup := NewSetupHandler(s, auth.Sessions)
 	reports := NewReportsHandler(s, dispatcher, discordNotifier, aiSvc)
 	coach := NewCoachHandler(s, aiSvc, chores)
+	reviews := NewReviewHandler(s)
+	// L4 T+0 hook: every wrong question parsed out of a paper gets its
+	// review card the moment it lands (see recordErrorItem).
+	chores.SetSpacedRepetition(reviews)
 	authH := NewAuthHandler(s, auth.Sessions, dispatcher, auth.OIDC)
 	oidcH := auth.OIDC
 
@@ -136,6 +140,13 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			r.Get("/error-items", chores.ListErrorItems)
 			r.Get("/error-items/{id}", chores.GetErrorItem)
 			r.Post("/error-items/{id}/review-result", chores.SubmitReviewResult)
+
+			// L4 spaced repetition: the kid's live due queue and the
+			// two-button grading (Again/Good — Anki's FAQ names the
+			// Hard-instead-of-Again habit as FSRS's one uncorrectable
+			// failure mode, so those buttons don't exist).
+			r.Get("/review/today", reviews.GetReviewToday)
+			r.Post("/review/{id}/grade", reviews.GradeReview)
 
 			// Any user can view and redeem rewards
 			r.Get("/rewards", rewards.List)
@@ -285,6 +296,14 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Get("/admin/users/{userID}/error-book-report", chores.GetErrorBookReport)
 				r.Post("/admin/error-items/{id}/correction-task", chores.CreateCorrectionTask)
 				r.Put("/admin/error-items/{id}", chores.UpdateErrorItem)
+
+				// L4 spaced repetition, parent side: the mastery dashboard
+				// (heatmap / 30-day load forecast / streak), the FSRS
+				// scheduler dial (?user_id= per kid), and per-card suspend.
+				r.Get("/admin/review/stats", reviews.GetReviewStats)
+				r.Get("/admin/fsrs-params", reviews.GetParams)
+				r.Put("/admin/fsrs-params", reviews.UpdateParams)
+				r.Post("/admin/review/{id}/suspend", reviews.SuspendReview)
 
 				// Integration discovery: chores with triggers
 				r.Get("/chores/triggerable", triggers.ListTriggerable)

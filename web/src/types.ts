@@ -904,3 +904,81 @@ export interface ErrorBookReport {
   error_types: ErrorTypeStat[];
   weak_tags: WeakTagStat[];
 }
+
+// --- L4 spaced repetition (FSRS) ---
+
+/** One spaced-repetition card: the go-fsrs Card fields plus the face text. */
+export interface ReviewItem {
+  id: number;
+  user_id: number;
+  source_type: 'error_item' | 'kc' | 'course_outcome';
+  source_id: number;
+  front_text: string;
+  back_text?: string;
+  subject?: string;
+  due: string;
+  stability: number;
+  difficulty: number;
+  scheduled_days: number;
+  reps: number;
+  lapses: number;
+  state: 'New' | 'Learning' | 'Review' | 'Relearning';
+  last_review?: string;
+  remaining_steps: number;
+  suspended: boolean;
+  created_at: string;
+  /** The resolved "来自：期中卷 · 题干…" line (queue responses only). */
+  source_label?: string;
+}
+
+/** The kid's live queue: due cards, the upcoming preview, and the 🔥 streak. */
+export interface ReviewToday {
+  due: ReviewItem[];
+  upcoming: ReviewItem[];
+  streak: number;
+}
+
+/** The per-kid scheduler config (Anki's "most important setting" dial). */
+export interface FSRSParams {
+  user_id: number;
+  request_retention: number;
+  maximum_interval: number;
+  learning_steps_json: string;
+  relearning_steps_json: string;
+  enable_fuzz: boolean;
+  weights?: string;
+  updated_at: string;
+}
+
+/** One day of the review heatmap (review_logs by day). */
+export interface ReviewHeatmapDay {
+  date: string;
+  count: number;
+  good_count: number;
+}
+
+/** One bar of the 30-day load forecast (review_items grouped by due date). */
+export interface ReviewForecastBucket {
+  date: string;
+  count: number;
+}
+
+/** One kid's summary row on the parent's mastery dashboard. */
+export interface KidReviewStats {
+  user_id: number;
+  name: string;
+  streak: number;
+  due_now: number;
+  total: number;
+}
+
+/** The parent's mastery dashboard data (Anki stats' three forms). */
+export interface ReviewStats {
+  heatmap: ReviewHeatmapDay[] | null;
+  forecast: ReviewForecastBucket[] | null;
+  streak: number;
+  fsrs_params?: FSRSParams;
+  total_cards: number;
+  due_now: number;
+  per_kid: KidReviewStats[] | null;
+}

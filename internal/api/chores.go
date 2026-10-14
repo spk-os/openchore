@@ -24,6 +24,7 @@ type ChoreHandler struct {
 	aiSvc      *AIServices    // optional AI and read-aloud audio
 	reviews    sync.WaitGroup // in-flight background photo reviews
 	analyses   sync.WaitGroup // in-flight background paper analyses (L1)
+	spaced     *ReviewHandler // L4 hook target (T+0 card creation), may be nil
 }
 
 // bonusDropEnabledSetting gates the surprise bonus on completion
@@ -40,6 +41,11 @@ const (
 func NewChoreHandler(s *store.Store, d *webhook.Dispatcher, dn *discord.Notifier, ai *AIServices) *ChoreHandler {
 	return &ChoreHandler{store: s, dispatcher: d, discord: dn, aiSvc: ai}
 }
+
+// SetSpacedRepetition wires the L4 review handler so error items can
+// ensure their review card the moment they land (T+0). Nil-safe: before
+// the router wires it (or in tests) the hook is a no-op.
+func (h *ChoreHandler) SetSpacedRepetition(r *ReviewHandler) { h.spaced = r }
 
 // AIServices returns the handler's (swappable) AI and audio services.
 func (h *ChoreHandler) AIServices() *AIServices { return h.aiSvc }

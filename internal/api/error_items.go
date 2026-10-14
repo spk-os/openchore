@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/liftedkilt/openchore/internal/llm"
@@ -390,6 +391,20 @@ func (h *ChoreHandler) recordErrorItem(ctx context.Context, analysis *model.Pape
 		if err := h.store.AttachErrorItemTag(ctx, ei.ID, tagID); err != nil {
 			return 0, err
 		}
+	}
+	// T+0 (spec §7.2): the wrong question is reviewable the same night.
+	// Front is the question, back is the answer plus the mistake
+	// analysis — what the flip side of the review card shows.
+	if h.spaced != nil {
+		back := strings.TrimSpace(ei.AnswerText)
+		if ei.MistakeAnalysis != "" {
+			if back != "" {
+				back += "\n\n"
+			}
+			back += ei.MistakeAnalysis
+		}
+		h.spaced.EnsureReviewCard(ctx, ei.UserID, model.ReviewSourceErrorItem, ei.ID,
+			ei.QuestionText, back, ei.Subject)
 	}
 	return ei.ID, nil
 }

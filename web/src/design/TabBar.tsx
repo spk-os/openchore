@@ -9,6 +9,7 @@ export const TABS: readonly { id: TabId; icon: IconName }[] = [
   { id: 'today', icon: 'home' },
   { id: 'week', icon: 'cal' },
   { id: 'errorbook', icon: 'book' },
+  { id: 'review', icon: 'spark' },
   { id: 'rewards', icon: 'gift' },
 ];
 

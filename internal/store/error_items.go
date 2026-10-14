@@ -461,7 +461,19 @@ func nullTime(t *time.Time) any {
 	if t == nil {
 		return nil
 	}
-	return *t
+	return dbTime(*t)
+}
+
+// dbTime renders a timestamp for SQLite storage. The modernc driver's
+// own time.Time binding stores RFC3339Nano (9 fractional digits), which
+// SQLite's date()/strftime() refuse to parse (>3 digits) — every
+// date(reviewed_at) aggregate would come back NULL. RFC3339 (seconds,
+// explicit zone) parses cleanly, scans back into time.Time with the
+// zone intact, and sorts lexicographically in time order — but only if
+// every binding on the column uses it, so all timestamp binds go
+// through here (see the time-binding pitfall, CLAUDE.md §坑速查).
+func dbTime(t time.Time) string {
+	return t.Format(time.RFC3339)
 }
 
 // trimSpaces is strings.TrimSpace without importing strings here.

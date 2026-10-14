@@ -34,6 +34,7 @@ const (
 	ReasonPetFeed          = "pet_feed"
 	ReasonBonusDrop        = "bonus_drop"
 	ReasonGrandparentBoost = "grandparent_boost"
+	ReasonReviewComplete   = "review_complete"
 )
 
 // Commitment statuses
@@ -736,4 +737,94 @@ type KnowledgeTag struct {
 	Code      string `json:"code,omitempty"`
 	SortOrder int    `json:"sort_order"`
 	IsSystem  bool   `json:"is_system"`
+}
+
+// Review-item source types (L4): what a spaced-repetition card was
+// created from. L1 contributes error_item now; kc and course_outcome
+// are the L2/L3 hooks (the scheduler never looks inside — it only
+// carries source_type + source_id back to the caller).
+const (
+	ReviewSourceErrorItem = "error_item"
+	ReviewSourceKC        = "kc"
+	ReviewSourceOutcome   = "course_outcome"
+)
+
+// Review card states, the go-fsrs State names as stored in review_items.
+// TEXT in SQL (readable diffs) matched against the library's own
+// State.String(); the store layer converts both ways.
+const (
+	ReviewStateNew         = "New"
+	ReviewStateLearning    = "Learning"
+	ReviewStateReview      = "Review"
+	ReviewStateRelearning  = "Relearning"
+)
+
+// Review ratings, the go-fsrs Rating names as stored in review_logs.
+// The kid's UI only exposes Again and Good (Anki's own FAQ names the
+// Hard-instead-of-Again habit as FSRS's one uncorrectable failure mode,
+// so the buttons that would let a child form it simply don't exist).
+const (
+	ReviewRatingAgain = "Again"
+	ReviewRatingHard  = "Hard"
+	ReviewRatingGood  = "Good"
+	ReviewRatingEasy  = "Easy"
+)
+
+// ReviewItem is one spaced-repetition card (L4): the go-fsrs Card fields
+// (due/stability/…/remaining_steps — owned by the scheduler, nothing
+// else writes them) plus the front/back text the kid sees. One card per
+// source object (UNIQUE(source_type, source_id)); suspended is the
+// parent's pause switch.
+type ReviewItem struct {
+	ID              int64      `json:"id"`
+	UserID          int64      `json:"user_id"`
+	SourceType      string     `json:"source_type"`
+	SourceID        int64      `json:"source_id"`
+	FrontText       string     `json:"front_text"`
+	BackText        string     `json:"back_text,omitempty"`
+	Subject         string     `json:"subject,omitempty"`
+	Due             time.Time  `json:"due"`
+	Stability       float64    `json:"stability"`
+	Difficulty      float64    `json:"difficulty"`
+	ScheduledDays   int64      `json:"scheduled_days"`
+	Reps            int64      `json:"reps"`
+	Lapses          int64      `json:"lapses"`
+	State           string     `json:"state"`
+	LastReview      *time.Time `json:"last_review,omitempty"`
+	RemainingSteps  int        `json:"remaining_steps"`
+	Suspended       bool       `json:"suspended"`
+	CreatedAt       time.Time  `json:"created_at"`
+
+	// The traced source object, joined in for the review screen (the
+	// subject badge and the "来自：期中卷 第 17 题" provenance line).
+	ErrorItem *ErrorItem `json:"error_item,omitempty"`
+}
+
+// ReviewLog is one rating event (the go-fsrs ReviewLog row): the stats
+// views (heatmap, load forecast, retention curve) read these.
+type ReviewLog struct {
+	ID            int64     `json:"id"`
+	ReviewItemID  int64     `json:"review_item_id"`
+	UserID        int64     `json:"user_id"`
+	Rating        string    `json:"rating"`
+	State         string    `json:"state"`
+	ElapsedDays   *int64    `json:"elapsed_days,omitempty"`
+	ScheduledDays int64     `json:"scheduled_days"`
+	ReviewedAt    time.Time `json:"reviewed_at"`
+}
+
+// FSRSParams is the per-kid scheduler config (fsrs_params row). A
+// missing row means the defaults below; the parent's screen edits only
+// request_retention (the one dial Anki's own docs call "the most
+// important setting") and the daily new-card cap (a settings key, not
+// here — it shapes the queue, not the scheduler).
+type FSRSParams struct {
+	UserID             int64     `json:"user_id"`
+	RequestRetention   float64   `json:"request_retention"`
+	MaximumInterval    int64     `json:"maximum_interval"`
+	LearningStepsJSON  string    `json:"learning_steps_json"`
+	RelearningStepsJSON string  `json:"relearning_steps_json"`
+	EnableFuzz         bool      `json:"enable_fuzz"`
+	WeightsJSON        string    `json:"weights,omitempty"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }

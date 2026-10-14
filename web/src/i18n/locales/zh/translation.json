@@ -156,7 +156,8 @@
       "rewards": "奖励",
       "today": "今天",
       "week": "本周",
-      "errorbook": "错题本"
+      "errorbook": "错题本",
+      "review": "复习"
     }
   },
   "entry": {
@@ -525,6 +526,39 @@
       "streakDays_one": "连续 {{count}} 天",
       "streakDays_other": "连续 {{count}} 天",
       "title": "本周"
+    },
+    "review": {
+      "title": "今日复习",
+      "scene": "每天几分钟，错过的题就不会再忘",
+      "loading": "正在加载复习队列…",
+      "loadFailed": "加载失败，再试一次",
+      "progressAria": "今日复习进度：{{total}} 张中已完成 {{done}} 张",
+      "progressCount": "{{done}} / {{total}} 张",
+      "eta": "约 {{minutes}} 分钟 · 全部答完 +6 分",
+      "etaPoints": "全部答完 +6 分",
+      "etaStreak": "🔥 连续 {{count}} 天",
+      "cardAria": "复习卡：{{subject}} {{front}}",
+      "cardNo": "第 {{current}} / {{total}} 张",
+      "fromSource": "来自：{{source}}",
+      "flip": "显示答案",
+      "answerLabel": "答案",
+      "analysisLabel": "解析",
+      "forgot": "忘了",
+      "remembered": "记住了",
+      "honestNote": "「忘了」不会扣分，只会让它更早回来一次；连续答对，这张卡就毕业了",
+      "emptyTitle": "今天没有要复习的卡",
+      "emptyText": "复习卡会从错题自动生成，到了该复习的时间出现在这里",
+      "doneTitle": "🎉 今日复习完成！+6 分已入账",
+      "doneStats": "答完 {{count}} 张 · 明天的量已排好",
+      "streakLine": "连续复习 {{count}} 天",
+      "queueTitle": "接下来还会遇到",
+      "today": "今天",
+      "inDays": "{{count}} 天后",
+      "foot": "复习间隔由 FSRS 算法排程 · 目标是「快忘之前刚好复习」，不是越多越好",
+      "entryTitle": "今日复习",
+      "entryCount": "{{count}} 张",
+      "entryMeta": "每天几分钟，不忘错题",
+      "entryStart": "开始复习 →"
     }
   },
   "linkedAccounts": {
@@ -1475,6 +1509,22 @@
         "light": "浅色",
         "pickHelp": "本设备现在固定使用上面选择的主题。选「自动」可恢复默认规则。",
         "title": "显示主题"
+      },
+      "learning": {
+        "title": "学习系统（间隔复习）",
+        "description": "按记忆曲线（FSRS）排复习卡：孩子端每天一小份，答对或再想一次即时改排期。这里调整每个孩子的复习强度。",
+        "kidLabel": "孩子",
+        "retentionLabel": "期望保留率",
+        "retentionHelp": "越高复习越频繁；0.90 是推荐值（Anki 官方）。0.95 会让每天卡片多约 1.6 倍。",
+        "saveButton": "保存",
+        "saveSuccess": "已保存",
+        "saveError": "保存失败，请重试",
+        "limitLabel": "每日新卡上限",
+        "limitSave": "保存上限",
+        "limitHelp": "新卡每日 10 倍放大复习负载，建议 ≤20（Anki 官方默认值）。",
+        "limitUp": "增加 5 张",
+        "limitDown": "减少 5 张",
+        "statsLine": "{{name}}：连续复习 {{streak}} 天 · 共 {{total}} 张卡 · 今天待复习 {{due}} 张"
       }
     },
     "skins": {

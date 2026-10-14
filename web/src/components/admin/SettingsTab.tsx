@@ -9,6 +9,7 @@ import { ExportConfigSection } from './ExportConfigSection';
 import { APITokensSection } from './APITokensSection';
 import { PhotoReviewTester } from './PhotoReviewTester';
 import { AIConnectionSection } from './AIConnectionSection';
+import { LearningSection } from './LearningSection';
 import { SignInSection } from './SignInSection';
 import { FormMessage, type Msg } from './FormMessage';
 import { useAIStatus } from '../../hooks/useAIStatus';
@@ -412,6 +413,10 @@ export const SettingsTab: React.FC = () => {
               </button>
             </div>
           </form>
+
+          {/* The L4 dial: FSRS retention + the daily new-card cap,
+              per kid (Anki's options profile semantics). */}
+          <LearningSection />
 
           {(aiStatus.ai.configured || aiStatus.tts.configured) && (
             <form className={clsx(ui.card, ui.section)} onSubmit={handleSaveAISettings} aria-labelledby="settings-ai">

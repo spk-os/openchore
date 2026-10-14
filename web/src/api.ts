@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, ReviewItem, ReviewToday, FSRSParams, ReviewStats } from './types';
 
 const API_BASE = '/api';
 
@@ -462,6 +462,22 @@ export const api = {
       }),
     runningDaily: (userId: number, templateId: string) =>
       fetchWithAuth<{ running: number }>(`/users/${userId}/running-daily?template_id=${encodeURIComponent(templateId)}`),
+    // L4 parent side: the mastery dashboard (heatmap / 30-day load
+    // forecast / streak), the FSRS dial (per kid), and per-card suspend.
+    reviewStats: (userId?: number) =>
+      fetchWithAuth<ReviewStats>(`/admin/review/stats${userId != null ? '?user_id=' + userId : ''}`),
+    getFSRSParams: (userId: number) =>
+      fetchWithAuth<FSRSParams>(`/admin/fsrs-params?user_id=${userId}`),
+    updateFSRSParams: (userId: number, data: Partial<Pick<FSRSParams, 'request_retention' | 'maximum_interval' | 'enable_fuzz'>>) =>
+      fetchWithAuth<FSRSParams>(`/admin/fsrs-params?user_id=${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    suspendReview: (id: number, suspended: boolean) =>
+      fetchWithAuth<ReviewItem>(`/admin/review/${id}/suspend`, {
+        method: 'POST',
+        body: JSON.stringify({ suspended }),
+      }),
     regenerateAllTTS: () =>
       fetchWithAuth<{ status: string }>('/admin/tts/regenerate', { method: 'POST' }),
     getAISummary: (userId: number, period: string, date: string) =>
@@ -524,6 +540,20 @@ export const api = {
       fetchWithAuth<ErrorItem>(`/error-items/${id}/review-result`, {
         method: 'POST',
         body: JSON.stringify({ is_correct: isCorrect }),
+      }),
+  },
+  // L4 spaced repetition: the kid's live due queue and the two-button
+  // grading (Again / Good — Anki's FAQ names the Hard-instead-of-Again
+  // habit as FSRS's one uncorrectable failure mode, so those buttons
+  // don't exist).
+  review: {
+    /** The kid's live queue ("今日复习"), the upcoming preview and the 🔥. */
+    today: () => fetchWithAuth<ReviewToday>('/review/today'),
+    /** Run one rating through the FSRS scheduler ("忘了"/"记住了"). */
+    grade: (id: number, rating: 'Again' | 'Good') =>
+      fetchWithAuth<ReviewItem>(`/review/${id}/grade`, {
+        method: 'POST',
+        body: JSON.stringify({ rating }),
       }),
   },
   tokens: {
