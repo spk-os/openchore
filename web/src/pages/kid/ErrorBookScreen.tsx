@@ -43,13 +43,18 @@ function reviewWhen(t: ReturnType<typeof useTranslation>['t'], iso?: string): st
 interface ErrorCardProps {
   item: ErrorItem;
   onDone: (item: ErrorItem) => void;
+  /** The profile one-liner (「视觉型 + 鼓励语气」) shown above the ladder. */
+  configSummary?: string;
 }
 
 /** One wrong question, expanded by default: the OD "eb-card-expanded". */
-const ErrorCard: React.FC<ErrorCardProps> = ({ item, onDone }) => {
+const ErrorCard: React.FC<ErrorCardProps> = ({ item, onDone, configSummary }) => {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  // Which rung of the scaffold ladder we're on (0 = not started; the
+  // server clamps to 1..4 and always tells us the real stage back).
+  const [attempt, setAttempt] = useState(0);
 
   // "我订正完了": report the retry and let the mastery machine move.
   const markDone = async () => {
@@ -67,7 +72,21 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ item, onDone }) => {
     setBusy(false);
   };
 
-  const again = () => setNote(t('kid.errorbook.keepGoing'));
+  // "还是不懂，再讲讲": walk the Khanmigo-style scaffold ladder — every
+  // click asks the server for the next rung (hint → specific hint →
+  // decomposition → worked answer). Server-side staging means a refresh
+  // can't skip to the answer.
+  const again = async () => {
+    setBusy(true);
+    try {
+      const hint = await api.learner.scaffold(item.id, attempt + 1);
+      setAttempt(hint.stage);
+      setNote(t('kid.errorbook.scaffoldHint', { stage: hint.stage, hint: hint.hint }));
+    } catch {
+      setNote(t('kid.errorbook.keepGoing'));
+    }
+    setBusy(false);
+  };
 
   const tags = (item.tags ?? []).map(x => x.name);
   return (
@@ -117,6 +136,12 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ item, onDone }) => {
         </div>
       )}
 
+      {configSummary && (
+        <p className={s.ebProfileLine} data-test="eb-profile-line">
+          {t('kid.errorbook.profileTuned', { profile: configSummary })}
+        </p>
+      )}
+
       {tags.length > 0 && (
         <p className={s.ebTags}>{t('kid.errorbook.tags', { tags: tags.join(' · ') })}</p>
       )}
@@ -160,6 +185,9 @@ export function ErrorBookScreen({ topBar }: ErrorBookScreenProps) {
   const [items, setItems] = useState<ErrorItem[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [subject, setSubject] = useState('');
+  // The profile one-liner from /kid/ai-feedback (config_summary) — fetched
+  // once per mount so every card can show 「已按你的画像调成…」.
+  const [configSummary, setConfigSummary] = useState('');
 
   const load = useCallback(async (subj: string) => {
     setFailed(false);
@@ -173,6 +201,12 @@ export function ErrorBookScreen({ topBar }: ErrorBookScreenProps) {
   }, []);
 
   useEffect(() => { load(subject); }, [load, subject]);
+
+  useEffect(() => {
+    api.learner.aiFeedback().then(fb => {
+      if (fb.config_summary) setConfigSummary(fb.config_summary);
+    }).catch(() => {});
+  }, []);
 
   const subjects = useMemo(() => {
     const counts = new Map<string, number>();
@@ -231,7 +265,7 @@ export function ErrorBookScreen({ topBar }: ErrorBookScreenProps) {
 
           {(items.length > 0) && (
             <div className={s.ebList} data-test="eb-list">
-              {items.map(it => <ErrorCard key={it.id} item={it} onDone={onDone} />)}
+              {items.map(it => <ErrorCard key={it.id} item={it} onDone={onDone} configSummary={configSummary || undefined} />)}
             </div>
           )}
 

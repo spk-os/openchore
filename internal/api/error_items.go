@@ -581,6 +581,20 @@ func (h *ChoreHandler) SubmitReviewResult(w http.ResponseWriter, r *http.Request
 	}
 	item.MasteryLevel = newMastery
 	item.NextReviewAt = nextReview
+
+	// L3 事件流：订正尝试即一次「作答」（xAPI answered）。context 带上
+	// 知识点标签 id 列表，供 KC 掌握度 rollup（Laplace 平滑）消费。
+	kcIDs := []int64{}
+	if tags, err := h.store.TagsForItem(r.Context(), item.ID); err == nil {
+		for _, t := range tags {
+			kcIDs = append(kcIDs, t.ID)
+		}
+	}
+	h.LearnerHook.recordLearnerEventSafe(r.Context(), item.UserID, model.EventVerbAnswered,
+		model.EventObjectErrorItem, item.ID,
+		map[string]any{"success": *req.IsCorrect, "completion": *req.IsCorrect},
+		map[string]any{"subject": item.Subject, "kc_ids": kcIDs})
+
 	writeJSON(w, http.StatusOK, item)
 }
 

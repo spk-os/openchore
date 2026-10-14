@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	fsrs "github.com/open-spaced-repetition/go-fsrs/v4"
+
 	"github.com/liftedkilt/openchore/internal/model"
 	"github.com/liftedkilt/openchore/internal/store"
 )
@@ -19,10 +21,11 @@ import (
 // ReviewHandler serves the spaced-repetition endpoints.
 type ReviewHandler struct {
 	store *store.Store
+	LearnerHook
 }
 
 func NewReviewHandler(s *store.Store) *ReviewHandler {
-	return &ReviewHandler{store: s}
+	return &ReviewHandler{store: s, LearnerHook: newLearnerHook(s)}
 }
 
 // reviewTodayResponse is the kid's queue: the cards, the parent's
@@ -150,6 +153,25 @@ func (h *ReviewHandler) GradeReview(w http.ResponseWriter, r *http.Request) {
 	if item.UserID == user.ID || user.Role == model.RoleAdmin {
 		h.maybeCreditDailyQueue(r.Context(), item.UserID)
 	}
+
+	// L3 事件流：一次评分即一次「复习」（xAPI reviewed）。Good/Easy 算掌握
+	// 信号，Again/Hard 算未掌握——喂给 KC rollup 的 Laplace 平滑。复习卡
+	// 的 KC 绑定在源错题上（source_type=error_item 时回查其标签）。
+	rating := parseRating(req.Rating)
+	success := rating == fsrs.Good || rating == fsrs.Easy
+	kcIDs := []int64{}
+	if item.SourceType == model.ReviewSourceErrorItem {
+		if tags, err := h.store.TagsForItem(r.Context(), item.SourceID); err == nil {
+			for _, t := range tags {
+				kcIDs = append(kcIDs, t.ID)
+			}
+		}
+	}
+	h.LearnerHook.recordLearnerEventSafe(r.Context(), item.UserID, model.EventVerbReviewed,
+		model.EventObjectReviewItem, item.ID,
+		map[string]any{"success": success},
+		map[string]any{"rating": ratingString(rating), "kc_ids": kcIDs})
+
 	writeJSON(w, http.StatusOK, item)
 }
 

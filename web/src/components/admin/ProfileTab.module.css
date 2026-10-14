@@ -1,0 +1,454 @@
+/* The parent's learner-profile tab (L3, OD parent-profile.html): the
+ * hero strip, the KC mastery matrix with the three mastery colors, the
+ * 14-day trend bars, the student_config editor and the cited AI plan
+ * feed. Reuses the admin UI kit where it can; only profile-specific
+ * layout lives here. */
+
+.ppPage {
+  composes: page from './ui.module.css';
+}
+
+/* ---------- hero ---------- */
+
+.ppHero {
+  composes: card from './ui.module.css';
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.ppHeroName {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ppHeroStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 6px 0 0;
+}
+
+.ppStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 86px;
+}
+
+.ppStatValue {
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 26px;
+  color: var(--ink);
+}
+
+.ppStatValueUrgent {
+  composes: ppStatValue;
+  color: var(--urgent);
+}
+
+.ppStatValueDone {
+  composes: ppStatValue;
+  color: var(--done);
+}
+
+.ppStatLabel {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ---------- KC matrix ---------- */
+
+.mxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mxGroupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.mxGroupCount {
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.kc {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: var(--r-row);
+  background: var(--surface-sunk);
+}
+
+.kcName {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.kcBarWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 220px;
+  min-width: 140px;
+}
+
+.kcPct {
+  font-size: 14px;
+  font-weight: 750;
+  width: 44px;
+  text-align: right;
+}
+
+.kcBar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.kcBarFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* Mastery buckets reuse the OD colors: <50% urgent red, 50-79% star
+ * amber, >=80% done green; low-confidence rows grey out. */
+.fillWeak { background: var(--urgent); }
+.fillMid { background: var(--star); }
+.fillGood { background: var(--done); }
+
+.kcMeta {
+  flex: 1 1 100%;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.kcLow {
+  opacity: 0.65;
+}
+
+.pillWeak {
+  color: var(--urgent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pillGood {
+  color: var(--done);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ---------- trend ---------- */
+
+.trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 110px;
+  padding: 4px 0 0;
+}
+
+.trendCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.trendBar {
+  width: 100%;
+  max-width: 34px;
+  border-radius: 6px 6px 0 0;
+  background: var(--accent);
+  min-height: 2px;
+}
+
+.trendValue {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.trendLabel {
+  font-size: 11px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+/* ---------- config editor ---------- */
+
+.cfgRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--line);
+}
+
+.cfgRow:first-of-type {
+  border-top: 0;
+}
+
+.cfgLabel {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.cfgHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.segBtn {
+  border: 0;
+  padding: 8px 16px;
+  min-height: 36px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.segBtn + .segBtn {
+  border-left: 1px solid var(--line);
+}
+
+.segBtnOn {
+  composes: segBtn;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.tagItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tagItem button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.tagItem button:hover {
+  color: var(--urgent);
+}
+
+.tagAddInput {
+  composes: input from './ui.module.css';
+  min-height: 34px;
+  max-width: 180px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.saveRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.saveNote {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ---------- plan feed ---------- */
+
+.plan {
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.planHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.planIcon {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.planTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.planDesc {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.planRefs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 10px;
+  background: var(--surface-sunk);
+}
+
+.planRef {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.refSrc {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.planActs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.planActsNote {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.planNote {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-muted);
+}
+
+.planRequestRow {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.planRequestInput {
+  composes: input from './ui.module.css';
+  flex: 1 1 260px;
+}
+
+.btnSm {
+  composes: btn from './ui.module.css';
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.btnPrimarySm {
+  composes: btnPrimary from './ui.module.css';
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* ---------- rail cards ---------- */
+
+.ppRail {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.railCard {
+  composes: card from './ui.module.css';
+}
+
+.railCardTitle {
+  margin: 0 0 var(--space-2);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.railCard p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-muted);
+}
+
+.kidPicker {
+  composes: input from './ui.module.css';
+  min-width: 160px;
+  width: auto;
+}

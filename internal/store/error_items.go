@@ -324,6 +324,12 @@ func (s *Store) listTagsForItem(ctx context.Context, errorItemID int64) ([]model
 	return scanTags(rows)
 }
 
+// TagsForItem is the exported form of listTagsForItem for API handlers
+// (the L3 event stream needs the item's KC ids for the rollup).
+func (s *Store) TagsForItem(ctx context.Context, errorItemID int64) ([]model.KnowledgeTag, error) {
+	return s.listTagsForItem(ctx, errorItemID)
+}
+
 // listTagsForItems loads tags for a whole page of items in one query.
 func (s *Store) listTagsForItems(ctx context.Context, items []model.ErrorItem) (map[int64][]model.KnowledgeTag, error) {
 	rows, err := s.db.QueryContext(ctx,

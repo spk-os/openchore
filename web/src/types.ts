@@ -1115,3 +1115,138 @@ export interface ProgressResponse {
   attempt: ResourceAttempt;
   unit: UnitView;
 }
+
+// --- L3 learner profile (xAPI events / KC mastery / student config) ---
+
+/** The Ranedeer-style AI teaching config (student_config row). */
+export interface StudentConfig {
+  user_id: number;
+  depth: '小学' | '初中' | '高中';
+  learning_style: 'Visual' | 'Verbal' | 'Active' | 'Intuitive' | 'Reflective' | 'Global';
+  communication: 'Formal' | 'Textbook' | 'Layman' | 'StoryTelling' | 'Socratic';
+  tone: 'Encouraging' | 'Neutral' | 'Informative' | 'Friendly' | 'Humorous';
+  reasoning: 'Deductive' | 'Inductive' | 'Abductive' | 'Analogical' | 'Causal';
+  /** JSON string arrays, stored verbatim (server validates). */
+  interests: string;
+  strengths: string;
+  weaknesses: string;
+  updated_at: string;
+}
+
+/** One xAPI-shaped behavior row (append-only; the profile's raw material). */
+export interface LearnerEvent {
+  id: number;
+  user_id: number;
+  verb: 'completed' | 'submitted' | 'reviewed' | 'answered' | 'attempted';
+  object_type: 'chore' | 'error_item' | 'resource' | 'review_item' | 'course';
+  object_id: number;
+  result_json?: string;
+  context_json?: string;
+  occurred_at: string;
+  created_at: string;
+}
+
+/** One KC row of the profile's matrix (Laplace-smoothed, weakest first). */
+export interface KCMasteryStat {
+  tag_id: number;
+  name: string;
+  subject: string;
+  correct_count: number;
+  total_count: number;
+  mastery: number;
+  low_confidence: boolean;
+  last_event_at?: string | null;
+}
+
+/** The profile header's four stats plus the extra counters. */
+export interface LearnerHeroStats {
+  chores_this_week: number;
+  answers_total: number;
+  fix_rate: number;
+  review_streak: number;
+  weak_kc_count: number;
+  mastered_items: number;
+  reviewed_today: number;
+}
+
+/** One day of the 14-day activity trend (zero days included). */
+export interface LearnerEventDay {
+  day: string;
+  events: number;
+}
+
+/** GET /admin/learner-profile — the whole profile page in one fetch. */
+export interface LearnerProfile {
+  kid_id: number;
+  kid_name: string;
+  config: StudentConfig;
+  kc_mastery: KCMasteryStat[];
+  events: LearnerEvent[];
+  event_trend: LearnerEventDay[];
+  hero: LearnerHeroStats;
+}
+
+/** GET /kid/ai-feedback — the kid's deterministic feedback card. */
+export interface KidAIFeedback {
+  weak_kcs: KCMasteryStat[];
+  review_streak: number;
+  generated_note: string;
+  /** The profile one-liner for the error-book AI card title (「视觉型 + 鼓励语气」). */
+  config_summary?: string;
+}
+
+/** POST /kid/scaffold — one rung of the hint ladder (stage 1..4). */
+export interface KidScaffoldHint {
+  stage: number;
+  hint: string;
+}
+
+/** One cited fact under a plan card (DeepTutor's auditability). */
+export interface PlannerRef {
+  type: 'kc_mastery' | 'learner_events' | 'error_dist' | 'student_config' | 'reward_ladder';
+  id?: number;
+  fact: string;
+}
+
+/** One proposed chore of the planner (the copilot card shape + rationale). */
+export interface PlannerChore {
+  title: string;
+  description: string;
+  category: 'required' | 'core' | 'bonus';
+  icon: string;
+  points_value: number;
+  missed_penalty: number;
+  estimated_minutes: number;
+  days: string[];
+  date: string;
+  due_by: string;
+  available_at: string;
+  confidence: number;
+  rationale: string;
+}
+
+/** A proposed review-load bump for one weak KC. */
+export interface PlannerReviewBoost {
+  kc: string;
+  reason: string;
+}
+
+/** The planner's structured answer. */
+export interface PlannerProposal {
+  new_chores: PlannerChore[];
+  review_boost: PlannerReviewBoost[];
+  notes_to_parent: string;
+}
+
+/** The planner's whole answer: cited refs + the proposal. */
+export interface PlannerDraft {
+  source_refs: PlannerRef[];
+  proposal: PlannerProposal;
+}
+
+/** POST /admin/copilot/plan — the profile-aware planning answer. */
+export interface PlannerPlanResponse {
+  plan: PlannerDraft;
+  mode: 'learner_plan';
+  assigned_to: number;
+}

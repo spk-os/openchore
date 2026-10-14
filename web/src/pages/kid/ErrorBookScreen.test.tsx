@@ -8,9 +8,13 @@ import i18n from '../../i18n';
 import { MemoryRouter } from 'react-router-dom';
 
 // The API client is mocked at the module level: the screen must only talk
-// to api.errorItems.list / api.errorItems.submitReviewResult.
+// to api.errorItems.list / api.errorItems.submitReviewResult plus the L3
+// profile feedback (config_summary) and the scaffold ladder.
 const { api } = vi.hoisted(() => ({
-  api: { errorItems: { list: vi.fn(), submitReviewResult: vi.fn() } },
+  api: {
+    errorItems: { list: vi.fn(), submitReviewResult: vi.fn() },
+    learner: { aiFeedback: vi.fn(), scaffold: vi.fn() },
+  },
 }));
 vi.mock('../../api', () => ({ api }));
 
@@ -44,6 +48,13 @@ const qAll = (root: HTMLElement, sel: string) => [...root.querySelectorAll(sel)]
 beforeAll(async () => { await i18n.changeLanguage('en'); });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+// The profile one-liner fetch defaults to a settled empty answer so each
+// test that doesn't care about it isn't tripped by its promise.
+const stubFeedback = () =>
+  vi.mocked(api.learner.aiFeedback).mockResolvedValue({
+    weak_kcs: [], review_streak: 0, generated_note: '', config_summary: '',
+  });
+
 describe('ErrorBookScreen', () => {
   it('renders the book with filters and mastery badges', async () => {
     vi.mocked(api.errorItems.list).mockResolvedValue([
@@ -51,6 +62,7 @@ describe('ErrorBookScreen', () => {
       item({ id: 2, subject: 'english', mastery_level: 1 }),
       item({ id: 3, subject: 'english', mastery_level: 2 }),
     ]);
+    stubFeedback();
     const { container } = render(<MemoryRouter><ErrorBookScreen topBar={topBar} /></MemoryRouter>);
 
     // KaTeX renders the LaTeX, so wait on the card list instead. The
@@ -72,6 +84,7 @@ describe('ErrorBookScreen', () => {
 
   it('filters by subject on tap', async () => {
     vi.mocked(api.errorItems.list).mockResolvedValue([item({ id: 1 })]);
+    stubFeedback();
     const { container } = render(<MemoryRouter><ErrorBookScreen topBar={topBar} /></MemoryRouter>);
     const chip = await waitFor(() => {
       const el = container.querySelector('[data-test="eb-filter-math"]');
@@ -86,6 +99,7 @@ describe('ErrorBookScreen', () => {
     vi.mocked(api.errorItems.list).mockResolvedValue([item({ id: 1, mastery_level: 0 })]);
     vi.mocked(api.errorItems.submitReviewResult).mockResolvedValue(
       item({ id: 1, mastery_level: 1 }));
+    stubFeedback();
     const { container } = render(<MemoryRouter><ErrorBookScreen topBar={topBar} /></MemoryRouter>);
 
     const done = await waitFor(() => {
@@ -101,6 +115,7 @@ describe('ErrorBookScreen', () => {
 
   it('shows the empty state when the book has nothing', async () => {
     vi.mocked(api.errorItems.list).mockResolvedValue([]);
+    stubFeedback();
     const { container } = render(<MemoryRouter><ErrorBookScreen topBar={topBar} /></MemoryRouter>);
     await waitFor(() => expect(q(container, '[data-test="eb-empty"]')).toBeTruthy());
     expect(screen.getByText(/Mistakes will appear here automatically/)).toBeTruthy();
@@ -108,6 +123,7 @@ describe('ErrorBookScreen', () => {
 
   it('keeps the list on a load failure with a retry note', async () => {
     vi.mocked(api.errorItems.list).mockRejectedValue(new Error('offline'));
+    stubFeedback();
     render(<MemoryRouter><ErrorBookScreen topBar={topBar} /></MemoryRouter>);
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(qAll(document.body, '[data-test="eb-empty"]').length).toBe(0);

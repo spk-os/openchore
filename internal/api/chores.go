@@ -25,6 +25,7 @@ type ChoreHandler struct {
 	reviews    sync.WaitGroup // in-flight background photo reviews
 	analyses   sync.WaitGroup // in-flight background paper analyses (L1)
 	spaced     *ReviewHandler // L4 hook target (T+0 card creation), may be nil
+	LearnerHook               // L3 append-only learner event stream
 }
 
 // bonusDropEnabledSetting gates the surprise bonus on completion
@@ -39,7 +40,7 @@ const (
 )
 
 func NewChoreHandler(s *store.Store, d *webhook.Dispatcher, dn *discord.Notifier, ai *AIServices) *ChoreHandler {
-	return &ChoreHandler{store: s, dispatcher: d, discord: dn, aiSvc: ai}
+	return &ChoreHandler{store: s, dispatcher: d, discord: dn, aiSvc: ai, LearnerHook: newLearnerHook(s)}
 }
 
 // SetSpacedRepetition wires the L4 review handler so error items can
@@ -689,6 +690,18 @@ func (h *ChoreHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		if err := h.store.RecalculateStreak(r.Context(), completedBy, req.CompletionDate); err != nil {
 			log.Printf("error recalculating streak for user %d: %v", completedBy, err)
 		}
+
+		// L3 事件流：免审批直批（照片跳过且不要求审批）的完成同样是
+		// 一次「完成」学习行为 —— 该路径不走 approveCompletion，须在此
+		// 补埋点，否则画像会漏掉最常见的一类完成。Best-effort。
+		choreName := ""
+		if chore != nil {
+			choreName = chore.Title
+		}
+		h.recordLearnerEventSafe(r.Context(), completedBy, model.EventVerbCompleted,
+			model.EventObjectChore, scheduleID,
+			map[string]any{"success": true, "score": pts},
+			map[string]any{"title": choreName, "auto": true})
 	}
 
 	// FCFS: complete sibling schedules with shadow completions
@@ -961,6 +974,17 @@ func (h *ChoreHandler) approveCompletion(ctx context.Context, completion *model.
 	if err := h.store.RecalculateStreak(ctx, completion.CompletedBy, completion.CompletionDate); err != nil {
 		log.Printf("error recalculating streak for user %d: %v", completion.CompletedBy, err)
 	}
+
+	// L3 事件流：审批通过即一次「完成」学习行为（xAPI completed）。Best-effort：
+	// 画像缺了这一行是遗憾，审批主流程不能因它失败。
+	title := ""
+	if chore != nil {
+		title = chore.Title
+	}
+	h.recordLearnerEventSafe(ctx, completion.CompletedBy, model.EventVerbCompleted,
+		model.EventObjectChore, completion.ChoreScheduleID,
+		map[string]any{"success": true, "score": pts},
+		map[string]any{"title": title})
 
 	userName := ""
 	if u, _ := h.store.GetUser(ctx, completion.CompletedBy); u != nil {

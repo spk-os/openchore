@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -152,6 +153,105 @@ func (h *ChoreHandler) copilotContext(r *http.Request, userID int64) (*llm.Copil
 		ExistingChores:  titles,
 		RewardLadder:    ladder,
 	}, nil
+}
+
+// plannerContext builds the L3 planner context (spec §6.3): the
+// copilot's household anchors plus the learner profile — the Ranedeer
+// config rendered as one line, the interest tags, the weak KCs
+// (weakest first, low-confidence flagged) and a recent-activity count.
+// Profile reads are best-effort: a kid with no events yet still gets a
+// planner run (habit-building mode), not an error.
+func (h *ChoreHandler) plannerContext(r *http.Request, userID int64, intent string) (*llm.PlannerContext, error) {
+	base, err := h.copilotContext(r, userID)
+	if err != nil {
+		return nil, err
+	}
+	pc := &llm.PlannerContext{CopilotContext: *base, Intent: strings.TrimSpace(intent)}
+
+	if cfg, err := h.store.GetStudentConfig(r.Context(), userID); err == nil && cfg != nil {
+		pc.ConfigSummary = fmt.Sprintf("深度 %s · 风格 %s · 沟通 %s · 语气 %s · 推理 %s",
+			cfg.Depth, cfg.LearningStyle, cfg.Communication, cfg.Tone, cfg.Reasoning)
+		pc.Interests = decodeStringList(cfg.Interests)
+	}
+
+	mastery, err := h.store.ListKCMastery(r.Context(), userID)
+	if err == nil {
+		weak := make([]llm.PlannerKC, 0, len(mastery))
+		for _, m := range mastery {
+			if m.Mastery >= 0.8 {
+				continue // mastered KCs don't need a plan
+			}
+			weak = append(weak, llm.PlannerKC{
+				Name:          m.Name,
+				Subject:       m.Subject,
+				CorrectCount:  m.CorrectCount,
+				TotalCount:    m.TotalCount,
+				Mastery:       m.Mastery,
+				LowConfidence: m.LowConfidence,
+			})
+		}
+		pc.WeakKCs = weak
+	}
+
+	weekAgo := time.Now().AddDate(0, 0, -7)
+	if completed, err := h.store.CountLearnerEventsSince(r.Context(), userID, weekAgo, model.EventVerbCompleted); err == nil {
+		if answered, err := h.store.CountLearnerEventsSince(r.Context(), userID, weekAgo, model.EventVerbAnswered); err == nil {
+			if reviewed, err := h.store.CountLearnerEventsSince(r.Context(), userID, weekAgo, model.EventVerbReviewed); err == nil {
+				pc.RecentEventSummary = fmt.Sprintf("近 7 天：完成任务 %d 次 · 订正 %d 次 · 复习 %d 次", completed, answered, reviewed)
+			}
+		}
+	}
+	return pc, nil
+}
+
+// decodeStringList parses a JSON string array; anything else is [].
+func decodeStringList(s string) []string {
+	var out []string
+	if err := json.Unmarshal([]byte(s), &out); err != nil {
+		return nil
+	}
+	return out
+}
+
+// DraftLearnerPlanHTTP serves POST /api/admin/copilot/plan — the L3
+// planner (profile-in, cited-plan-out). The response carries the refs
+// and the proposal; adopting goes through the existing
+// /admin/copilot/apply path (the parent's final review — AI 只建议不
+// 决定).
+func (h *ChoreHandler) DraftLearnerPlanHTTP(w http.ResponseWriter, r *http.Request) {
+	var req copilotContextRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.AssignedTo == 0 {
+		writeError(w, http.StatusBadRequest, "assigned_to is required")
+		return
+	}
+	if _, err := h.store.GetUser(r.Context(), req.AssignedTo); err != nil {
+		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	ai := h.aiSvc.AI()
+	if ai == nil {
+		writeError(w, http.StatusServiceUnavailable, "AI is not configured")
+		return
+	}
+	pc, err := h.plannerContext(r, req.AssignedTo, req.Request)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to gather learner context")
+		return
+	}
+	draft, err := ai.DraftLearnerPlan(r.Context(), *pc)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "AI planning failed: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"plan":        draft,
+		"mode":        "learner_plan",
+		"assigned_to": req.AssignedTo,
+	})
 }
 
 // dedupDraft drops drafted tasks whose titles are near-duplicates of an

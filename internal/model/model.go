@@ -988,3 +988,74 @@ type OutcomeAssessment struct {
 	Comments       string    `json:"comments,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`
 }
+
+// --- L3 · Learner profile & AI planning ---
+
+// LearnerEvent is the xAPI Statement skeleton (actor/verb/object/result),
+// append-only: every learning act (chore completion, error review, course
+// practice, spaced review) lands here once and is never updated. The full
+// LRS (Tin Can endpoints, voiding) is deliberately out — a single-household
+// app doesn't need it.
+type LearnerEvent struct {
+	ID          int64     `json:"id"`
+	UserID      int64     `json:"user_id"`
+	Verb        string    `json:"verb"`
+	ObjectType  string    `json:"object_type"`
+	ObjectID    int64     `json:"object_id"`
+	ResultJSON  string    `json:"result_json,omitempty"`
+	ContextJSON string    `json:"context_json,omitempty"`
+	OccurredAt  time.Time `json:"occurred_at"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// The verb set (xAPI verbs, trimmed to what OpenChore actually emits).
+const (
+	EventVerbCompleted = "completed" // a chore/course resource finished
+	EventVerbSubmitted = "submitted" // work handed in (photo, paper)
+	EventVerbReviewed  = "reviewed"  // an FSRS review graded
+	EventVerbAnswered  = "answered"  // an error-item re-test answered
+	EventVerbAttempted = "attempted" // a practice attempt with a score
+)
+
+// The object set (what the verb acted on).
+const (
+	EventObjectChore      = "chore"
+	EventObjectErrorItem  = "error_item"
+	EventObjectResource   = "resource"
+	EventObjectReviewItem = "review_item"
+	EventObjectCourse     = "course"
+)
+
+// KCMastery is the per-(kid, knowledge tag) rollup: Laplace-smoothed
+// correct rate over the recent window, materialized so the profile page
+// and the planner read one row instead of scanning events. LowConfidence
+// marks thin samples (< 5) so the UI greys them out and the planner
+// down-weights them.
+type KCMastery struct {
+	ID           int64      `json:"id"`
+	UserID       int64      `json:"user_id"`
+	TagID        int64      `json:"tag_id"`
+	CorrectCount int        `json:"correct_count"`
+	TotalCount   int        `json:"total_count"`
+	Mastery      float64    `json:"mastery"`
+	LowConfidence bool      `json:"low_confidence"`
+	LastEventAt  *time.Time `json:"last_event_at,omitempty"`
+}
+
+// StudentConfig is the Mr.-Ranedeer configuration cut down to the five
+// enums a parent can actually tune (depth, learning style, communication,
+// tone, reasoning — Ranedeer's own documented values, K12 slice), plus
+// free-form interest/strength/weakness lists that the profile shows and
+// the planner injects.
+type StudentConfig struct {
+	UserID        int64     `json:"user_id"`
+	Depth         string    `json:"depth"`
+	LearningStyle string    `json:"learning_style"`
+	Communication string    `json:"communication"`
+	Tone          string    `json:"tone"`
+	Reasoning     string    `json:"reasoning"`
+	Interests     string    `json:"interests"`
+	Strengths     string    `json:"strengths"`
+	Weaknesses    string    `json:"weaknesses"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}

@@ -44,6 +44,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	// review card the moment it lands (see recordErrorItem).
 	chores.SetSpacedRepetition(reviews)
 	courses := NewCourseHandler(s)
+	learner := NewLearnerHandler(s, reviews)
 	authH := NewAuthHandler(s, auth.Sessions, dispatcher, auth.OIDC)
 	oidcH := auth.OIDC
 
@@ -148,6 +149,13 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			// failure mode, so those buttons don't exist).
 			r.Get("/review/today", reviews.GetReviewToday)
 			r.Post("/review/{id}/grade", reviews.GradeReview)
+
+			// L3 learner profile, kid side: the persistent AI feedback card
+			// (deterministic — free, fast, offline-safe) and the error-book
+			// scaffolding ladder (Khanmigo: hint → specific hint →
+			// decomposition → worked answer, server-side staged).
+			r.Get("/kid/ai-feedback", learner.HandleKidAIFeedback)
+			r.Post("/kid/scaffold", learner.HandleKidScaffold)
 
 			// L2 course system, kid side: the published course list with
 			// progress, the course tree with per-unit state (locked/
@@ -298,6 +306,19 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				// card, then apply through the same paths as a manual create.
 				r.Post("/admin/copilot/draft", chores.DraftWithCopilot)
 				r.Post("/admin/copilot/apply", chores.ApplyCopilotDraft)
+
+				// L3 learner profile, parent side: the Ranedeer-style student
+				// config (depth/learning style/communication/tone/reasoning +
+				// interest lists) and the aggregated profile page payload
+				// (hero stats / KC matrix / event trend) from one fetch.
+				r.Get("/admin/student-config", learner.HandleGetStudentConfig)
+				r.Put("/admin/student-config", learner.HandlePutStudentConfig)
+				r.Get("/admin/learner-profile", learner.HandleGetLearnerProfile)
+
+				// L3 planner: the copilot's profile-aware mode — injects the
+				// learner profile, forces cited source_refs (DeepTutor's
+				// auditability), degrades to notes-only on schema failure.
+				r.Post("/admin/copilot/plan", chores.DraftLearnerPlanHTTP)
 
 				// L1 error items / wrong-question loop: whole-paper async
 				// parse (poll the job), the wrong-question book the kid

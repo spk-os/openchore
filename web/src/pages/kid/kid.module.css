@@ -1411,6 +1411,15 @@
   font-weight: 700;
 }
 
+/* The 「已按你的画像调成…」 line above the ladder (OD eb-ai-card-title's
+ * profile suffix, kept as its own quiet line in the React build). */
+.ebProfileLine {
+  margin: var(--space-1) 0 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-muted);
+}
+
 /* The two actions: confirm the correction / ask for another go. */
 .ebCardActions {
   display: flex;

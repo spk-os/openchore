@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse, StudentConfig, LearnerProfile, KidAIFeedback, KidScaffoldHint, PlannerPlanResponse } from './types';
 
 const API_BASE = '/api';
 
@@ -478,6 +478,23 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ suspended }),
       }),
+    // L3 learner profile: the Ranedeer config (GET materializes defaults)
+    // and the whole profile page payload (hero/KC matrix/trend/config).
+    getStudentConfig: (userId: number) =>
+      fetchWithAuth<StudentConfig>(`/admin/student-config?user_id=${userId}`),
+    updateStudentConfig: (userId: number, data: Partial<StudentConfig>) =>
+      fetchWithAuth<StudentConfig>(`/admin/student-config?user_id=${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    learnerProfile: (userId: number) =>
+      fetchWithAuth<LearnerProfile>(`/admin/learner-profile?user_id=${userId}`),
+    // The profile-aware planner (cited source_refs; adopt via copilotApply).
+    copilotPlan: (req: { assigned_to: number; request?: string }) =>
+      fetchWithAuth<PlannerPlanResponse>('/admin/copilot/plan', {
+        method: 'POST',
+        body: JSON.stringify(req),
+      }),
     // L2 course authoring (Canvas Modules editor): courses are drafted,
     // filled with units (prerequisites + requirement_type + timed unlock)
     // and resources (typed + completion predicate), then published so the
@@ -621,6 +638,18 @@ export const api = {
       fetchWithAuth<ReviewItem>(`/review/${id}/grade`, {
         method: 'POST',
         body: JSON.stringify({ rating }),
+      }),
+  },
+  // L3 kid side: the deterministic feedback card (weak KCs + streak) and
+  // the error-book scaffolding ladder (server-staged, attempt-numbered).
+  learner: {
+    /** The kid's persistent AI study feedback (free, offline-safe). */
+    aiFeedback: () => fetchWithAuth<KidAIFeedback>('/kid/ai-feedback'),
+    /** One rung of the hint ladder (attempt 1..4 walks up, clamped). */
+    scaffold: (errorItemId: number, attempt: number) =>
+      fetchWithAuth<KidScaffoldHint>('/kid/scaffold', {
+        method: 'POST',
+        body: JSON.stringify({ error_item_id: errorItemId, attempt }),
       }),
   },
   // L2 course system, kid side (Canvas Modules/Outcomes semantics): the

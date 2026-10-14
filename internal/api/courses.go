@@ -24,10 +24,11 @@ import (
 // CourseHandler serves the course endpoints.
 type CourseHandler struct {
 	store *store.Store
+	LearnerHook
 }
 
 func NewCourseHandler(s *store.Store) *CourseHandler {
-	return &CourseHandler{store: s}
+	return &CourseHandler{store: s, LearnerHook: newLearnerHook(s)}
 }
 
 // unitView is one unit of the kid's course tree: the unit, its
@@ -224,6 +225,15 @@ func (h *CourseHandler) ReportProgress(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to save progress")
 		return
 	}
+
+	// L3 事件流：一次进度上报即一次「尝试」（xAPI attempted）。完成谓词
+	// 通过才算 success——画像里「课程完成率」的直接数据源。
+	h.LearnerHook.recordLearnerEventSafe(r.Context(), user.ID, model.EventVerbAttempted,
+		model.EventObjectResource, res.ID,
+		map[string]any{"success": attempt.CompletedAt != nil,
+			"completion": attempt.CompletedAt != nil,
+			"score":      attempt.Score},
+		map[string]any{"course_id": course.ID, "unit_id": unit.ID, "resource_type": res.ResourceType})
 
 	// Recompute the owning unit's state for the response (Moodle-style
 	// incremental recompute: only this unit, not the whole course).
