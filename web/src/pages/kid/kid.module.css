@@ -1840,3 +1840,554 @@
   font-weight: 750;
   white-space: nowrap;
 }
+
+/* ── L2 我的课程：课程卡 + 单元路径图（先修解锁） ──
+ * OD kid-course.html's .crs / .path / .unit / .lockb families. */
+
+.kcScreen {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The golden course card (OD's .crs). */
+.kcCourseCard {
+  background: linear-gradient(180deg, var(--celebrate), var(--chip) 62%);
+  border: var(--outline-w) solid var(--star);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--lift);
+}
+
+.kcCourseHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.kcCourseIc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  font-size: 20px;
+  background: var(--chip);
+  border: var(--outline-w) solid var(--star);
+}
+
+.kcCourseBd {
+  flex: 1;
+  min-width: 0;
+}
+
+.kcCourseTitle {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.kcCourseMeta {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.kcCourseProgress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.kcCourseProgress b {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--waiting);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The shared thin progress bar. */
+.pbar {
+  flex: 1;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  border: var(--outline-w) solid var(--line);
+  overflow: hidden;
+}
+
+.pbar > i {
+  display: block;
+  height: 100%;
+  background: var(--star);
+  border-radius: 999px;
+}
+
+.kcCurrentUnit {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--star);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kcCurrentUnit span {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.kcCourseActions {
+  display: flex;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.kcContinueBtn {
+  flex: 1;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: var(--r-btn);
+  border: var(--outline-w) solid var(--star);
+  background: var(--star);
+  color: var(--on-chip);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.kcContinueBtn:hover {
+  background: color-mix(in oklab, var(--star) 80%, var(--surface-raised));
+}
+
+/* The unit path map (OD's .path with the dashed axis and node dots). */
+.kcPathSection {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.kcSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 4px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+}
+
+.kcPathMap {
+  position: relative;
+  margin-top: 3px;
+  padding-left: 26px;
+}
+
+.kcPathMap::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 11px);
+}
+
+/* One unit (OD's .unit three states). */
+.kcUnitCurrent,
+.kcUnitDone,
+.kcUnitLocked {
+  position: relative;
+  background: var(--chip);
+  border: var(--outline-w) solid var(--line);
+  border-radius: 15px;
+  padding: 13px 14px;
+  margin-top: 12px;
+  box-shadow: var(--lift);
+}
+
+.kcUnitCurrent::before,
+.kcUnitDone::before,
+.kcUnitLocked::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 16px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--line);
+  border: 2px solid var(--surface);
+}
+
+.kcUnitDone::before {
+  background: var(--done);
+}
+
+.kcUnitCur {
+  border-color: var(--star);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--star) 20%, transparent), var(--lift);
+}
+
+.kcUnitCur::before {
+  background: var(--star);
+}
+
+.kcUnitLocked {
+  background: var(--surface-sunk);
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.kcUnitHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kcUnitTitle {
+  font-size: 14.5px;
+  font-weight: 800;
+}
+
+.kcUnitMeta {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+.kcBadge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+}
+
+.kcBadgeCur {
+  background: var(--star);
+  border-color: var(--star);
+  color: var(--ink);
+}
+
+.kcBadgeOk {
+  background: var(--cat-daily-soft);
+  border-color: color-mix(in oklab, var(--done) 25%, var(--chip));
+  color: var(--cat-daily-icon);
+}
+
+/* The resource rows inside an open unit (OD's .resrow). */
+.kcResources {
+  margin-top: 11px;
+  border-top: 1px dashed var(--line);
+  padding-top: 4px;
+}
+
+.kcResource {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.kcResource:last-child {
+  border-bottom: 0;
+}
+
+.kcResourceIc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  font-size: 13px;
+  background: var(--surface-sunk);
+  border: var(--outline-w) solid var(--line);
+}
+
+.kcResourceBd {
+  flex: 1;
+  min-width: 0;
+}
+
+.kcResourceTt {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.kcResourceSub {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.kcResourceSt {
+  flex: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.kcResourceStOk {
+  background: var(--cat-daily-soft);
+  border-color: color-mix(in oklab, var(--done) 25%, var(--chip));
+  color: var(--cat-daily-icon);
+}
+
+/* The min_score inline score input + submit. */
+.kcScoreBox {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.kcScoreInput {
+  width: 58px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: right;
+}
+
+.kcScoreBtn {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: var(--r-btn);
+  border: var(--outline-w) solid var(--star);
+  background: var(--star);
+  color: var(--on-chip);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+/* The lock explanation bubble (OD's .lockb with the notch). */
+.kcLockBubble {
+  position: relative;
+  margin-top: 11px;
+  background: var(--surface-sunk);
+  border: var(--outline-w) solid var(--line);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--ink-muted);
+}
+
+.kcLockBubble b {
+  display: block;
+  color: var(--ink);
+}
+
+.kcLockBubble::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: -6px;
+  width: 11px;
+  height: 11px;
+  background: var(--surface-sunk);
+  border-left: var(--outline-w) solid var(--line);
+  border-top: var(--outline-w) solid var(--line);
+  transform: rotate(45deg);
+}
+
+.kcUnitEmpty {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* The mastery (outcomes) lines under the path. */
+.kcOutcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kcOutcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 13px;
+  background: var(--chip);
+  border: var(--outline-w) solid var(--line);
+  border-radius: 13px;
+  font-size: 13px;
+}
+
+.kcOutcomeTitle {
+  font-weight: 700;
+}
+
+.kcOutcomeScore {
+  flex: none;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--waiting);
+  white-space: nowrap;
+}
+
+.kcFoot {
+  margin: 4px 2px 0;
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.kcNote {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--waiting);
+}
+
+/* Tablet: the course screen stays single-column and centered. */
+@media (min-width: 900px) {
+  .kcScreen { max-width: 520px; padding-top: var(--space-2); }
+}
+
+/* ── The course entry card on Today (L2): the course's front door.
+ * OD kid-today.html's course-progress-card. ── */
+
+.courseEntry {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px;
+  border: var(--outline-w) solid var(--star);
+  border-radius: var(--oc-radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+
+.courseEntryIc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: var(--outline-w) solid var(--star);
+  background: var(--celebrate);
+  font-size: 19px;
+}
+
+.courseEntryBd {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.courseEntryTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.courseEntryTitle > span[data-test='course-progress-pct'] {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--waiting);
+  background: var(--celebrate);
+  border: var(--outline-w) solid var(--star);
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+.courseEntryRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.courseEntryRow .pbar {
+  height: 8px;
+}
+
+.courseEntryCount {
+  flex: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--waiting);
+  white-space: nowrap;
+}
+
+.courseEntryTip {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.courseEntryBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  margin-top: 5px;
+  border-radius: var(--r-btn);
+  border: var(--outline-w) solid var(--star);
+  background: var(--star);
+  color: var(--on-chip);
+  font-size: 13.5px;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.courseEntryBtn:hover {
+  background: color-mix(in oklab, var(--star) 80%, var(--surface-raised));
+}
+

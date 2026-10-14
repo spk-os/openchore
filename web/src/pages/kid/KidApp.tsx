@@ -20,6 +20,7 @@ import { WeekScreen } from './WeekScreen';
 import { RewardsScreen } from './RewardsScreen';
 import { ErrorBookScreen } from './ErrorBookScreen';
 import { ReviewScreen } from './ReviewScreen';
+import { CourseScreen } from './CourseScreen';
 import { PhotoSheet } from './PhotoSheet';
 import { MeSheet } from './MeSheet';
 import { CelebrationLayer } from './CelebrationLayer';
@@ -194,6 +195,7 @@ export const KidApp: React.FC = () => {
           <Route path="week" element={<WeekScreen {...shared} />} />
           <Route path="errorbook" element={<ErrorBookScreen topBar={topBar} />} />
           <Route path="review" element={<ReviewScreen topBar={topBar} />} />
+          <Route path="course/:id" element={<CourseScreen topBar={topBar} />} />
           <Route path="rewards" element={<RewardsScreen user={user} data={data} topBar={topBar} onRedeemed={playComplete} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

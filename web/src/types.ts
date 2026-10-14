@@ -982,3 +982,136 @@ export interface ReviewStats {
   due_now: number;
   per_kid: KidReviewStats[] | null;
 }
+
+// --- L2 course system (Canvas Modules / Outcomes) ---
+
+/** A course's lifecycle (edX semantics: drafts are invisible to the kid). */
+export type CourseStatus = 'draft' | 'published' | 'archived';
+
+/** One unit's computed state from the unlock engine. */
+export type UnitState = 'locked' | 'unlocked' | 'started' | 'completed';
+
+/** The course shell with the kid-side progress joined in (never stored). */
+export interface Course {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string;
+  syllabus_md: string;
+  status: CourseStatus;
+  is_template: boolean;
+  created_at: string;
+  updated_at: string;
+  // Progress fields carry 0 as a real value the progress bar renders.
+  progress_percent: number;
+  units_total: number;
+  units_completed: number;
+}
+
+/** The Canvas Module: position, prerequisites, requirement type, timed unlock. */
+export interface CourseUnit {
+  id: number;
+  course_id: number;
+  title: string;
+  position: number;
+  requirement_type: 'all' | 'one' | '';
+  require_sequential_progress: boolean;
+  unlock_at?: string | null;
+  published: boolean;
+}
+
+/** The Canvas ModuleItem: a typed resource plus its completion predicate. */
+export interface UnitResource {
+  id: number;
+  unit_id: number;
+  title: string;
+  position: number;
+  resource_type: 'page' | 'file' | 'audio' | 'video' | 'practice' | 'link' | 'task';
+  content_ref: string;
+  completion_type?: 'must_view' | 'must_submit' | 'min_score' | 'min_minutes' | '';
+  min_score?: number | null;
+  min_minutes?: number | null;
+}
+
+/** The kid's completion fact row for one (resource, kid). */
+export interface ResourceAttempt {
+  id: number;
+  resource_id: number;
+  user_id: number;
+  viewed_seconds: number;
+  submitted_ref?: string;
+  score?: number | null;
+  completed_at?: string | null;
+  created_at: string;
+}
+
+/** One resource as the kid sees it: the resource plus its done flag. */
+export type ResourceView = UnitResource & { done: boolean };
+
+/** One unit of the kid's course tree: the unit plus its computed state. */
+export type UnitView = CourseUnit & {
+  prerequisite_unit_ids: number[];
+  state: UnitState;
+  lock_explanation?: string;
+  resources: ResourceView[];
+  completed_resources: number;
+  total_resources: number;
+};
+
+/** The Canvas Outcome: the mastery line rolled up per calculation_method. */
+export interface CourseOutcome {
+  id: number;
+  course_id: number;
+  title: string;
+  mastery_points: number;
+  calculation_method: 'latest' | 'highest' | 'average' | 'decaying_average';
+  calc_int?: number | null;
+  ratings_json: string;
+}
+
+/** One mastery line with the kid's rollup applied. */
+export type OutcomeView = CourseOutcome & {
+  /** The rolled-up score; absent when no assessments fed the rollup yet. */
+  score?: number | null;
+  mastered: boolean;
+  assessments: number;
+};
+
+/** One score event (Canvas RubricAssessment): who graded, the score. */
+export interface OutcomeAssessment {
+  id: number;
+  outcome_id: number;
+  user_id: number;
+  score: number;
+  assessment_type: 'ai' | 'parent' | 'self';
+  artifact_type?: string;
+  artifact_id?: number | null;
+  comments?: string;
+  created_at: string;
+}
+
+/** The kid-side course tree (GET /courses and GET /courses/{id}). */
+export type CourseTree = Course & {
+  units: UnitView[];
+  outcomes?: OutcomeView[];
+};
+
+/** The admin editor's full tree (GET /admin/courses/{id}). */
+export interface AdminCourseTree {
+  course: Course;
+  units: (CourseUnit & { prerequisite_unit_ids: number[]; resources: UnitResource[] })[];
+  outcomes: CourseOutcome[];
+}
+
+/** The kid's progress report body (POST /resources/{id}/progress). */
+export interface ProgressReport {
+  viewed_seconds?: number;
+  score?: number;
+  submitted_ref?: string;
+}
+
+/** What the progress report returns: the attempt plus the fresh unit state. */
+export interface ProgressResponse {
+  attempt: ResourceAttempt;
+  unit: UnitView;
+}

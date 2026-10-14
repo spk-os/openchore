@@ -43,6 +43,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	// L4 T+0 hook: every wrong question parsed out of a paper gets its
 	// review card the moment it lands (see recordErrorItem).
 	chores.SetSpacedRepetition(reviews)
+	courses := NewCourseHandler(s)
 	authH := NewAuthHandler(s, auth.Sessions, dispatcher, auth.OIDC)
 	oidcH := auth.OIDC
 
@@ -147,6 +148,16 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			// failure mode, so those buttons don't exist).
 			r.Get("/review/today", reviews.GetReviewToday)
 			r.Post("/review/{id}/grade", reviews.GradeReview)
+
+			// L2 course system, kid side: the published course list with
+			// progress, the course tree with per-unit state (locked/
+			// unlocked/started/completed + lock_explanation), progress
+			// reporting (the unlock engine's write path), and the
+			// mastery (outcomes) view.
+			r.Get("/courses", courses.ListCoursesForKid)
+			r.Get("/courses/{id}", courses.GetCourseForKid)
+			r.Post("/resources/{id}/progress", courses.ReportProgress)
+			r.Get("/courses/{id}/outcomes", courses.ListCourseOutcomes)
 
 			// Any user can view and redeem rewards
 			r.Get("/rewards", rewards.List)
@@ -304,6 +315,30 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Get("/admin/fsrs-params", reviews.GetParams)
 				r.Put("/admin/fsrs-params", reviews.UpdateParams)
 				r.Post("/admin/review/{id}/suspend", reviews.SuspendReview)
+
+				// L2 course system, parent side: CRUD over the course
+				// tree, publish/archive, clone (§5.5 reuse path), View As
+				// Learner preview, and the outcome (mastery) lines.
+				r.Get("/admin/courses", courses.ListCoursesAdmin)
+				r.Post("/admin/courses", courses.CreateCourseAdmin)
+				r.Get("/admin/courses/preview", courses.PreviewCourseAdmin)
+				r.Post("/admin/courses/preview", courses.PreviewCourseAdmin)
+				r.Get("/admin/courses/{id}", courses.GetCourseAdmin)
+				r.Put("/admin/courses/{id}", courses.UpdateCourseAdmin)
+				r.Delete("/admin/courses/{id}", courses.DeleteCourseAdmin)
+				r.Post("/admin/courses/{id}/units", courses.CreateUnitAdmin)
+				r.Post("/admin/courses/{id}/publish", courses.PublishCourseAdmin)
+				r.Post("/admin/courses/{id}/archive", courses.ArchiveCourseAdmin)
+				r.Post("/admin/courses/{id}/clone", courses.CloneCourseAdmin)
+				r.Get("/admin/courses/{id}/outcomes", courses.ListOutcomesAdmin)
+				r.Post("/admin/courses/{id}/outcomes", courses.CreateOutcomeAdmin)
+				r.Put("/admin/units/{id}", courses.UpdateUnitAdmin)
+				r.Delete("/admin/units/{id}", courses.DeleteUnitAdmin)
+				r.Post("/admin/units/{id}/resources", courses.CreateResourceAdmin)
+				r.Put("/admin/resources/{id}", courses.UpdateResourceAdmin)
+				r.Delete("/admin/resources/{id}", courses.DeleteResourceAdmin)
+				r.Delete("/admin/outcomes/{id}", courses.DeleteOutcomeAdmin)
+				r.Post("/admin/outcomes/{id}/assessments", courses.CreateAssessmentAdmin)
 
 				// Integration discovery: chores with triggers
 				r.Get("/chores/triggerable", triggers.ListTriggerable)

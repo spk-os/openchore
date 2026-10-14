@@ -17,15 +17,17 @@ import { ActivityTab } from '../components/admin/ActivityTab';
 import { SettingsTab } from '../components/admin/SettingsTab';
 import { KidsStatusTab } from '../components/admin/KidsStatusTab';
 import { TemplatesTab } from '../components/admin/TemplatesTab';
+import { CoursesTab } from '../components/admin/CoursesTab';
 import { LanguageSelector } from '../components/LanguageSelector/LanguageSelector';
 
-type Tab = 'kids-status' | 'approvals' | 'chores' | 'templates' | 'rewards' | 'points' | 'activity' | 'users' | 'settings';
+type Tab = 'kids-status' | 'approvals' | 'chores' | 'templates' | 'courses' | 'rewards' | 'points' | 'activity' | 'users' | 'settings';
 
 const TABS: { id: Tab; label: string; icon?: IconName }[] = [
   { id: 'kids-status', label: 'admin.dashboard.tabKids', icon: 'home' },
   { id: 'approvals', label: 'admin.dashboard.tabApprovals', icon: 'check' },
   { id: 'chores', label: 'admin.dashboard.tabChores', icon: 'broom' },
   { id: 'templates', label: 'admin.dashboard.tabTemplates', icon: 'cal' },
+  { id: 'courses', label: 'admin.dashboard.tabCourses', icon: 'book' },
   { id: 'rewards', label: 'admin.dashboard.tabRewards', icon: 'gift' },
   { id: 'points', label: 'admin.dashboard.tabPoints', icon: 'star' },
   { id: 'activity', label: 'admin.dashboard.tabLog', icon: 'clock' },
@@ -108,6 +110,7 @@ export const AdminDashboard: React.FC = () => {
         {tab === 'kids-status' && <KidsStatusTab onPendingChange={setPendingCount} />}
         {tab === 'chores' && <ChoresTab />}
         {tab === 'templates' && <TemplatesTab />}
+        {tab === 'courses' && <CoursesTab />}
         {tab === 'approvals' && <ApprovalsTab onCountChange={setPendingCount} />}
         {tab === 'users' && <UsersTab />}
         {tab === 'rewards' && <RewardsTab />}

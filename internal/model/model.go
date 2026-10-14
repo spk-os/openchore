@@ -828,3 +828,163 @@ type FSRSParams struct {
 	WeightsJSON        string    `json:"weights,omitempty"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }
+
+// --- Course system (L2): Canvas Modules mapped onto SQLite ---
+
+// Course statuses (edX draft→published: edits to a published course never
+// mutate what the kid is looking at until the parent re-publishes).
+const (
+	CourseStatusDraft     = "draft"
+	CourseStatusPublished = "published"
+	CourseStatusArchived  = "archived"
+)
+
+// Unit requirement types (Canvas Module requirement_type): does finishing
+// the unit need ALL resources complete or ANY one of them.
+const (
+	UnitRequirementAll = "all"
+	UnitRequirementOne = "one"
+)
+
+// Resource types (Canvas ModuleItem type matrix, cut to the household
+// set). 'task' is the chore bridge: the resource generates a real chore
+// through the existing pipeline (§5.3 — courses generate tasks, never
+// replace them).
+const (
+	ResourceTypePage     = "page"
+	ResourceTypeFile     = "file"
+	ResourceTypeAudio    = "audio"
+	ResourceTypeVideo    = "video"
+	ResourceTypePractice = "practice"
+	ResourceTypeLink     = "link"
+	ResourceTypeTask     = "task"
+)
+
+// Completion predicate types (Canvas completion_requirement, six enums
+// cut to four for a household). NULL/"" = display-only, never gates.
+const (
+	CompletionMustView    = "must_view"    // viewed_seconds > 0
+	CompletionMustSubmit  = "must_submit"  // submitted_ref non-empty
+	CompletionMinScore    = "min_score"    // score >= min_score
+	CompletionMinMinutes  = "min_minutes"  // viewed_seconds >= min_minutes*60
+)
+
+// Outcome calculation methods (Canvas Outcomes, six enums cut to four;
+// n_mastery/weighted_average stay out of a household product).
+const (
+	OutcomeCalcLatest          = "latest"
+	OutcomeCalcHighest         = "highest"
+	OutcomeCalcAverage         = "average"
+	OutcomeCalcDecayingAverage = "decaying_average"
+)
+
+// Assessment types (Canvas RubricAssessment, three values).
+const (
+	AssessmentTypeAI     = "ai"
+	AssessmentTypeParent = "parent"
+	AssessmentTypeSelf   = "self"
+)
+
+// Unit states as the kid's course tree reports them (locked/unlocked/
+// started/completed — Canvas content_details, plus the lock_explanation
+// the locked bubble shows).
+const (
+	UnitStateLocked    = "locked"
+	UnitStateUnlocked  = "unlocked"
+	UnitStateStarted   = "started"
+	UnitStateCompleted = "completed"
+)
+
+// Course is the course shell. IsTemplate marks a reusable master; §5.5
+// ruled against a separate course-template table (Canvas/edX both clone:
+// edX Course Reruns, Canvas blueprint) so cloning a whole tree is the
+// one reuse path.
+type Course struct {
+	ID          int64     `json:"id"`
+	UserID      int64     `json:"user_id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	SyllabusMD  string    `json:"syllabus_md"`
+	Status      string    `json:"status"`
+	IsTemplate  bool      `json:"is_template"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+
+	// Course progress (kid side): percent complete and per-unit counts,
+	// joined in by the store, never stored. Zero progress is a real
+	// value the progress bar renders, so no omitempty here.
+	ProgressPercent int `json:"progress_percent"`
+	UnitsTotal      int `json:"units_total"`
+	UnitsCompleted  int `json:"units_completed"`
+}
+
+// CourseUnit is the Canvas Module: position 1-based, prerequisites as a
+// JSON int array (prerequisite_module_ids verbatim), and the optional
+// unlock_at gate (NULL = immediately eligible once prerequisites clear).
+type CourseUnit struct {
+	ID                       int64      `json:"id"`
+	CourseID                 int64      `json:"course_id"`
+	Title                    string     `json:"title"`
+	Position                 int        `json:"position"`
+	PrerequisiteUnitIDsJSON  string     `json:"prerequisite_unit_ids_json"`
+	RequirementType          string     `json:"requirement_type"`
+	RequireSequentialProgress bool      `json:"require_sequential_progress"`
+	UnlockAt                 *time.Time `json:"unlock_at,omitempty"`
+	Published                bool       `json:"published"`
+}
+
+// UnitResource is the Canvas ModuleItem: a typed resource plus its
+// completion predicate. Task-type resources bridge into the chore
+// pipeline; the predicate decides when the resource counts as done.
+type UnitResource struct {
+	ID             int64  `json:"id"`
+	UnitID         int64  `json:"unit_id"`
+	Title          string `json:"title"`
+	Position       int    `json:"position"`
+	ResourceType   string `json:"resource_type"`
+	ContentRef     string `json:"content_ref"`
+	CompletionType string `json:"completion_type,omitempty"`
+	MinScore       *int   `json:"min_score,omitempty"`
+	MinMinutes     *int   `json:"min_minutes,omitempty"`
+}
+
+// ResourceAttempt is the completion fact row for one (resource, kid):
+// overwritten on retry (UNIQUE constraint), it is the only thing the
+// unlock engine reads to decide "is this resource done".
+type ResourceAttempt struct {
+	ID            int64      `json:"id"`
+	ResourceID    int64      `json:"resource_id"`
+	UserID        int64      `json:"user_id"`
+	ViewedSeconds int64      `json:"viewed_seconds"`
+	SubmittedRef  string     `json:"submitted_ref,omitempty"`
+	Score         *int       `json:"score,omitempty"`
+	CompletedAt   *time.Time `json:"completed_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+// CourseOutcome is the Canvas Outcome: the mastery line per competency
+// ("能自主读完一本章节书"), rolled up from assessments per
+// calculation_method against mastery_points (the 100-scale pass line).
+type CourseOutcome struct {
+	ID                int64  `json:"id"`
+	CourseID          int64  `json:"course_id"`
+	Title             string `json:"title"`
+	MasteryPoints     int    `json:"mastery_points"`
+	CalculationMethod string `json:"calculation_method"`
+	CalcInt           *int   `json:"calc_int,omitempty"`
+	RatingsJSON       string `json:"ratings_json"`
+}
+
+// OutcomeAssessment is one score event (Canvas RubricAssessment): who
+// graded (ai/parent/self), the score, and the optional artifact pointer.
+type OutcomeAssessment struct {
+	ID             int64     `json:"id"`
+	OutcomeID      int64     `json:"outcome_id"`
+	UserID         int64     `json:"user_id"`
+	Score          int       `json:"score"`
+	AssessmentType string    `json:"assessment_type"`
+	ArtifactType   string    `json:"artifact_type,omitempty"`
+	ArtifactID     *int64    `json:"artifact_id,omitempty"`
+	Comments       string    `json:"comments,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+}

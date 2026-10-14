@@ -1,0 +1,346 @@
+/* The parent's course authoring tab (L2): OD parent-courses.html's
+ * cc (course card) / ed (editor) / rt (resource table) families. */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ph {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.phActions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+/* The course grid: one card per course (OD's .cw / .cc). */
+.courseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.courseCard {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 14px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 15px;
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+
+.courseCardDraft {
+  border-style: dashed;
+  border-color: var(--star);
+  background: color-mix(in oklab, var(--celebrate) 32%, var(--surface-raised));
+}
+
+.courseCardArchived {
+  background: var(--surface-sunk);
+  opacity: 0.85;
+}
+
+.courseHead {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.courseIc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+  font-size: 19px;
+}
+
+.courseBd {
+  flex: 1;
+  min-width: 0;
+}
+
+.courseTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.courseMeta {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+
+.pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.pillGreen {
+  background: var(--cat-daily-soft);
+  color: var(--cat-daily-icon);
+  border-color: color-mix(in oklab, var(--done) 22%, var(--line));
+}
+
+.pillYellow {
+  background: var(--celebrate);
+  color: var(--waiting);
+  border-color: var(--star);
+}
+
+.pbar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  border: var(--outline-w) solid var(--line);
+  overflow: hidden;
+}
+
+.pbar > i {
+  display: block;
+  height: 100%;
+  background: var(--star);
+  border-radius: 999px;
+}
+
+.courseFoot {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 11px;
+  border-top: 1px dashed var(--line);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* The editor (OD's .ed): unit tree left, detail right. */
+.editor {
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr);
+  border: var(--outline-w) solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface-raised);
+  margin-top: 12px;
+}
+
+@media (max-width: 1000px) {
+  .editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .unitTree {
+    border-right: 0;
+    border-bottom: var(--outline-w) solid var(--line);
+  }
+}
+
+.unitTree {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-right: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+}
+
+.unitNode {
+  text-align: left;
+  padding: 9px 11px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 11px;
+  background: var(--surface-raised);
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.unitNodeCur {
+  border-color: var(--star);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--star) 30%, transparent);
+}
+
+.unitSub {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.arrowDown {
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.unitDetail {
+  padding: 15px;
+}
+
+.setLine {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: 13px;
+  margin-bottom: 13px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.setItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.setItem > b {
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+/* The resource table (OD's .rt). */
+.resTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.resTable th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  font-weight: 800;
+  padding: 7px 8px;
+  border-bottom: var(--outline-w) solid var(--line);
+  white-space: nowrap;
+}
+
+.resTable td {
+  padding: 10px 8px;
+  border-bottom: 1px dashed var(--line);
+  vertical-align: middle;
+}
+
+.resTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.resTitle {
+  font-weight: 700;
+}
+
+.predCtl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pred {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+  border-radius: 8px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.resActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.resFoot {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* The outcomes block inside the unit detail. */
+.outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+}
+
+.outcomeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.outcomeRow > small {
+  color: var(--ink-muted);
+}
+
+/* View As Learner preview. */
+.previewUnits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.previewUnit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 11px;
+  background: var(--surface-sunk);
+  font-size: 13px;
+}
+
+.previewUnitLocked {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.previewUnit > small {
+  margin-left: auto;
+  color: var(--ink-muted);
+}

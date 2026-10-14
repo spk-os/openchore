@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, ReviewItem, ReviewToday, FSRSParams, ReviewStats } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse } from './types';
 
 const API_BASE = '/api';
 
@@ -478,6 +478,73 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ suspended }),
       }),
+    // L2 course authoring (Canvas Modules editor): courses are drafted,
+    // filled with units (prerequisites + requirement_type + timed unlock)
+    // and resources (typed + completion predicate), then published so the
+    // kid sees them. Cloning rewrites prerequisites; View As Learner
+    // renders the tree through the kid's own progress.
+    listCourses: (userId?: number) =>
+      fetchWithAuth<CourseTree[]>(`/admin/courses${userId != null ? '?user_id=' + userId : ''}`),
+    createCourse: (data: { title: string; description?: string; syllabus_md?: string; user_id: number }) =>
+      fetchWithAuth<Course>('/admin/courses', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    getCourse: (id: number) => fetchWithAuth<AdminCourseTree>(`/admin/courses/${id}`),
+    updateCourse: (id: number, data: { title: string; description?: string; syllabus_md?: string }) =>
+      fetchWithAuth<Course>(`/admin/courses/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    deleteCourse: (id: number) => fetchWithAuth(`/admin/courses/${id}`, { method: 'DELETE' }),
+    publishCourse: (id: number) => fetchWithAuth<Course>(`/admin/courses/${id}/publish`, { method: 'POST' }),
+    archiveCourse: (id: number) => fetchWithAuth<Course>(`/admin/courses/${id}/archive`, { method: 'POST' }),
+    cloneCourse: (id: number, userId: number, title?: string) =>
+      fetchWithAuth<Course>(`/admin/courses/${id}/clone`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId, title }),
+      }),
+    /** View As Learner: the tree through the kid's own progress. */
+    previewCourse: (courseId: number) =>
+      fetchWithAuth<CourseTree>('/admin/courses/preview', {
+        method: 'POST',
+        body: JSON.stringify({ course_id: courseId }),
+      }),
+    createUnit: (courseId: number, data: Partial<CourseUnit> & { title: string; prerequisite_unit_ids?: number[] }) =>
+      fetchWithAuth<CourseUnit>(`/admin/courses/${courseId}/units`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateUnit: (unitId: number, data: Partial<CourseUnit> & { title: string; prerequisite_unit_ids?: number[] }) =>
+      fetchWithAuth<CourseUnit>(`/admin/units/${unitId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    deleteUnit: (unitId: number) => fetchWithAuth(`/admin/units/${unitId}`, { method: 'DELETE' }),
+    createResource: (unitId: number, data: Partial<UnitResource> & { title: string; resource_type: string }) =>
+      fetchWithAuth<UnitResource>(`/admin/units/${unitId}/resources`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateResource: (resourceId: number, data: Partial<UnitResource>) =>
+      fetchWithAuth<UnitResource>(`/admin/resources/${resourceId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    deleteResource: (resourceId: number) => fetchWithAuth(`/admin/resources/${resourceId}`, { method: 'DELETE' }),
+    listOutcomes: (courseId: number) => fetchWithAuth<CourseOutcome[]>(`/admin/courses/${courseId}/outcomes`),
+    createOutcome: (courseId: number, data: Partial<CourseOutcome> & { title: string; mastery_points: number; calculation_method: string }) =>
+      fetchWithAuth<CourseOutcome>(`/admin/courses/${courseId}/outcomes`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    deleteOutcome: (outcomeId: number) => fetchWithAuth(`/admin/outcomes/${outcomeId}`, { method: 'DELETE' }),
+    /** The parent's manual score entry (assessment_type 'parent'). */
+    createAssessment: (outcomeId: number, userId: number, score: number, comments?: string) =>
+      fetchWithAuth<OutcomeAssessment>(`/admin/outcomes/${outcomeId}/assessments`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId, score, comments }),
+      }),
     regenerateAllTTS: () =>
       fetchWithAuth<{ status: string }>('/admin/tts/regenerate', { method: 'POST' }),
     getAISummary: (userId: number, period: string, date: string) =>
@@ -555,6 +622,24 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ rating }),
       }),
+  },
+  // L2 course system, kid side (Canvas Modules/Outcomes semantics): the
+  // published course list with progress, the per-course tree with each
+  // unit's unlock state, the progress report that drives the unlock
+  // engine, and the mastery (outcomes) rollup view.
+  courses: {
+    /** Published courses for this kid; drafts are invisible (edX). */
+    list: () => fetchWithAuth<CourseTree[]>('/courses'),
+    /** The kid's course tree: units with state/lock_explanation. */
+    get: (id: number) => fetchWithAuth<CourseTree>(`/courses/${id}`),
+    /** Report progress on one resource; the unit state comes back fresh. */
+    reportProgress: (resourceId: number, report: ProgressReport) =>
+      fetchWithAuth<ProgressResponse>(`/resources/${resourceId}/progress`, {
+        method: 'POST',
+        body: JSON.stringify(report),
+      }),
+    /** The mastery lines with this kid's rolled-up scores. */
+    outcomes: (courseId: number) => fetchWithAuth<OutcomeView[]>(`/courses/${courseId}/outcomes`),
   },
   tokens: {
     list: () => fetchWithAuth<APIToken[]>('/admin/tokens'),

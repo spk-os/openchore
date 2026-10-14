@@ -7,6 +7,7 @@ import { GoalNudge } from './GoalCard';
 import { FamilyGoalCard } from './FamilyGoalCard';
 import { PetCard } from './PetCard';
 import { ReviewEntryCard } from './ReviewEntryCard';
+import { CourseEntryCard } from './CourseEntryCard';
 import { CAT_ORDER, ChoreGroups, Notice, PausedNotice } from './parts';
 import type { KidData } from './useKidData';
 import s from './kid.module.css';
@@ -110,6 +111,9 @@ export function TodayScreen({ user, data, now, topBar, viewOf, tts, onToggle, on
         {/* The review entry (L4): due cards count and the door into the
             session. Hides itself when nothing is due today. */}
         {!user.paused && <ReviewEntryCard />}
+        {/* The course entry (L2): the in-flight course's progress and the
+            door into the course screen. Hides itself with no course. */}
+        {!user.paused && <CourseEntryCard />}
         {/* The kid's buddy (P4-13), when the household has it on: mood from
             the chore record, feeding from the balance, growth over weeks. */}
         {!user.paused && data.petState && (
