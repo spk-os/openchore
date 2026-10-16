@@ -617,7 +617,9 @@
         "dailyCoachLabel": "Tägliche Trainernotiz",
         "dailyCoachHelp": "Jede Nacht eine wachstumsorientierte Notiz für das Kind (mit Vorlese-Audio) und eine Beobachtung für die Eltern.",
         "coachTimeLabel": "Notiz-Uhrzeit",
-        "coachTimeHelp": "Standard 21:00 (vor dem Zubettgehen). Notizen werden zu dieser Zeit für jedes Kind mit Aufgaben an dem Tag erstellt."
+        "coachTimeHelp": "Standard 21:00 (vor dem Zubettgehen). Notizen werden zu dieser Zeit für jedes Kind mit Aufgaben an dem Tag erstellt.",
+        "autoPaperAnalysisLabel": "Fotobeiträge automatisch analysieren",
+        "autoPaperAnalysisHelp": "Fotografierte Abgaben parsen sich selbst: Ausschneiden, Beurteilen und Maßnahmen destillieren ohne Elternklick; aus bleibt nur der manuelle Weg"
       },
       "baseUrl": {
         "description": "Die öffentliche URL dieses Servers (z. B. ",

@@ -25,6 +25,7 @@ type fakePaperAI struct {
 	segment   string // JSON for segment prompts
 	judge     string // JSON for judge prompts
 	judgeFail bool   // when set, judging errors (degrade path test)
+	measures  string // JSON for the 034 distill prompt
 }
 
 // newFakePaperAI layers the paper answers over the standard fake.
@@ -33,6 +34,8 @@ func newFakePaperAI(t *testing.T) *fakePaperAI {
 	f := &fakePaperAI{fakeAI: newFakeAI(t)}
 	f.segment = `{"questions":[{"number":"1","text":"计算 $3+5$","handwritten":false,"bbox":[0.1,0.1,0.8,0.2]},{"number":"2","text":"解方程 $x+2=5$","handwritten":true,"bbox":[0.1,0.3,0.8,0.2]}]}`
 	f.judge = `{"question_text":"计算 $3+5$","attempted":true,"is_wrong":true,"wrong_answer_text":"$7$","answer_text":"$8$","analysis":"直接相加。","mistake_analysis":"加法算错。","error_type":"calculation","knowledge_points":["整数加法"],"difficulty":"easy","confidence":0.92}`
+	// The 034 distill (DraftMeasures): one concrete measure.
+	f.measures = `{"measures":[{"subject":"math","kc":"整数加法","title":"口算练习：每天 10 题，连续 5 天","detail":"每天晚饭后做 10 道整数加法口算，做完自己先检查一遍再交给家长。","error_types":["calculation"],"priority":1}]}`
 	return f
 }
 
@@ -75,6 +78,7 @@ func setupPaperTest(t *testing.T) (*testEnv, *fakePaperAI) {
 			f.chatCalls++
 			isSegment := strings.Contains(string(body), "Segment the page")
 			isJudge := strings.Contains(string(body), "diagnosing ONE question")
+			isMeasures := strings.Contains(string(body), "You distill a kid's paper-analysis report")
 			content := f.text
 			switch {
 			case isSegment:
@@ -85,6 +89,8 @@ func setupPaperTest(t *testing.T) (*testEnv, *fakePaperAI) {
 				} else {
 					content = f.judge
 				}
+			case isMeasures:
+				content = f.measures
 			case strings.Contains(string(body), `"image_url"`):
 				b, _ := json.Marshal(f.review)
 				content = string(b)
@@ -344,4 +350,58 @@ func TestErrorItemAccessControl(t *testing.T) {
 		map[string]any{"is_correct": true}, childHeaders(otherKid), http.StatusForbidden)
 	// Unauthenticated access is rejected.
 	env.request(t, "GET", "/api/error-items", nil, nil)
+}
+
+// TestAutoPaperAnalysisOnSubmission walks the opt-in auto-parse: with
+// ai_auto_paper_analysis on, the kid's photo completion spawns the
+// analysis (and its measure distill) by itself — no POST /admin/analyses.
+func TestAutoPaperAnalysisOnSubmission(t *testing.T) {
+	env, _ := setupPaperTest(t)
+	env.createAdmin(t)
+	env.setSetting(t, "ai_auto_paper_analysis", "true")
+	kidID, _ := completePhotoChore(t, env)
+
+	// The completion itself is the trigger, so the auto job must exist by
+	// the time the queued work drains. waitForAnalysisDone polls by id,
+	// but we only know the completion — find via the kid's analyses list.
+	env.chores.WaitForAnalyses()
+	var analyses []analysisResp
+	resp := env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/users/%d/analyses", kidID), nil, adminHeaders(), http.StatusOK)
+	decodeBody(t, resp, &analyses)
+	if len(analyses) != 1 {
+		t.Fatalf("expected 1 auto analysis, got %d", len(analyses))
+	}
+	if analyses[0].Status != model.AnalysisDone {
+		t.Errorf("expected done, got %s", analyses[0].Status)
+	}
+	if analyses[0].TotalQuestions != 2 {
+		t.Errorf("expected 2 parsed questions, got %d", analyses[0].TotalQuestions)
+	}
+
+	// The learn-from-it half: measures distilled automatically.
+	resp = env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/measures?user_id=%d", kidID), nil, adminHeaders(), http.StatusOK)
+	var measures []map[string]any
+	decodeBody(t, resp, &measures)
+	if len(measures) == 0 {
+		t.Fatal("expected auto-distilled measures after the auto analysis")
+	}
+	if measures[0]["origin"] != model.MeasureOriginAnalysis {
+		t.Errorf("expected origin=analysis, got %v", measures[0]["origin"])
+	}
+}
+
+// TestAutoPaperAnalysisOffByDefault pins the gate: without the setting,
+// completing a photo chore must NOT create any analysis — the parent's
+// manual button stays the only parse path.
+func TestAutoPaperAnalysisOffByDefault(t *testing.T) {
+	env, _ := setupPaperTest(t)
+	kidID, _ := completePhotoChore(t, env)
+
+	env.chores.WaitForAnalyses()
+	resp := env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/users/%d/analyses", kidID), nil, adminHeaders(), http.StatusOK)
+	var analyses []analysisResp
+	decodeBody(t, resp, &analyses)
+	if len(analyses) != 0 {
+		t.Fatalf("expected no auto analysis with the setting off, got %d", len(analyses))
+	}
 }

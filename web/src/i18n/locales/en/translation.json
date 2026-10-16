@@ -617,7 +617,9 @@
         "dailyCoachLabel": "Daily coach note",
         "dailyCoachHelp": "Each night, write a growth-minded note for the kid (with read-aloud audio) and an observation for the parent.",
         "coachTimeLabel": "Note time",
-        "coachTimeHelp": "Default 21:00 (before bed). Notes are generated at this time for every kid with chores that day."
+        "coachTimeHelp": "Default 21:00 (before bed). Notes are generated at this time for every kid with chores that day.",
+        "autoPaperAnalysisLabel": "Auto-analyze student photo submissions",
+        "autoPaperAnalysisHelp": "Photographed submissions parse themselves: cut, judge and distill measures with no parent tap; off keeps the manual button the only path"
       },
       "baseUrl": {
         "description": "The public URL of this server (e.g. ",

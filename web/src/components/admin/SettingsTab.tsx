@@ -111,6 +111,8 @@ export const SettingsTab: React.FC = () => {
   const [aiThreshold, setAiThreshold] = useState('0.85');
   const [aiWeeklySummary, setAiWeeklySummary] = useState(false);
   const [aiDailyCoach, setAiDailyCoach] = useState(false);
+  // 学生拍照上交自动分析（L1）：开启后孩子带图完成任务即自动切题判读并蒸馏措施。
+  const [aiAutoPaperAnalysis, setAiAutoPaperAnalysis] = useState(false);
   const [coachTime, setCoachTime] = useState('21:00');
   const [ttsVoice, setTtsVoice] = useState('');
   const [savedTtsVoice, setSavedTtsVoice] = useState('');
@@ -159,8 +161,8 @@ export const SettingsTab: React.FC = () => {
       .then(data => setDiscordUrl(data.value || ''))
       .catch(() => {});
     const setting = (key: string) => api.admin.getSetting(key).then(d => d.value || '').catch(() => '');
-    Promise.all(['ai_photo_review', 'ai_auto_approve', 'ai_auto_approve_threshold', 'ai_weekly_summary', 'ai_daily_coach', 'coach_time', 'tts_voice'].map(setting))
-      .then(([photoReview, autoApprove, threshold, weeklySummary, dailyCoach, coachTimeVal, voice]) => {
+    Promise.all(['ai_photo_review', 'ai_auto_approve', 'ai_auto_approve_threshold', 'ai_weekly_summary', 'ai_daily_coach', 'coach_time', 'tts_voice', 'ai_auto_paper_analysis'].map(setting))
+      .then(([photoReview, autoApprove, threshold, weeklySummary, dailyCoach, coachTimeVal, voice, autoAnalysis]) => {
         setAiPhotoReview(photoReview === 'true');
         setAiAutoApprove(autoApprove === 'true');
         setAiThreshold(threshold || '0.85');
@@ -169,6 +171,7 @@ export const SettingsTab: React.FC = () => {
         setCoachTime(coachTimeVal || '21:00');
         setTtsVoice(voice);
         setSavedTtsVoice(voice);
+        setAiAutoPaperAnalysis(autoAnalysis === 'true');
       });
     api.admin.getSetting('pet_enabled')
       .then(d => setPetEnabled(d.value === 'true'))
@@ -242,6 +245,7 @@ export const SettingsTab: React.FC = () => {
         api.admin.setSetting('ai_auto_approve_threshold', aiThreshold),
         api.admin.setSetting('ai_weekly_summary', aiWeeklySummary ? 'true' : 'false'),
         api.admin.setSetting('ai_daily_coach', aiDailyCoach ? 'true' : 'false'),
+        api.admin.setSetting('ai_auto_paper_analysis', aiAutoPaperAnalysis ? 'true' : 'false'),
         api.admin.setSetting('coach_time', coachTime.trim()),
         api.admin.setSetting('tts_voice', ttsVoice.trim()),
       ]);
@@ -474,6 +478,22 @@ export const SettingsTab: React.FC = () => {
                       <span className={ui.checkLabel}>{t('admin.settingsTab.ai.dailyCoachLabel')}</span>
                     </label>
                     <span className={ui.help}>{t('admin.settingsTab.ai.dailyCoachHelp')}</span>
+                  </div>
+
+                  {/* L1 auto-parse: the kid's photo hand-in becomes the
+                      analyzed paper without a parent tap (and the report
+                      distills into learning measures on its own). */}
+                  <div className={ui.field}>
+                    <label className={ui.check}>
+                      <input
+                        type="checkbox"
+                        checked={aiAutoPaperAnalysis}
+                        onChange={e => setAiAutoPaperAnalysis(e.target.checked)}
+                        data-test="flag-auto-analysis"
+                      />
+                      <span className={ui.checkLabel}>{t('admin.settingsTab.ai.autoPaperAnalysisLabel')}</span>
+                    </label>
+                    <span className={ui.help}>{t('admin.settingsTab.ai.autoPaperAnalysisHelp')}</span>
                   </div>
 
                   {aiDailyCoach && (

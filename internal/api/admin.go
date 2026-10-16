@@ -17,6 +17,7 @@ var writableSettings = map[string]bool{
 	"ai_auto_approve_threshold": true,
 	"ai_weekly_summary":         true,
 	"ai_daily_coach":            true,
+	"ai_auto_paper_analysis":    true,
 	"coach_time":                true,
 	"tts_voice":                 true,
 	"base_url":                  true,

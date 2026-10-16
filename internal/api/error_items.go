@@ -120,6 +120,70 @@ func (h *ChoreHandler) WaitForAnalyses() {
 	h.analyses.Wait()
 }
 
+// autoPaperAnalysisSetting gates the student-submission auto-parse: with
+// it on (and AI configured), every photo completion the kid hands in is
+// analyzed without the parent clicking anything — the user-facing
+// contract 「学生拍照上交，自动分析出结果并学习与加强规则措施」.
+const autoPaperAnalysisSetting = "ai_auto_paper_analysis"
+
+// queueAutoPaperAnalysis starts the async parse for a completion when the
+// household opted in. Mirrors queueReview's never-block-the-kid shape:
+// the check + create run in a goroutine so a slow settings read can't
+// hold the complete response. Skips silently (no job row) when the
+// feature is off, AI is absent or this completion already has an
+// analysis — the parent's manual button stays the only path then.
+func (h *ChoreHandler) queueAutoPaperAnalysis(completion *model.ChoreCompletion) {
+	if h.aiSvc.AI() == nil || completion == nil || completion.CompletedBy == 0 {
+		return
+	}
+	h.analyses.Add(1)
+	go func() {
+		defer h.analyses.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer cancel()
+		on, _ := h.store.GetSetting(ctx, autoPaperAnalysisSetting)
+		if on != "true" {
+			return
+		}
+		// One analysis per completion: a re-check after an uncheck must not
+		// re-run the (expensive) parse on the same photos.
+		prior, err := h.store.ListPaperAnalysesForCompletion(ctx, completion.ID)
+		if err != nil || len(prior) > 0 {
+			return
+		}
+		// created_by: the system user of the auto path is the kid who
+		// handed the paper in (the manual path records the parent).
+		analysis := &model.PaperAnalysis{
+			CompletionID: completion.ID,
+			UserID:       completion.CompletedBy,
+			CreatedBy:    completion.CompletedBy,
+			Subject:      "math",
+			Status:       model.AnalysisPending,
+			Stage:        model.StageQueued,
+		}
+		if err := h.store.CreatePaperAnalysis(ctx, analysis); err != nil {
+			log.Printf("auto-analysis: creating job for completion %d: %v", completion.ID, err)
+			return
+		}
+		log.Printf("auto-analysis: queued completion %d as analysis %d (ai_auto_paper_analysis=on)", completion.ID, analysis.ID)
+		h.runPaperAnalysis(ctx, analysis.ID)
+		// Learn from what was parsed: distill the fresh report into active
+		// measures right away (the 「学习与加强规则措施」 half of the loop).
+		// Best-effort — a distill failure never fails the analysis.
+		done, err := h.store.GetPaperAnalysis(ctx, analysis.ID)
+		if err != nil || done == nil || done.Status != model.AnalysisDone {
+			return
+		}
+		ai := h.aiSvc.AI()
+		if ai == nil {
+			return
+		}
+		if _, err := h.distillMeasuresForAnalysis(ctx, ai, done, completion.CompletedBy); err != nil {
+			log.Printf("auto-analysis: distilling measures for analysis %d: %v", analysis.ID, err)
+		}
+	}()
+}
+
 // analysisQuestion is the per-question summary the diagnosis report
 // renders: one row per cut question with the AI's verdict.
 type analysisQuestion struct {

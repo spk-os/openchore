@@ -671,6 +671,9 @@ func (h *ChoreHandler) Complete(w http.ResponseWriter, r *http.Request) {
 
 	if status == model.StatusPending && completion.PhotoURL != "" {
 		h.queueReview(completion.ID)
+		// The auto-analysis path (ai_auto_paper_analysis): the kid's photo
+		// hand-in becomes the analyzed paper without a parent tap.
+		h.queueAutoPaperAnalysis(completion)
 	}
 
 	if status == model.StatusApproved {

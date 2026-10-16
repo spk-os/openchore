@@ -1382,7 +1382,9 @@
         "dailyCoachLabel": "每日教练点评",
         "dailyCoachHelp": "每晚生成一条给孩子的成长型点评（附朗读音频）和一条给家长的当日观察。",
         "coachTimeLabel": "点评生成时刻",
-        "coachTimeHelp": "默认 21:00（孩子睡前）。到点后自动为当天有任务的孩子生成点评。"
+        "coachTimeHelp": "默认 21:00（孩子睡前）。到点后自动为当天有任务的孩子生成点评。",
+        "autoPaperAnalysisLabel": "学生拍照上交自动分析",
+        "autoPaperAnalysisHelp": "孩子带图完成任务后自动切题判读，报告完成时自动提炼学习措施；关闭则只在「错题分析」手动发起"
       },
       "baseUrl": {
         "description": "本服务器的公网地址（例如 ",
