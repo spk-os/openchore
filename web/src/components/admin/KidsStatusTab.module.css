@@ -544,3 +544,64 @@
   font-size: 13px;
   color: var(--ink-muted);
 }
+
+/* ---------- analysis quick-report (L1, OD analysis-quick-card) ---------- */
+
+/* The parent's first screen carries the freshest paper analysis: what was
+   parsed, how many were wrong, and where they concentrated — one tap from
+   the diagnosis itself. */
+.quickCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--r-row);
+  border: 1px solid color-mix(in oklab, var(--waiting) 35%, var(--line));
+  background: color-mix(in srgb, var(--waiting) 7%, var(--surface-raised));
+}
+
+.quickBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quickTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.quickText {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.quickSub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+.quickLink {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}

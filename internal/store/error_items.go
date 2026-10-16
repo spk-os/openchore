@@ -143,6 +143,28 @@ func (s *Store) ListPaperAnalysesForCompletion(ctx context.Context, completionID
 	return out, rows.Err()
 }
 
+// LatestDonePaperAnalysesForUser lists the kid's newest finished analyses
+// (newest first) — the parent's dashboard quick-report reads the freshest
+// one instead of every intermediate run.
+func (s *Store) LatestDonePaperAnalysesForUser(ctx context.Context, userID int64, limit int) ([]model.PaperAnalysis, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+analysisColumns+` FROM paper_analyses WHERE user_id = ? AND status = ? ORDER BY id DESC LIMIT ?`,
+		userID, model.AnalysisDone, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.PaperAnalysis
+	for rows.Next() {
+		a, err := scanAnalysis(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *a)
+	}
+	return out, rows.Err()
+}
+
 // UpdatePaperAnalysisProgress writes the runner's stage/progress snapshot.
 func (s *Store) UpdatePaperAnalysisProgress(ctx context.Context, id int64, stage string, progress, totalQuestions, wrongCount int) error {
 	_, err := s.db.ExecContext(ctx,

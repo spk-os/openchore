@@ -62,6 +62,10 @@ const ReportView: React.FC<{
   const { t } = useTranslation();
   const summary = analysis.summary;
   const [taskFor, setTaskFor] = useState<Record<number, 'busy' | 'done'>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkDone, setBulkDone] = useState(false);
+  const [distillBusy, setDistillBusy] = useState(false);
+  const [distilled, setDistilled] = useState<number | null>(null);
 
   const makeTask = async (q: AnalysisQuestion) => {
     if (!q.error_item_id || taskFor[q.error_item_id]) return;
@@ -74,6 +78,47 @@ const ReportView: React.FC<{
       setTaskFor(prev => { const n = { ...prev }; delete n[q.error_item_id!]; return n; });
       onToast(t('admin.analysis.taskCreateFailed'));
     }
+  };
+
+  // The wrong questions this report can turn into tasks, in order.
+  const wrongs = (summary?.questions ?? []).filter(q => q.is_wrong && q.error_item_id);
+
+  // OD pa-gen-tasks: every wrong question becomes a correction task in one
+  // tap, instead of six taps on six rows.
+  const makeAllTasks = async () => {
+    if (bulkBusy || bulkDone) return;
+    setBulkBusy(true);
+    let ok = 0;
+    for (const q of wrongs) {
+      if (taskFor[q.error_item_id!] === 'done') continue;
+      try {
+        await api.admin.createCorrectionTask(q.error_item_id!);
+        setTaskFor(prev => ({ ...prev, [q.error_item_id!]: 'done' }));
+        ok++;
+      } catch { /* the single-row button still shows for retries */ }
+    }
+    setBulkBusy(false);
+    if (ok > 0) {
+      setBulkDone(true);
+      onToast(t('admin.analysis.genTasksDone', { count: ok }));
+    } else if (wrongs.length > 0) {
+      onToast(t('admin.analysis.genTasksFailed'));
+    }
+  };
+
+  // The 034 engine: distill this report into at most a few learning
+  // measures (origin=analysis) the parent then manages in the Measures tab.
+  const distill = async () => {
+    if (distillBusy) return;
+    setDistillBusy(true);
+    try {
+      const res = await api.admin.distillMeasures(analysis.id);
+      setDistilled(res.count);
+      onToast(t('admin.analysis.distilled', { count: res.count }));
+    } catch {
+      onToast(t('admin.analysis.distillFailed'));
+    }
+    setDistillBusy(false);
   };
 
   if (!summary) return null;
@@ -175,6 +220,46 @@ const ReportView: React.FC<{
           </ul>
         </>
       )}
+
+      {/* The report footer (OD pa-actions / pa-auto-queue / pa-loop-card):
+          bulk task creation, the FSRS auto-queue note, one-tap measure
+          distillation, and the L1 loop in one line. */}
+      <div className={s.reportActions} data-test="pa-actions">
+        {wrongs.length > 0 && (
+          <button
+            type="button"
+            className={bulkDone ? ui.btnGhost : ui.btnPrimary}
+            data-test="pa-gen-tasks"
+            onClick={makeAllTasks}
+            disabled={bulkBusy || bulkDone}
+          >
+            {bulkBusy
+              ? t('admin.analysis.starting')
+              : bulkDone
+                ? <><Icon name="check" /> {t('admin.analysis.genTasksDone', { count: wrongs.length })}</>
+                : t('admin.analysis.genTasksAll', { count: wrongs.length })}
+          </button>
+        )}
+        <p className={s.autoQueueNote} data-test="pa-auto-queue">{t('admin.analysis.autoQueueNote')}</p>
+        <button
+          type="button"
+          className={distilled != null ? ui.btnGhost : ui.btnGhost}
+          data-test="pa-distill"
+          onClick={distill}
+          disabled={distillBusy || distilled != null}
+        >
+          {distilled != null
+            ? <><Icon name="check" /> {t('admin.analysis.distilled', { count: distilled })}</>
+            : distillBusy
+              ? t('admin.analysis.distilling')
+              : t('admin.analysis.distillBtn')}
+        </button>
+      </div>
+
+      <div className={s.loopCard} data-test="pa-loop-card">
+        <h4>{t('admin.analysis.loopTitle')}</h4>
+        <p>{t('admin.analysis.loopSteps')}</p>
+      </div>
     </div>
   );
 };

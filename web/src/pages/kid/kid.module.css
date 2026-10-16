@@ -1850,6 +1850,71 @@
   white-space: nowrap;
 }
 
+/* The error-book entry card on Today (L1): the book's front door.
+ * OD kid-today.html's .ebk family, dressed like .reviewEntry. */
+.errorbookEntry {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+  text-decoration: none;
+  color: inherit;
+}
+
+.errorbookEntryIc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+  font-size: 19px;
+}
+
+.errorbookEntryBd {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.errorbookEntryTitle {
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.errorbookEntryTitle > [data-test='errorbook-count'] {
+  margin-left: 6px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-muted);
+}
+
+.errorbookEntryMeta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.errorbookEntryBtn {
+  flex: none;
+  padding: 9px 14px;
+  border-radius: var(--r-btn);
+  background: var(--ink);
+  color: var(--on-accent);
+  font-size: 13.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
 /* ── L2 我的课程：课程卡 + 单元路径图（先修解锁） ──
  * OD kid-course.html's .crs / .path / .unit / .lockb families. */
 

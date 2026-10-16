@@ -438,6 +438,41 @@ func (h *ChoreHandler) GetPaperAnalysis(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusNotFound, "analysis not found")
 		return
 	}
+	writeJSON(w, http.StatusOK, paperAnalysisJSON(analysis))
+}
+
+// ListKidAnalyses lists the kid's finished paper analyses (newest first),
+// for the parent's dashboard quick-report. Limit defaults to 5.
+func (h *ChoreHandler) ListKidAnalyses(w http.ResponseWriter, r *http.Request) {
+	userID, err := urlParamInt64(r, "userID")
+	if err != nil || userID <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	limit := 5
+	if v := r.URL.Query().Get("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 50 {
+			writeError(w, http.StatusBadRequest, "limit must be 1-50")
+			return
+		}
+		limit = n
+	}
+	list, err := h.store.LatestDonePaperAnalysesForUser(r.Context(), userID, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list analyses")
+		return
+	}
+	out := make([]map[string]any, 0, len(list))
+	for i := range list {
+		out = append(out, paperAnalysisJSON(&list[i]))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// paperAnalysisJSON is the wire shape of one analysis row: job fields
+// always, the parsed diagnosis report when it finished.
+func paperAnalysisJSON(analysis *model.PaperAnalysis) map[string]any {
 	out := map[string]any{
 		"id":              analysis.ID,
 		"completion_id":   analysis.CompletionID,
@@ -461,7 +496,7 @@ func (h *ChoreHandler) GetPaperAnalysis(w http.ResponseWriter, r *http.Request) 
 			out["summary"] = json.RawMessage(analysis.Summary)
 		}
 	}
-	writeJSON(w, http.StatusOK, out)
+	return out
 }
 
 // ListErrorItems is the wrong-question book: filterable by kid (parents)

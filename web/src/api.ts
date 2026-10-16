@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse, StudentConfig, LearnerProfile, KidAIFeedback, KidScaffoldHint, PlannerPlanResponse } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, LearningMeasure, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse, StudentConfig, LearnerProfile, KidAIFeedback, KidScaffoldHint, PlannerPlanResponse } from './types';
 
 const API_BASE = '/api';
 
@@ -448,6 +448,10 @@ export const api = {
         body: JSON.stringify({ completion_id: completionId, subject }),
       }),
     getPaperAnalysis: (id: number) => fetchWithAuth<PaperAnalysis>(`/admin/analyses/${id}`),
+    // The kid's finished analyses (newest first): the dashboard quick-report
+    // reads the freshest one.
+    listKidAnalyses: (userId: number, limit?: number) =>
+      fetchWithAuth<PaperAnalysis[]>(`/admin/users/${userId}/analyses${limit != null ? `?limit=${limit}` : ''}`),
     errorBookReport: (userId: number) =>
       fetchWithAuth<ErrorBookReport>(`/admin/users/${userId}/error-book-report`),
     createCorrectionTask: (errorItemId: number, points?: number, specificDate?: string, dueBy?: string) =>
@@ -459,6 +463,40 @@ export const api = {
       fetchWithAuth<ErrorItem>(`/admin/error-items/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
+      }),
+    deleteErrorItem: (id: number) =>
+      fetchWithAuth<{ deleted: boolean }>(`/admin/error-items/${id}`, { method: 'DELETE' }),
+    // 学习措施引擎 (034)：分析→措施沉淀，家长 CRUD + AI 加强。
+    listMeasures: (userId: number, params?: { status?: string; subject?: string }) => {
+      const q = new URLSearchParams({ user_id: String(userId) });
+      if (params?.status) q.set('status', params.status);
+      if (params?.subject) q.set('subject', params.subject);
+      return fetchWithAuth<LearningMeasure[]>(`/admin/measures?${q}`);
+    },
+    createMeasure: (data: { user_id: number; subject?: string; kc_tag_id?: number; title: string; detail: string; error_types?: string[]; priority?: number }) =>
+      fetchWithAuth<LearningMeasure>('/admin/measures', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateMeasure: (id: number, data: Partial<LearningMeasure>) =>
+      fetchWithAuth<LearningMeasure>(`/admin/measures/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    deleteMeasure: (id: number) =>
+      fetchWithAuth<{ deleted: boolean }>(`/admin/measures/${id}`, { method: 'DELETE' }),
+    setMeasureStatus: (id: number, status: 'active' | 'paused' | 'done') =>
+      fetchWithAuth<LearningMeasure>(`/admin/measures/${id}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status }),
+      }),
+    strengthenMeasure: (id: number) =>
+      fetchWithAuth<LearningMeasure>(`/admin/measures/${id}/strengthen`, {
+        method: 'POST',
+      }),
+    distillMeasures: (analysisId: number) =>
+      fetchWithAuth<{ created: LearningMeasure[]; count: number }>(`/admin/analyses/${analysisId}/measures`, {
+        method: 'POST',
       }),
     runningDaily: (userId: number, templateId: string) =>
       fetchWithAuth<{ running: number }>(`/users/${userId}/running-daily?template_id=${encodeURIComponent(templateId)}`),

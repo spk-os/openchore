@@ -325,6 +325,9 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				// reviews, and the correction chore hook.
 				r.Post("/admin/analyses", chores.StartPaperAnalysis)
 				r.Get("/admin/analyses/{id}", chores.GetPaperAnalysis)
+				// The kid's finished analyses (newest first): the parent's
+				// dashboard quick-report reads the freshest one.
+				r.Get("/admin/users/{userID}/analyses", chores.ListKidAnalyses)
 				r.Get("/admin/users/{userID}/error-book-report", chores.GetErrorBookReport)
 				r.Post("/admin/error-items/{id}/correction-task", chores.CreateCorrectionTask)
 				r.Put("/admin/error-items/{id}", chores.UpdateErrorItem)

@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { api } from '../../api';
-import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote, Pet, PetResponse } from '../../types';
+import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote, Pet, PetResponse, PaperAnalysis } from '../../types';
 import { Avatar, CategoryHeader, CategoryMark, Icon, catFromCategory } from '../../design';
 import { localDateStr } from '../../utils';
 import { ApprovalList } from './ApprovalList';
+import { PaperAnalysisModal } from './PaperAnalysisCard';
 import { IconWell, personColor } from './pickers';
 import { glanceFor, type TodayGlance } from './todayGlance';
 import ui from './ui.module.css';
@@ -21,6 +22,8 @@ interface KidStatus {
   coachNote: DailyCoachNote | null;
   /** The kid's pet when it has hatched (null hides the status line). */
   pet: Pet | null;
+  /** The kid's freshest finished paper analysis (L1 quick-report). */
+  latestAnalysis: PaperAnalysis | null;
   loadError: boolean;
 }
 
@@ -71,6 +74,47 @@ function breakdownFor(chores: ScheduledChore[]): Breakdown {
     pendingOnToday,
   };
 }
+
+/** The freshest paper analysis as one glance card (OD analysis-quick-card):
+ *  what was parsed, how many wrong, where they concentrated. Tapping opens
+ *  the diagnosis report. */
+const QuickAnalysisCard: React.FC<{
+  kid: KidStatus;
+  onOpen: (analysis: PaperAnalysis) => void;
+}> = ({ kid, onOpen }) => {
+  const { t } = useTranslation();
+  const a = kid.latestAnalysis!;
+  const wrong = a.summary?.questions.filter(q => q.is_wrong) ?? [];
+  // The strongest error type by count — the quick card's one-line verdict.
+  const byType = new Map<string, number>();
+  for (const q of wrong) {
+    const key = q.error_type || 'unknown';
+    byType.set(key, (byType.get(key) ?? 0) + 1);
+  }
+  const top = [...byType.entries()].sort((x, y) => y[1] - x[1])[0];
+  const topLabel = top
+    ? t(`admin.analysis.errorType${top[0].charAt(0).toUpperCase()}${top[0].slice(1)}`, { defaultValue: top[0] })
+    : null;
+  return (
+    <section className={styles.quickCard} data-test="analysis-quick-card" aria-label={t('admin.kidsStatusTab.quickTitle')}>
+      <div className={styles.quickBody}>
+        <p className={styles.quickTitle}>📸 {t('admin.kidsStatusTab.quickTitle')} · {kid.user.name}</p>
+        <p className={styles.quickText} data-test="analysis-quick-text">
+          {a.subject} · {a.total_questions} → {a.wrong_count}
+          {topLabel ? ` · ${topLabel}${top![1] > 1 ? ` ×${top![1]}` : ''}` : ''}
+        </p>
+        {a.summary && a.summary.weak_tags.length > 0 && (
+          <p className={styles.quickSub} data-test="analysis-quick-sub">
+            {a.summary.weak_tags.slice(0, 3).map(w => w.name).join(' · ')}
+          </p>
+        )}
+      </div>
+      <button type="button" className={styles.quickLink} data-test="analysis-quick-link" onClick={() => onOpen(a)}>
+        {t('admin.kidsStatusTab.quickLink')}
+      </button>
+    </section>
+  );
+};
 
 export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void }> = ({ onPendingChange }) => {
   const { t, i18n } = useTranslation();
@@ -123,7 +167,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
       const results = await Promise.all(
         children.map(async (kid): Promise<KidStatus> => {
           try {
-            const [chores, streakData, coachNote, petState] = await Promise.all([
+            const [chores, streakData, coachNote, petState, analyses] = await Promise.all([
               api.users.getChores(kid.id, 'daily', today),
               api.streaks.getForUser(kid.id).catch<UserStreakData>(() => ({
                 current_streak: 0,
@@ -135,6 +179,9 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               // Their pet's mood for the status card (P4-13 admin view).
               // 404 (feature off) or load errors just hide the line.
               api.pet.getForAdmin(kid.id).catch<PetResponse | null>(() => null),
+              // The freshest finished paper analysis (L1 quick-report);
+              // no analyses yet just hides the card.
+              api.admin.listKidAnalyses(kid.id, 1).catch<PaperAnalysis[]>(() => []),
             ]);
             const bal = balances.find(b => b.user_id === kid.id)?.balance ?? 0;
             return {
@@ -145,6 +192,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               pendingApprovals: pendingByAssignee.get(kid.id) || 0,
               coachNote: coachNote && (coachNote.parent_text || coachNote.child_text) ? coachNote : null,
               pet: petState && 'name' in petState ? petState : null,
+              latestAnalysis: analyses.length > 0 ? analyses[0] : null,
               loadError: false,
             };
           } catch (e) {
@@ -157,6 +205,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
               pendingApprovals: pendingByAssignee.get(kid.id) || 0,
               coachNote: null,
               pet: null,
+              latestAnalysis: null,
               loadError: true,
             };
           }
@@ -245,6 +294,11 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
       return next;
     });
   };
+
+  // The quick-report's "see the report" opens the diagnosis modal with the
+  // stored analysis — no re-run, just the report as it finished.
+  const [quickAnalysis, setQuickAnalysis] = useState<PaperAnalysis | null>(null);
+  const [quickKidId, setQuickKidId] = useState<number | null>(null);
 
   if (loading) return <p className={ui.emptyInline}>{t('admin.kidsStatusTab.loading')}</p>;
 
@@ -341,6 +395,24 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
           </div>
           <ApprovalList pending={pending} users={allUsers} onChanged={load} />
         </section>
+      )}
+
+      {/* The L1 quick-report: one card per kid with a finished analysis,
+          right under the pending approvals — the parent's first screen. */}
+      {kids.filter(k => k.latestAnalysis).map(kid => (
+        <QuickAnalysisCard
+          key={`quick-${kid.user.id}`}
+          kid={kid}
+          onOpen={a => { setQuickAnalysis(a); setQuickKidId(kid.user.id); }}
+        />
+      ))}
+      {quickAnalysis && quickKidId != null && (
+        <PaperAnalysisModal
+          completionId={quickAnalysis.completion_id}
+          initialAnalysis={quickAnalysis}
+          onClose={() => { setQuickAnalysis(null); setQuickKidId(null); }}
+          onToast={() => { /* toasts live on the modal's own surface */ }}
+        />
       )}
 
       {kids.length === 0 && (

@@ -62,6 +62,16 @@ export function formatDuration(minutes: number, t: TFunction): string {
   return rest ? t('kid.time.hoursMinutes', { h, m: rest }) : t('kid.time.hours', { count: h });
 }
 
+/** The chore's paper-analysis provenance: chores.external_id
+ * "error_item:<id>|<来源>" (the correction task CreateCorrectionTask
+ * writes) renders as 「来自：期中卷分析」 on the task row. Anything else
+ * (or the bare "error_item:<id>" form) has no label. */
+export function sourceFromExternal(externalID?: string): string | undefined {
+  if (!externalID || !externalID.startsWith('error_item:')) return undefined;
+  const bar = externalID.indexOf('|');
+  return bar >= 0 && bar < externalID.length - 1 ? externalID.slice(bar + 1) : undefined;
+}
+
 // The Bonus / Every day gates are shared with the wall display.
 export { isChoreDone as isDone, dayGates as gates } from '../../choreRules';
 
@@ -146,6 +156,7 @@ export function choreView(c: ScheduledChore, ctx: ChoreViewContext): ChoreView {
   }
 
   // --- To do ---
+  const analysisSource = sourceFromExternal(c.external_id);
   if (c.due_by) {
     const due = atTime(c.due_by, now);
     const left = (due.getTime() - now.getTime()) / 60000;
@@ -156,6 +167,7 @@ export function choreView(c: ScheduledChore, ctx: ChoreViewContext): ChoreView {
   let meta = timeWindow(c, now, t, lang);
   if (!meta && photo) meta = t('design.chore.photo');
   if (!meta && c.estimated_minutes) meta = t('kid.chore.about', { time: formatDuration(c.estimated_minutes, t) });
+  if (analysisSource) meta = [meta, t('kid.errorbook.choreSource', { source: analysisSource })].filter(Boolean).join(' · ');
   return { ...base, meta, points: c.points_value };
 }
 

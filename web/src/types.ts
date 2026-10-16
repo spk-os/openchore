@@ -334,6 +334,10 @@ export interface ScheduledChore {
   completed_by_name?: string;
   completed_by_sibling?: boolean;
   tts_audio_url?: string;
+  // The chore's external provenance (L1): "error_item:<id>|<来源>" on
+  // correction tasks spawned by the paper analysis, rendered by the kid's
+  // task row as 「来自：期中卷分析」.
+  external_id?: string;
 }
 
 // Shape of rows returned by GET /api/completions/pending. Exposed as a typed
@@ -903,6 +907,27 @@ export interface ErrorTypeStat {
 export interface ErrorBookReport {
   error_types: ErrorTypeStat[];
   weak_tags: WeakTagStat[];
+}
+
+// --- 学习措施引擎 (034) ---
+
+/** One actionable learning measure the parent confirms / strengthens. */
+export interface LearningMeasure {
+  id: number;
+  user_id: number;
+  subject: string;
+  kc_tag_id?: number;
+  kc_name?: string;
+  title: string;
+  detail: string;
+  error_types: string[];
+  origin: 'analysis' | 'manual' | 'ai_strengthen';
+  origin_id?: number;
+  status: 'active' | 'paused' | 'done';
+  priority: 1 | 2 | 3;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // --- L4 spaced repetition (FSRS) ---
