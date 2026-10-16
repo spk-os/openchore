@@ -64,7 +64,9 @@ func (req *measureRequest) validate() error {
 
 // ListLearningMeasures serves GET /api/admin/measures.
 func (h *ChoreHandler) ListLearningMeasures(w http.ResponseWriter, r *http.Request) {
-	userID, err := urlParamInt64(r, "user_id")
+	// ?user_id= is a query param here (not a route param — the route is
+	// /admin/measures), so it must come off r.URL.Query(), not chi.URLParam.
+	userID, err := strconv.ParseInt(r.URL.Query().Get("user_id"), 10, 64)
 	if err != nil || userID == 0 {
 		writeError(w, http.StatusBadRequest, "user_id is required")
 		return

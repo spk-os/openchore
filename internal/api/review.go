@@ -236,7 +236,8 @@ func (h *ReviewHandler) GetReviewStats(w http.ResponseWriter, r *http.Request) {
 
 	// The heatmap and forecast always answer for the requested kid (or
 	// the household's first child); per_kid carries everyone's summary.
-	userID, err := urlParamInt64(r, "user_id")
+	// ?user_id= is a query param (route is /admin/review/stats).
+	userID, err := strconv.ParseInt(r.URL.Query().Get("user_id"), 10, 64)
 	focusID := userID
 	if err != nil || focusID <= 0 {
 		if kids, kerr := h.store.ListNonPausedChildren(ctx); kerr == nil && len(kids) > 0 {
