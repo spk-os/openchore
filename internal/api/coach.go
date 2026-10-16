@@ -46,7 +46,7 @@ func NewCoachHandler(s *store.Store, ai *AIServices, chores *ChoreHandler) *Coac
 
 // SetAI replaces the AI client directly (tests), keeping read-aloud audio.
 func (h *CoachHandler) SetAI(ai *llm.Client) {
-	h.aiSvc.set(ai, h.aiSvc.Audio())
+	h.aiSvc.set(ai, h.aiSvc.Media(), h.aiSvc.Audio())
 }
 
 // services returns the AI client and TTS client to use. The TTS client

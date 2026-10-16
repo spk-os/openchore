@@ -64,13 +64,16 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 		log.Printf("ai: listing attachments of completion %d: %v", completionID, err)
 		return
 	}
-	var images []model.CompletionAttachment
+	var images, media []model.CompletionAttachment
 	for _, a := range attachments {
-		if a.MimeClass == model.MimeClassImage {
+		switch a.MimeClass {
+		case model.MimeClassImage:
 			images = append(images, a)
+		case model.MimeClassVideo, model.MimeClassAudio:
+			media = append(media, a)
 		}
 	}
-	if len(images) == 0 && c.PhotoURL == "" {
+	if len(images) == 0 && len(media) == 0 && c.PhotoURL == "" {
 		return
 	}
 	// A legacy single-photo completion (no attachments yet): seed the
@@ -112,7 +115,9 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 	// Per-attachment review (Canvas's per-submission-comment model): each
 	// image gets its own verdict, stored on the attachment row, and the
 	// completion-level rollup (worst confidence, joint feedback) drives
-	// auto-approve exactly as the single-photo path did.
+	// auto-approve exactly as the single-photo path did. Video and audio
+	// recordings ride through the media reviewer with the same verdict
+	// shape, so a read-aloud recording is judged like a photo of the page.
 	start := time.Now()
 	var results []model.AttachmentReviewResult
 	for _, att := range images {
@@ -129,11 +134,29 @@ func (h *ChoreHandler) reviewCompletion(ctx context.Context, completionID int64)
 		_ = h.store.SetAttachmentAIReview(ctx, att.ID, *result)
 		results = append(results, model.AttachmentReviewResult{AttachmentID: att.ID, Review: *result})
 	}
+	if mediaClient := h.aiSvc.Media(); mediaClient != nil && len(media) > 0 {
+		for _, att := range media {
+			mediaPath, err := resolveUploadPath(att.FilePath)
+			if err != nil {
+				log.Printf("ai: skipping media review of attachment %d: %v", att.ID, err)
+				continue
+			}
+			result, err := mediaClient.ReviewMedia(ctx, att.MimeClass, title, description, mediaPath)
+			if err != nil {
+				log.Printf("ai: media review of attachment %d (completion %d) failed: %v", att.ID, completionID, err)
+				continue
+			}
+			_ = h.store.SetAttachmentAIReview(ctx, att.ID, *result)
+			results = append(results, model.AttachmentReviewResult{AttachmentID: att.ID, Review: *result})
+		}
+	} else if len(media) > 0 {
+		log.Printf("ai: %d video/audio attachment(s) on completion %d left for parent review (no media model)", len(media), completionID)
+	}
 	if len(results) == 0 {
 		return
 	}
 	result := rollupAttachmentReviews(results)
-	log.Printf("ai: reviewed completion %d (%d image%s) in %s — complete=%v confidence=%.2f",
+	log.Printf("ai: reviewed completion %d (%d attachment%s) in %s — complete=%v confidence=%.2f",
 		completionID, len(results), plural(len(results)), time.Since(start).Round(time.Millisecond), result.Complete, result.Confidence)
 
 	// The photo may have been replaced, or the chore approved or

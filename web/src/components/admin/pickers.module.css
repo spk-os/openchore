@@ -27,6 +27,12 @@
   border: 0;
 }
 
+/* The subject <select> (036): the shared input look, full width. */
+.subjectSelect {
+  composes: input from '../../styles/forms.module.css';
+  width: 100%;
+}
+
 /* A legend ignores the fieldset's gap. */
 .fieldset > legend {
   margin-bottom: 8px;

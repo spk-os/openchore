@@ -5,7 +5,7 @@ import Modal from '../Modal/Modal';
 import { api, APIError } from '../../api';
 import type { Chore, User } from '../../types';
 import { Icon, catFromCategory } from '../../design';
-import { CategoryPicker, IconPicker } from '../admin/pickers';
+import { CategoryPicker, IconPicker, SubjectPicker } from '../admin/pickers';
 import { useAIStatus } from '../../hooks/useAIStatus';
 import styles from './EditChoreModal.module.css';
 
@@ -26,6 +26,8 @@ const EditChoreModal: React.FC<Props> = ({ chore, isOpen, onClose, onSaved, user
   const [title, setTitle] = useState(chore.title);
   const [description, setDescription] = useState(chore.description);
   const [category, setCategory] = useState(chore.category);
+  // The school subject (036): what the media library and error book group by.
+  const [subject, setSubject] = useState(chore.subject || '');
   const [points, setPoints] = useState(chore.points_value);
   const [missedPenalty, setMissedPenalty] = useState(chore.missed_penalty_value || 0);
   const [minutes, setMinutes] = useState(chore.estimated_minutes || 0);
@@ -141,6 +143,7 @@ const EditChoreModal: React.FC<Props> = ({ chore, isOpen, onClose, onSaved, user
         title: title.trim(),
         description: description.trim(),
         category,
+        subject,
         icon,
         points_value: points,
         missed_penalty_value: missedPenalty || 0,
@@ -177,6 +180,8 @@ const EditChoreModal: React.FC<Props> = ({ chore, isOpen, onClose, onSaved, user
           </label>
 
           <CategoryPicker value={category} onChange={setCategory} label={t('admin.editChore.labelCategory')} />
+
+          <SubjectPicker value={subject} onChange={setSubject} label={t('admin.editChore.labelSubject')} />
 
           <div className={styles.formRow}>
             <label className={styles.formGroup}>

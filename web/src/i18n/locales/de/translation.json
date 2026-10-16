@@ -187,6 +187,28 @@
       "statSample": "Aufgaben",
       "statFixed": "Korrigiert / falsch"
     },
+    "mediaTab": {
+      "title": "Mediathek",
+      "subtitle": "{{count}} Dateien — nach Fach, Typ, Datum und Kind filtern",
+      "allSubjects": "Alle Fächer",
+      "noSubject": "Ohne Fach",
+      "filterSubject": "Nach Fach filtern",
+      "filterType": "Nach Typ filtern",
+      "allTypes": "Alle Typen",
+      "cls_image": "Foto",
+      "cls_video": "Video",
+      "cls_audio": "Audio",
+      "cls_pdf": "PDF",
+      "from": "Von",
+      "to": "Bis",
+      "kid": "Kind",
+      "allKids": "Alle Kinder",
+      "clear": "Filter löschen",
+      "loading": "Lädt…",
+      "empty": "Noch keine Fotos, Videos oder Aufnahmen",
+      "itemAria": "{{name}}, {{chore}}, {{when}}",
+      "choreDeleted": "Aufgabe gelöscht"
+    },
     "choresTab": {
       "addChore": "Aufgabe hinzufügen",
       "confirmDelete": "Aufgabe \"{{name}}\" löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
@@ -323,6 +345,7 @@
       "quickAssign": "Schnell zuweisen",
       "reports": "Berichte",
       "tabApprovals": "Freigaben",
+      "tabMedia": "Medien",
       "tabChores": "Aufgaben",
       "tabKids": "Heute",
       "tabLog": "Protokoll",
@@ -376,7 +399,9 @@
       "referencePhotoReplace": "Ersetzen",
       "referencePhotoRemove": "Entfernen",
       "referencePhotoUploading": "Wird hochgeladen…",
-      "referencePhotoUploadError": "Upload fehlgeschlagen, bitte noch einmal versuchen"
+      "referencePhotoUploadError": "Upload fehlgeschlagen, bitte noch einmal versuchen",
+      "labelSubject": "Fach",
+      "subjectNone": "Ohne Fach (keine Fach-Gruppe)"
     },
     "exportConfig": {
       "descriptionAfter": " mit dem aktuellen Stand der Datenbank herunter, um einen neuen Server einzurichten.",
@@ -1748,7 +1773,15 @@
       "submit": "Abschicken ({{count}} Anhänge)",
       "submitAdd": "Nachreichen ({{count}})",
       "submitAria": "{{count}} Anhänge abschicken",
-      "reviewNote": "Die Eltern sehen alle Anhänge; die KI prüft jeden einzeln."
+      "reviewNote": "Die Eltern sehen alle Anhänge; die KI prüft jeden einzeln.",
+      "recAudio": "Audio aufnehmen",
+      "recVideo": "Video aufnehmen",
+      "recInProgress": "Aufnahme läuft",
+      "recStop": "Stopp",
+      "recCancel": "Abbrechen",
+      "recDenied": "Mikrofon/Kamera nicht verfügbar. Berechtigungen prüfen und erneut versuchen.",
+      "recUnsupported": "Dieser Browser kann nicht aufnehmen. Bitte Datei hochladen.",
+      "cls_audio": "Audio"
     },
     "rewards": {
       "cost_one": "{{count}} Pkt.",

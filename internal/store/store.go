@@ -360,9 +360,9 @@ func (s *Store) CreateChore(ctx context.Context, c *model.Chore) error {
 		photoSource = model.PhotoSourceChild
 	}
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO chores (title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, template_id, created_by)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		c.Title, c.Description, c.Category, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.TTSAudioURL, c.TemplateID, c.CreatedBy)
+		`INSERT INTO chores (title, description, category, subject, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, template_id, created_by)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.Title, c.Description, c.Category, c.Subject, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.TTSAudioURL, c.TemplateID, c.CreatedBy)
 	if err != nil {
 		return err
 	}
@@ -372,12 +372,12 @@ func (s *Store) CreateChore(ctx context.Context, c *model.Chore) error {
 
 // choreColumns is the shared SELECT column list for chores — every reader
 // uses it so a new column only has to be added here plus the matching Scan.
-const choreColumns = `id, title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, template_id, created_by, created_at`
+const choreColumns = `id, title, description, category, subject, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, template_id, created_by, created_at`
 
 func scanChore(row interface{ Scan(...any) error }) (*model.Chore, error) {
 	c := &model.Chore{}
 	var reqApp, reqPho int
-	if err := row.Scan(&c.ID, &c.Title, &c.Description, &c.Category, &c.Icon, &c.PointsValue, &c.MissedPenaltyValue, &c.EstimatedMinutes, &reqApp, &reqPho, &c.PhotoSource, &c.ReferencePhotoURL, &c.Source, &c.ExternalID, &c.TTSAudioURL, &c.TemplateID, &c.CreatedBy, &c.CreatedAt); err != nil {
+	if err := row.Scan(&c.ID, &c.Title, &c.Description, &c.Category, &c.Subject, &c.Icon, &c.PointsValue, &c.MissedPenaltyValue, &c.EstimatedMinutes, &reqApp, &reqPho, &c.PhotoSource, &c.ReferencePhotoURL, &c.Source, &c.ExternalID, &c.TTSAudioURL, &c.TemplateID, &c.CreatedBy, &c.CreatedAt); err != nil {
 		return nil, err
 	}
 	c.RequiresApproval = reqApp == 1
@@ -420,9 +420,9 @@ func (s *Store) UpdateChore(ctx context.Context, c *model.Chore) error {
 		photoSource = model.PhotoSourceChild
 	}
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE chores SET title=?, description=?, category=?, icon=?, points_value=?, missed_penalty_value=?, estimated_minutes=?, requires_approval=?, requires_photo=?, photo_source=?, reference_photo_url=?, source=?, external_id=?
+		`UPDATE chores SET title=?, description=?, category=?, subject=?, icon=?, points_value=?, missed_penalty_value=?, estimated_minutes=?, requires_approval=?, requires_photo=?, photo_source=?, reference_photo_url=?, source=?, external_id=?
 		 WHERE id=?`,
-		c.Title, c.Description, c.Category, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.ID)
+		c.Title, c.Description, c.Category, c.Subject, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.ID)
 	return err
 }
 
@@ -492,7 +492,7 @@ func (s *Store) GetScheduledChoresForUser(ctx context.Context, userID int64, dat
 
 	query := `
 		SELECT
-			cs.id, c.id, c.title, c.description, c.category, c.icon, c.points_value, c.missed_penalty_value, c.estimated_minutes, c.requires_approval, c.requires_photo, c.photo_source, c.reference_photo_url,
+			cs.id, c.id, c.title, c.description, c.category, COALESCE(c.subject, ''), c.icon, c.points_value, c.missed_penalty_value, c.estimated_minutes, c.requires_approval, c.requires_photo, c.photo_source, c.reference_photo_url,
 			cs.assignment_type, cs.available_at, cs.due_by, cs.expiry_penalty, cs.expiry_penalty_value,
 			cs.day_of_week, cs.specific_date,
 			cc.id, cc.completed_at, cc.photo_url, cc.status, cc.ai_feedback,
@@ -556,7 +556,7 @@ func (s *Store) GetScheduledChoresForUser(ctx context.Context, userID int64, dat
 			var aiFeedback sql.NullString
 			var siblingName sql.NullString
 			var reqApp, reqPho int
-			if err := rows.Scan(&sc.ScheduleID, &sc.ChoreID, &sc.Title, &sc.Description, &sc.Category, &sc.Icon,
+			if err := rows.Scan(&sc.ScheduleID, &sc.ChoreID, &sc.Title, &sc.Description, &sc.Category, &sc.Subject, &sc.Icon,
 				&sc.PointsValue, &sc.MissedPenaltyValue, &sc.EstimatedMinutes, &reqApp, &reqPho, &sc.PhotoSource, &sc.ReferencePhotoURL, &sc.AssignmentType, &sc.AvailableAt, &sc.DueBy,
 				&sc.ExpiryPenalty, &sc.ExpiryPenaltyValue,
 				&dayOfWeek, &specificDate,

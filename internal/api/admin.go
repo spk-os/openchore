@@ -29,6 +29,11 @@ var writableSettings = map[string]bool{
 	"feature_errorbook": true,
 	"feature_fsrs":      true,
 	"feature_profile":   true,
+	// The video/audio proof reviewer connection (defaults to the main AI
+	// gateway with agnes-video-2.5-flash; see aiconfig.go resolveMedia).
+	"media_model":    true,
+	"media_base_url": true,
+	"media_api_key":  true,
 }
 
 type AdminHandler struct {

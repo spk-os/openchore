@@ -301,6 +301,11 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				// completion (soft delete — reversible).
 				r.Delete("/admin/attachments/{id}", chores.DeleteAttachment)
 
+				// 036 media library: every uploaded photo / video /
+				// recording, browsable by subject, media class, date and
+				// chore.
+				r.Get("/admin/media", chores.HandleListMedia)
+
 				// Parent Copilot (P3-10/11): draft a task plan from a
 				// sentence or a photographed school notice, review card by
 				// card, then apply through the same paths as a manual create.

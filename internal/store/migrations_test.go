@@ -207,3 +207,38 @@ func TestMigration018OrphanedCompletions(t *testing.T) {
 		t.Fatalf("expected completion 4 kept with approved_by cleared, got %v", got)
 	}
 }
+
+// 036 adds chores.subject (free text; the media library groups proof by it).
+// Up then down then up must leave a chore's subject intact through the cycle.
+func TestMigration036ChoreSubject(t *testing.T) {
+	m, db := migrator(t)
+	if err := m.Migrate(35); err != nil {
+		t.Fatalf("migrate to 35: %v", err)
+	}
+	mustExec(t, db, `INSERT INTO users (id, name, role) VALUES (1, 'Alex', 'admin')`)
+	mustExec(t, db, `INSERT INTO chores (id, title, created_by) VALUES (1, '数学口算', 1)`)
+	if err := m.Up(); err != nil {
+		t.Fatalf("up: %v", err)
+	}
+	mustExec(t, db, `UPDATE chores SET subject = 'math' WHERE id = 1`)
+	var subj string
+	if err := db.QueryRow(`SELECT subject FROM chores WHERE id = 1`).Scan(&subj); err != nil || subj != "math" {
+		t.Fatalf("subject after up: %q, %v", subj, err)
+	}
+	// One step down drops just the column; the chore row itself survives.
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("step down: %v", err)
+	}
+	var cnt int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM chores WHERE id = 1`).Scan(&cnt); err != nil || cnt != 1 {
+		t.Fatalf("chore survived down: count=%d %v", cnt, err)
+	}
+	// One step up re-adds it, defaulting to "" (the value is not preserved
+	// through a DROP COLUMN — down is a rollback, not a round-trip).
+	if err := m.Steps(1); err != nil {
+		t.Fatalf("step up: %v", err)
+	}
+	if err := db.QueryRow(`SELECT subject FROM chores WHERE id = 1`).Scan(&subj); err != nil || subj != "" {
+		t.Fatalf("subject after down/up: %q, %v", subj, err)
+	}
+}

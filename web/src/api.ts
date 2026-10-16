@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, LearningMeasure, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse, StudentConfig, LearnerProfile, KidAIFeedback, KidScaffoldHint, PlannerPlanResponse } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, LearningMeasure, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse, StudentConfig, LearnerProfile, KidAIFeedback, KidScaffoldHint, PlannerPlanResponse, MediaLibraryResponse } from './types';
 
 const API_BASE = '/api';
 
@@ -242,6 +242,20 @@ export const api = {
     deleteAttachment: (attachmentId: number) =>
       fetchWithAuth(`/admin/attachments/${attachmentId}`, { method: 'DELETE' }),
     listPending: () => fetchWithAuth<PendingCompletion[]>('/completions/pending'),
+    // 036 media library: every proof file, filterable by subject / class /
+    // date / chore / kid. All params optional.
+    listMedia: (params: { subject?: string; cls?: string; from?: string; to?: string; chore_id?: number; user_id?: number; limit?: number } = {}) => {
+      const q = new URLSearchParams();
+      if (params.subject) q.set('subject', params.subject);
+      if (params.cls) q.set('class', params.cls);
+      if (params.from) q.set('from', params.from);
+      if (params.to) q.set('to', params.to);
+      if (params.chore_id) q.set('chore_id', String(params.chore_id));
+      if (params.user_id) q.set('user_id', String(params.user_id));
+      if (params.limit) q.set('limit', String(params.limit));
+      const qs = q.toString();
+      return fetchWithAuth<MediaLibraryResponse>(`/admin/media${qs ? `?${qs}` : ''}`);
+    },
     approve: (completionId: number) => fetchWithAuth(`/completions/${completionId}/approve`, { method: 'POST' }),
     reject: (completionId: number) => fetchWithAuth(`/completions/${completionId}/reject`, { method: 'POST' }),
     excuse: (scheduleId: number, date: string, reason?: string) =>

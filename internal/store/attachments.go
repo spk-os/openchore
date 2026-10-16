@@ -102,32 +102,34 @@ func (s *Store) SoftDeleteAttachment(ctx context.Context, id int64) error {
 
 // CountCompletionAttachmentsByClass returns how many live attachments of
 // each mime class a completion holds, for the upload caps (9 images / 1
-// video / 1 PDF).
-func (s *Store) CountCompletionAttachmentsByClass(ctx context.Context, completionID int64) (images, videos, pdfs int, err error) {
+// video / 1 audio / 1 PDF).
+func (s *Store) CountCompletionAttachmentsByClass(ctx context.Context, completionID int64) (images, videos, audios, pdfs int, err error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT mime_class, COUNT(*) FROM completion_attachments
 		 WHERE completion_id = ? AND deleted_at IS NULL
 		 GROUP BY mime_class`, completionID)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var class string
 		var n int
 		if err := rows.Scan(&class, &n); err != nil {
-			return 0, 0, 0, err
+			return 0, 0, 0, 0, err
 		}
 		switch class {
 		case model.MimeClassImage:
 			images = n
 		case model.MimeClassVideo:
 			videos = n
+		case model.MimeClassAudio:
+			audios = n
 		case model.MimeClassPdf:
 			pdfs = n
 		}
 	}
-	return images, videos, pdfs, rows.Err()
+	return images, videos, audios, pdfs, rows.Err()
 }
 
 // ReplaceCompletionAttachmentsFromPhoto is the migration shim for legacy

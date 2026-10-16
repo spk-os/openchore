@@ -179,6 +179,11 @@ type Chore struct {
 	Title              string `json:"title"`
 	Description        string `json:"description"`
 	Category           string `json:"category"`
+	// Subject names the school subject this chore belongs to (math/
+	// chinese/english/physics/chemistry — the error_items vocabulary),
+	// empty for household chores that are not school work. The media
+	// library groups uploaded proof by it (036).
+	Subject string `json:"subject"`
 	Icon               string `json:"icon,omitempty"`
 	PointsValue        int    `json:"points_value"`
 	MissedPenaltyValue int    `json:"missed_penalty_value"`
@@ -440,6 +445,7 @@ type ScheduledChore struct {
 	Title              string     `json:"title"`
 	Description        string     `json:"description"`
 	Category           string     `json:"category"`
+	Subject            string     `json:"subject,omitempty"`
 	Icon               string     `json:"icon,omitempty"`
 	PointsValue        int        `json:"points_value"`
 	MissedPenaltyValue int        `json:"missed_penalty_value"`
@@ -556,21 +562,24 @@ const (
 // --- Completion attachments (L0) ---
 
 // MimeClass buckets a proof file for rendering: images render inline and go
-// to the AI reviewer, video and PDF are parent-review only (Canvas
-// mime_class).
+// to the AI reviewer, video, audio and PDF are parent-review only (Canvas
+// mime_class). Audio is the direct-recording channel (a kid reading their
+// poem aloud counts as proof the same way a photo does).
 const (
 	MimeClassImage = "image"
 	MimeClassVideo = "video"
+	MimeClassAudio = "audio"
 	MimeClassPdf   = "pdf"
 )
 
-// MaxImageAttachments / MaxVideoAttachments / MaxPdfAttachments cap one
-// completion's proof set. Nine photos is a full multi-page workbook; a
-// video or a PDF takes the place of the photos (one proof stream, not a
-// pile of everything).
+// MaxImageAttachments / MaxVideoAttachments / MaxAudioAttachments /
+// MaxPdfAttachments cap one completion's proof set. Nine photos is a full
+// multi-page workbook; a video, a recording or a PDF takes the place of the
+// photos (one proof stream, not a pile of everything).
 const (
 	MaxImageAttachments = 9
 	MaxVideoAttachments = 1
+	MaxAudioAttachments = 1
 	MaxPdfAttachments   = 1
 )
 

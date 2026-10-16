@@ -4,13 +4,15 @@ import { api } from '../../api';
 import type { CompletionAttachment, MimeClass, ScheduledChore } from '../../types';
 import { Icon } from '../../design';
 import { Sheet } from './Sheet';
+import { useRecorder } from './useRecorder';
 import s from './kid.module.css';
 // Only this sheet draws a QR code; keep the encoder out of the main bundle.
 const QRCodeSVG = React.lazy(() => import('qrcode.react').then(m => ({ default: m.QRCodeSVG })));
 
-/** Product caps: 9 photos, or 1 video, or 1 PDF — one proof stream. */
+/** Product caps: 9 photos, or 1 video, 1 recording, or 1 PDF — one proof stream. */
 const MAX_IMAGES = 9;
 const MAX_VIDEOS = 1;
+const MAX_AUDIOS = 1;
 const MAX_PDFS = 1;
 /** Grid cells always shown (3×3); the rest of the proof rides in the same list. */
 const GRID_CELLS = 9;
@@ -19,6 +21,7 @@ type Att = { id: number; file: File; mimeClass: MimeClass };
 
 function mimeClassOf(file: File): MimeClass {
   if (file.type.startsWith('video/')) return 'video';
+  if (file.type.startsWith('audio/')) return 'audio';
   if (file.type === 'application/pdf') return 'pdf';
   return 'image';
 }
@@ -106,7 +109,7 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
     (uploadToken ? `&t=${encodeURIComponent(uploadToken)}` : '');
 
   const attachedByClass = useMemo(() => {
-    const counts = { image: 0, video: 0, pdf: 0 } as Record<MimeClass, number>;
+    const counts = { image: 0, video: 0, audio: 0, pdf: 0 } as Record<MimeClass, number>;
     for (const a of attached) counts[a.mime_class]++;
     for (const q of queue) counts[q.mimeClass]++;
     return counts;
@@ -114,11 +117,8 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
 
   /** Room left per class, counting both the queued and the already-attached. */
   const roomFor = useCallback((cls: MimeClass): number => {
-    switch (cls) {
-      case 'image': return MAX_IMAGES - attachedByClass.image;
-      case 'video': return MAX_VIDEOS - attachedByClass.video;
-      case 'pdf': return MAX_PDFS - attachedByClass.pdf;
-    }
+    const max = { image: MAX_IMAGES, video: MAX_VIDEOS, audio: MAX_AUDIOS, pdf: MAX_PDFS }[cls];
+    return max - attachedByClass[cls];
   }, [attachedByClass]);
 
   // The shared picker: several files at once, each filtered by its class
@@ -137,7 +137,7 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
         rejected.push(f.name);
         continue;
       }
-      if (roomFor(cls) <= 0 || next.some(q => q.mimeClass === cls && (cls === 'video' || cls === 'pdf'))) {
+      if (roomFor(cls) <= 0 || next.some(q => q.mimeClass === cls && cls !== 'image')) {
         rejected.push(f.name);
         continue;
       }
@@ -168,6 +168,28 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
 
   const removeQueued = (id: number) => {
     setQueue(q => q.filter(a => a.id !== id));
+  };
+
+  // 036: the direct recorder. 「直接录音」/「直接录像」 hands the finished
+  // take into the same queue a picked file lands in — one submit path.
+  const rec = useRecorder();
+  useEffect(() => {
+    if (rec.error) setUploadError(rec.error);
+  }, [rec.error]);
+  const recording = rec.state === 'recording' || rec.state === 'stopping';
+  const startRecording = (kind: 'audio' | 'video') => {
+    setUploadError(null);
+    rec.start(kind);
+  };
+  const finishRecording = async () => {
+    const file = await rec.stop();
+    if (!file) return;
+    const cls = mimeClassOf(file);
+    if (roomFor(cls) <= 0) {
+      setUploadError(t('kid.photo.tooMany', { names: file.name }));
+      return;
+    }
+    setQueue(q => [...q, makeAtt(tempId.current--, file)]);
   };
 
   /**
@@ -269,6 +291,7 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
               {cls === 'image' && isQueued && <img src={URL.createObjectURL((a as Att).file)} alt="" className={s.attThumb} />}
               {cls === 'image' && !isQueued && <img src={(a as CompletionAttachment).file_path} alt="" className={s.attThumb} />}
               {cls === 'video' && <span className={s.attDocIcon}><Icon name="film" /></span>}
+              {cls === 'audio' && <span className={s.attDocIcon}><Icon name="mic" /></span>}
               {cls === 'pdf' && <span className={s.attDocIcon}><Icon name="book" /></span>}
               <button type="button" className={s.attDel} title={t('kid.photo.removeAtt')} aria-label={t('kid.photo.removeAttAria', { name })} onClick={() => isQueued ? removeQueued((a as Att).id) : undefined} disabled={!isQueued || uploading}>
                 <Icon name="plus" />
@@ -310,6 +333,35 @@ export function PhotoSheet({ chore, userId, baseUrl, onClose, onComplete }: Phot
           {t('kid.photo.takeVideo')}
         </button>
         <input ref={videoRef} type="file" accept="video/*" multiple onChange={handleAlbumPick} hidden />
+        {/* 036: in-page recording — audio or video straight from the
+            device, no file-picker hop. While a take runs, the buttons
+            collapse into a timer with stop / cancel. */}
+        {!recording ? (
+          <>
+            <button type="button" className={s.secondaryAction} data-test="rec-audio-btn" onClick={() => startRecording('audio')} disabled={uploading}>
+              <Icon name="mic" />
+              {t('kid.photo.recAudio')}
+            </button>
+            <button type="button" className={s.secondaryAction} data-test="rec-video-btn" onClick={() => startRecording('video')} disabled={uploading}>
+              <Icon name="camera" />
+              {t('kid.photo.recVideo')}
+            </button>
+          </>
+        ) : (
+          <div className={s.recBar} data-test="rec-bar" role="group" aria-label={t('kid.photo.recInProgress')}>
+            <span className={s.recDot} aria-hidden />
+            <span className={s.recTimer} role="timer">
+              {t('kid.photo.recInProgress')} {String(Math.floor(rec.seconds / 60)).padStart(2, '0')}:{String(rec.seconds % 60).padStart(2, '0')}
+            </span>
+            <button type="button" className={s.recStop} data-test="rec-stop-btn" onClick={finishRecording} disabled={rec.state === 'stopping'}>
+              <Icon name="stop" />
+              {t('kid.photo.recStop')}
+            </button>
+            <button type="button" className={s.recCancel} onClick={rec.cancel} disabled={rec.state === 'stopping'}>
+              {t('kid.photo.recCancel')}
+            </button>
+          </div>
+        )}
         <button type="button" className={s.secondaryAction} onClick={() => docRef.current?.click()} disabled={uploading}>
           <Icon name="book" />
           {t('kid.photo.uploadFile')}

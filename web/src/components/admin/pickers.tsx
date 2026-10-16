@@ -148,6 +148,40 @@ export function CategoryLabel({ category }: { category: string }) {
   );
 }
 
+/* ---------------- SubjectPicker ---------------- */
+
+/** The five school subjects a chore can carry (036); '' = unclassified. */
+export const CHORE_SUBJECTS = ['', 'math', 'chinese', 'english', 'physics', 'chemistry'] as const;
+export type ChoreSubject = (typeof CHORE_SUBJECTS)[number];
+
+/**
+ * The school-subject select for a chore. The subject is what the media
+ * library (and the error book) group by, so it shares the
+ * admin.analysis.subject_* labels; '' keeps a chore out of every subject
+ * bucket.
+ */
+export function SubjectPicker({ value, onChange, label }: { value: string; onChange: (s: ChoreSubject) => void; label: string }) {
+  const { t } = useTranslation();
+  return (
+    <label className={styles.fieldset}>
+      <span className={styles.label}>{label}</span>
+      <select
+        className={styles.subjectSelect}
+        value={value}
+        onChange={(e) => onChange(e.target.value as ChoreSubject)}
+        data-test="chore-subject-select"
+      >
+        {CHORE_SUBJECTS.map((s) => (
+          <option key={s || 'none'} value={s}>
+            {s === '' ? t('admin.editChore.subjectNone') : t(`admin.analysis.subject_${s}`)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+
 /* ---------------- People ---------------- */
 
 /** A toggle chip for a person: avatar in their colour + name. */

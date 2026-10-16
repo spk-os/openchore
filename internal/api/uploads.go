@@ -43,19 +43,8 @@ func (h *ChoreHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mimeType := http.DetectContentType(buf[:n])
-	allowedTypes := map[string]bool{
-		"image/jpeg":      true,
-		"image/png":       true,
-		"image/gif":       true,
-		"image/webp":      true,
-		"video/mp4":       true,
-		"video/webm":      true,
-		"video/quicktime": true,
-		"video/3gpp":      true,
-		"application/pdf": true,
-	}
-	if !allowedTypes[mimeType] {
-		writeError(w, http.StatusBadRequest, "only photos, videos (MP4, WebM, MOV) and PDF files are allowed")
+	if !allowedProofType(mimeType) {
+		writeError(w, http.StatusBadRequest, "only photos, videos (MP4, WebM, MOV), audio recordings and PDF files are allowed")
 		return
 	}
 	// Seek back to the beginning after reading for MIME detection
@@ -71,17 +60,7 @@ func (h *ChoreHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	if ext == "" {
 		// No extension to go on (some camera apps strip it) — infer from the
 		// detected type rather than assuming JPEG.
-		ext = map[string]string{
-			"image/jpeg":      ".jpg",
-			"image/png":       ".png",
-			"image/gif":       ".gif",
-			"image/webp":      ".webp",
-			"video/mp4":       ".mp4",
-			"video/webm":      ".webm",
-			"video/quicktime": ".mov",
-			"video/3gpp":      ".3gp",
-			"application/pdf": ".pdf",
-		}[mimeType]
+		ext = extForType(mimeType)
 	}
 	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), "upload", ext)
 	path := filepath.Join(uploadDir, filename)

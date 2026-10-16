@@ -21,13 +21,17 @@ import { CoursesTab } from '../components/admin/CoursesTab';
 import { ProfileTab } from '../components/admin/ProfileTab';
 import { ErrorbookTab } from '../components/admin/ErrorbookTab';
 import { MeasuresTab } from '../components/admin/MeasuresTab';
+import { MediaTab } from '../components/admin/MediaTab';
 import { LanguageSelector } from '../components/LanguageSelector/LanguageSelector';
 
-type Tab = 'kids-status' | 'approvals' | 'chores' | 'templates' | 'courses' | 'profile' | 'errorbook' | 'measures' | 'rewards' | 'points' | 'activity' | 'users' | 'settings';
+type Tab = 'kids-status' | 'approvals' | 'media' | 'chores' | 'templates' | 'courses' | 'profile' | 'errorbook' | 'measures' | 'rewards' | 'points' | 'activity' | 'users' | 'settings';
 
 const TABS: { id: Tab; label: string; icon?: IconName }[] = [
   { id: 'kids-status', label: 'admin.dashboard.tabKids', icon: 'home' },
   { id: 'approvals', label: 'admin.dashboard.tabApprovals', icon: 'check' },
+  // 036: the media library — every photo / video / recording in one
+  // filtered grid, right where parents already review them.
+  { id: 'media', label: 'admin.dashboard.tabMedia', icon: 'camera' },
   { id: 'chores', label: 'admin.dashboard.tabChores', icon: 'broom' },
   { id: 'templates', label: 'admin.dashboard.tabTemplates', icon: 'cal' },
   { id: 'courses', label: 'admin.dashboard.tabCourses', icon: 'book' },
@@ -146,6 +150,7 @@ export const AdminDashboard: React.FC = () => {
         {tab === 'errorbook' && <ErrorbookTab />}
         {tab === 'measures' && <MeasuresTab />}
         {tab === 'approvals' && <ApprovalsTab onCountChange={setPendingCount} />}
+        {tab === 'media' && <MediaTab />}
         {tab === 'users' && <UsersTab />}
         {tab === 'rewards' && <RewardsTab />}
         {tab === 'points' && <PointsTab />}

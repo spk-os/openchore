@@ -71,6 +71,7 @@ const AttachmentGrid: React.FC<{ completionId: number }> = ({ completionId }) =>
             >
               {a.mime_class === 'image' && <img src={a.file_path} alt={a.display_name} loading="lazy" />}
               {a.mime_class === 'video' && <span className={styles.attDoc}><Icon name="film" /></span>}
+              {a.mime_class === 'audio' && <span className={styles.attDoc}><Icon name="mic" /></span>}
               {a.mime_class === 'pdf' && <span className={styles.attDoc}><Icon name="book" /></span>}
               {reviewed && (
                 <span

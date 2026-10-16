@@ -27,6 +27,7 @@ const (
 	maxAttachmentsPerRequest = 10
 	maxImageAttachments      = model.MaxImageAttachments
 	maxVideoAttachments      = model.MaxVideoAttachments
+	maxAudioAttachments      = model.MaxAudioAttachments
 	maxPdfAttachments        = model.MaxPdfAttachments
 )
 
@@ -35,6 +36,10 @@ func mimeClassForType(mimeType string) string {
 	switch mimeType {
 	case "video/mp4", "video/webm", "video/quicktime", "video/3gpp":
 		return model.MimeClassVideo
+	case "audio/webm", "audio/mp4", "audio/mpeg", "audio/mp3", "audio/ogg",
+		"audio/wav", "audio/x-wav", "audio/x-m4a", "audio/m4a", "audio/aac",
+		"audio/flac", "audio/x-flac", "audio/amr", "audio/3gpp", "audio/mpga":
+		return model.MimeClassAudio
 	case "application/pdf":
 		return model.MimeClassPdf
 	default:
@@ -62,6 +67,22 @@ func extForType(mimeType string) string {
 		return ".mov"
 	case "video/3gpp":
 		return ".3gp"
+	case "audio/webm":
+		return ".webm"
+	case "audio/mp4", "audio/x-m4a", "audio/m4a", "audio/aac":
+		return ".m4a"
+	case "audio/mpeg", "audio/mp3", "audio/mpga":
+		return ".mp3"
+	case "audio/ogg":
+		return ".ogg"
+	case "audio/wav", "audio/x-wav":
+		return ".wav"
+	case "audio/flac", "audio/x-flac":
+		return ".flac"
+	case "audio/amr":
+		return ".amr"
+	case "audio/3gpp":
+		return ".3gp"
 	case "application/pdf":
 		return ".pdf"
 	default:
@@ -73,6 +94,9 @@ func allowedProofType(mimeType string) bool {
 	switch mimeType {
 	case "image/jpeg", "image/png", "image/gif", "image/webp",
 		"video/mp4", "video/webm", "video/quicktime", "video/3gpp",
+		"audio/webm", "audio/mp4", "audio/mpeg", "audio/mp3", "audio/ogg",
+		"audio/wav", "audio/x-wav", "audio/x-m4a", "audio/m4a", "audio/aac",
+		"audio/flac", "audio/x-flac", "audio/amr", "audio/3gpp", "audio/mpga",
 		"application/pdf":
 		return true
 	default:
@@ -107,7 +131,7 @@ func saveProofFile(file io.Reader, filename, prefix string) (url, mimeType, sha 
 	sniff := buf[:n]
 	mimeType = http.DetectContentType(sniff)
 	if !allowedProofType(mimeType) {
-		err = fmt.Errorf("only photos, videos (MP4, WebM, MOV) and PDF files are allowed")
+		err = fmt.Errorf("only photos, videos (MP4, WebM, MOV), audio recordings and PDF files are allowed")
 		return
 	}
 
@@ -202,7 +226,7 @@ func (h *ChoreHandler) UploadAttachments(w http.ResponseWriter, r *http.Request)
 		_ = h.store.SeedAttachmentFromCompletionPhoto(r.Context(), completionID, completion.PhotoURL, "legacy_"+completion.PhotoURL)
 	}
 
-	images, videos, pdfs, err := h.store.CountCompletionAttachmentsByClass(r.Context(), completionID)
+	images, videos, audios, pdfs, err := h.store.CountCompletionAttachmentsByClass(r.Context(), completionID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count attachments")
 		return
@@ -242,6 +266,11 @@ func (h *ChoreHandler) UploadAttachments(w http.ResponseWriter, r *http.Request)
 				writeError(w, http.StatusBadRequest, fmt.Sprintf("only one video is allowed per completion"))
 				return
 			}
+		case model.MimeClassAudio:
+			if audios >= maxAudioAttachments {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("only one audio recording is allowed per completion"))
+				return
+			}
 		case model.MimeClassPdf:
 			if pdfs >= maxPdfAttachments {
 				writeError(w, http.StatusBadRequest, fmt.Sprintf("only one PDF is allowed per completion"))
@@ -273,6 +302,8 @@ func (h *ChoreHandler) UploadAttachments(w http.ResponseWriter, r *http.Request)
 			images++
 		case model.MimeClassVideo:
 			videos++
+		case model.MimeClassAudio:
+			audios++
 		case model.MimeClassPdf:
 			pdfs++
 		}

@@ -1,0 +1,171 @@
+/* 036: the media library grid — a denser sibling of the approvals tab's
+   attachment grid (smaller cells, a metadata line under every file), the
+   volume answer to "photos, videos and recordings are piling up". */
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip b {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  opacity: .75;
+}
+.chipOn {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--celebrate) 60%, var(--surface-raised));
+}
+
+.dateField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.dateField input,
+.dateField select {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.clearBtn {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.clearBtn:hover { color: var(--ink); }
+
+/* The file grid: 2 columns on phones, 4 on desktop — thumbnails stay big
+   enough to be recognizable at a glance. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  overflow: hidden;
+  color: var(--ink);
+  text-decoration: none;
+  min-height: 150px;
+}
+.cell:hover { border-color: var(--ink); }
+
+.cell img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--surface-sunk);
+}
+
+.docIcon {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  color: var(--ink-muted);
+  background: var(--surface-sunk);
+}
+.docIcon svg { width: 30%; height: 30%; }
+
+.kindTag {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  z-index: 1;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--ink) 76%, transparent);
+  color: var(--surface);
+}
+
+.subjectTag {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 1;
+  font-size: 9px;
+  font-weight: 800;
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--waiting) 85%, transparent);
+  color: var(--surface);
+}
+
+.aiBadge {
+  position: absolute;
+  left: 6px;
+  bottom: 52px;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+.aiBadgeGood {
+  background: color-mix(in srgb, var(--done) 82%, transparent);
+  color: var(--surface);
+}
+.aiBadgeWarn {
+  background: color-mix(in srgb, #e5484d 82%, transparent);
+  color: #fff;
+}
+
+.name {
+  padding: 6px 8px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  padding: 2px 8px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

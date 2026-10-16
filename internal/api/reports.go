@@ -28,7 +28,7 @@ func NewReportsHandler(s *store.Store, d *webhook.Dispatcher, dn *discord.Notifi
 
 // SetAI replaces the AI client directly (tests), keeping read-aloud audio.
 func (h *ReportsHandler) SetAI(ai *llm.Client) {
-	h.aiSvc.set(ai, h.aiSvc.Audio())
+	h.aiSvc.set(ai, h.aiSvc.Media(), h.aiSvc.Audio())
 }
 
 // ReportsResponse is the full payload returned by GET /api/admin/reports.

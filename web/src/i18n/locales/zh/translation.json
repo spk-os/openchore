@@ -431,7 +431,15 @@
       "submit": "提交打卡（{{count}} 个附件）",
       "submitAdd": "补交附件（{{count}} 个）",
       "submitAria": "提交 {{count}} 个附件",
-      "reviewNote": "家长端将看到全部附件；AI 逐附件审查，每张独立出结论。"
+      "reviewNote": "家长端将看到全部附件；AI 逐附件审查，每张独立出结论。",
+      "recAudio": "直接录音",
+      "recVideo": "直接录像",
+      "recInProgress": "录制中",
+      "recStop": "停止",
+      "recCancel": "取消",
+      "recDenied": "无法使用麦克风/摄像头，请检查权限后重试",
+      "recUnsupported": "当前浏览器不支持录音，请改用上传文件",
+      "cls_audio": "录音"
     },
     "rewards": {
       "cost_one": "{{count}} 分",
@@ -953,6 +961,28 @@
       "statSample": "切题数",
       "statFixed": "已订正 / 错题"
     },
+    "mediaTab": {
+      "title": "媒体库",
+      "subtitle": "共 {{count}} 个文件，可按科目、类型、日期与孩子筛选",
+      "allSubjects": "全部科目",
+      "noSubject": "未分类",
+      "filterSubject": "按科目筛选",
+      "filterType": "按类型筛选",
+      "allTypes": "全部类型",
+      "cls_image": "图片",
+      "cls_video": "视频",
+      "cls_audio": "录音",
+      "cls_pdf": "文档",
+      "from": "从",
+      "to": "至",
+      "kid": "孩子",
+      "allKids": "全部孩子",
+      "clear": "清除筛选",
+      "loading": "加载中…",
+      "empty": "还没有上传的照片、视频或录音",
+      "itemAria": "{{name}}，{{chore}}，{{when}}",
+      "choreDeleted": "任务已删除"
+    },
     "choresTab": {
       "addChore": "添加任务",
       "confirmDelete": "删除任务「{{name}}」？此操作不可撤销。",
@@ -1089,6 +1119,7 @@
       "quickAssign": "快速指派",
       "reports": "报告",
       "tabApprovals": "审批",
+      "tabMedia": "媒体库",
       "tabChores": "任务",
       "tabKids": "今天",
       "tabLog": "动态",
@@ -1142,7 +1173,9 @@
       "referencePhotoReplace": "换一张",
       "referencePhotoRemove": "移除",
       "referencePhotoUploading": "上传中…",
-      "referencePhotoUploadError": "示例照上传失败，再试一次"
+      "referencePhotoUploadError": "示例照上传失败，再试一次",
+      "labelSubject": "科目",
+      "subjectNone": "未分类（不进科目分组）"
     },
     "exportConfig": {
       "descriptionAfter": " 的当前内容，用于初始化一台新服务器。",

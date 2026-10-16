@@ -26,7 +26,18 @@ const (
 	settingTTSBaseURL = "tts_base_url"
 	settingTTSModel   = "tts_model"
 	settingTTSAPIKey  = "tts_api_key"
+	// The video/audio proof reviewer. Falls back to the main AI
+	// connection (same gateway, the model named below) when unset — the
+	// common single-gateway setup needs zero extra configuration.
+	settingMediaBaseURL = "media_base_url"
+	settingMediaModel   = "media_model"
+	settingMediaAPIKey  = "media_api_key"
 )
+
+// defaultMediaModel is the video/audio proof reviewer when no media_model
+// setting overrides it (the household's gateway serves it; new-api's
+// agnes-video-2.5-flash by default).
+const defaultMediaModel = "agnes-video-2.5-flash"
 
 // aiConnection is where one OpenAI-compatible service lives.
 type aiConnection struct {
@@ -44,11 +55,13 @@ type AIServices struct {
 
 	reloadMu sync.Mutex // serializes Reload
 
-	mu      sync.RWMutex
-	ai      *llm.Client
-	audio   *tts.ChoreAudio
-	aiConn  aiConnection // what ai was built from
-	ttsConn aiConnection // what audio was built from
+	mu        sync.RWMutex
+	ai        *llm.Client
+	media     *llm.Client // reviews video/audio proof (may equal ai)
+	audio     *tts.ChoreAudio
+	aiConn    aiConnection // what ai was built from
+	mediaConn aiConnection // what media was built from
+	ttsConn   aiConnection // what audio was built from
 }
 
 func NewAIServices(s *store.Store) *AIServices {
@@ -69,14 +82,23 @@ func (a *AIServices) Audio() *tts.ChoreAudio {
 	return a.audio
 }
 
-func (a *AIServices) set(ai *llm.Client, audio *tts.ChoreAudio) {
+// Media returns the video/audio proof reviewer, or nil when it is off.
+// Defaults to the main AI client when no separate media connection is
+// configured (single-gateway households).
+func (a *AIServices) Media() *llm.Client {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.media
+}
+
+func (a *AIServices) set(ai, media *llm.Client, audio *tts.ChoreAudio) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.ai, a.audio = ai, audio
+	a.ai, a.media, a.audio = ai, media, audio
 }
 
 // resolve reads the current connection settings, environment first.
-func (a *AIServices) resolve(ctx context.Context) (ai, speech aiConnection) {
+func (a *AIServices) resolve(ctx context.Context) (ai, media, speech aiConnection) {
 	if base := os.Getenv("AI_BASE_URL"); base != "" {
 		ai = aiConnection{BaseURL: base, Model: os.Getenv("AI_MODEL"), APIKey: os.Getenv("AI_API_KEY"), FromEnv: true}
 	} else {
@@ -84,6 +106,7 @@ func (a *AIServices) resolve(ctx context.Context) (ai, speech aiConnection) {
 		ai.Model, _ = a.store.GetSetting(ctx, settingAIModel)
 		ai.APIKey, _ = a.store.GetSetting(ctx, settingAIAPIKey)
 	}
+	media = a.resolveMedia(ctx, ai)
 	if base := os.Getenv("TTS_BASE_URL"); base != "" {
 		speech = aiConnection{BaseURL: base, Model: os.Getenv("TTS_MODEL"), APIKey: os.Getenv("TTS_API_KEY"), FromEnv: true}
 	} else {
@@ -91,7 +114,47 @@ func (a *AIServices) resolve(ctx context.Context) (ai, speech aiConnection) {
 		speech.Model, _ = a.store.GetSetting(ctx, settingTTSModel)
 		speech.APIKey, _ = a.store.GetSetting(ctx, settingTTSAPIKey)
 	}
-	return ai, speech
+	return ai, media, speech
+}
+
+// resolveMedia layers the video/audio reviewer connection on top of the
+// main AI connection: an explicit media_* setting overrides; the
+// MEDIA_* environment variables override that; otherwise the main
+// connection's gateway and key carry the default proof-review model
+// (agnes-video-2.5-flash) so a single-gateway household needs no extra
+// configuration.
+func (a *AIServices) resolveMedia(ctx context.Context, ai aiConnection) aiConnection {
+	if ai.BaseURL == "" {
+		return aiConnection{}
+	}
+	media := aiConnection{
+		BaseURL: ai.BaseURL,
+		APIKey:  ai.APIKey,
+		Model:   defaultMediaModel,
+		FromEnv: ai.FromEnv,
+	}
+	if m, _ := a.store.GetSetting(ctx, settingMediaModel); m != "" {
+		media.Model = m
+	}
+	if b, _ := a.store.GetSetting(ctx, settingMediaBaseURL); b != "" {
+		media.BaseURL = b
+		media.FromEnv = false
+	}
+	if k, _ := a.store.GetSetting(ctx, settingMediaAPIKey); k != "" {
+		media.APIKey = k
+	}
+	if base := os.Getenv("MEDIA_BASE_URL"); base != "" {
+		media.BaseURL = base
+		media.FromEnv = true
+	}
+	if model := os.Getenv("MEDIA_MODEL"); model != "" {
+		media.Model = model
+		media.FromEnv = true
+	}
+	if key := os.Getenv("MEDIA_API_KEY"); key != "" {
+		media.APIKey = key
+	}
+	return media
 }
 
 // Reload rebuilds whichever client's connection settings changed. It
@@ -101,11 +164,11 @@ func (a *AIServices) Reload(ctx context.Context) (ttsChanged bool) {
 	a.reloadMu.Lock()
 	defer a.reloadMu.Unlock()
 
-	aiConn, ttsConn := a.resolve(ctx)
+	aiConn, mediaConn, ttsConn := a.resolve(ctx)
 
 	a.mu.RLock()
-	ai, audio := a.ai, a.audio
-	aiSame, ttsSame := aiConn == a.aiConn, ttsConn == a.ttsConn
+	ai, media, audio := a.ai, a.media, a.audio
+	aiSame, mediaSame, ttsSame := aiConn == a.aiConn, mediaConn == a.mediaConn, ttsConn == a.ttsConn
 	a.mu.RUnlock()
 
 	if !aiSame {
@@ -120,6 +183,16 @@ func (a *AIServices) Reload(ctx context.Context) (ttsChanged bool) {
 			log.Printf("ai: using model %s at %s", aiConn.Model, aiConn.BaseURL)
 		}
 	}
+	if !mediaSame {
+		media = nil
+		switch {
+		case mediaConn.BaseURL == "":
+			log.Printf("ai: media review off")
+		default:
+			media = llm.New(mediaConn.BaseURL, mediaConn.APIKey, mediaConn.Model)
+			log.Printf("ai: media review using model %s at %s", mediaConn.Model, mediaConn.BaseURL)
+		}
+	}
 	if !ttsSame {
 		audio = nil
 		if ttsConn.BaseURL != "" {
@@ -131,8 +204,8 @@ func (a *AIServices) Reload(ctx context.Context) (ttsChanged bool) {
 	}
 
 	a.mu.Lock()
-	a.ai, a.audio = ai, audio
-	a.aiConn, a.ttsConn = aiConn, ttsConn
+	a.ai, a.media, a.audio = ai, media, audio
+	a.aiConn, a.mediaConn, a.ttsConn = aiConn, mediaConn, ttsConn
 	a.mu.Unlock()
 	return !ttsSame
 }
@@ -162,10 +235,11 @@ func (c aiConnection) view() aiConnectionView {
 }
 
 // GetConfig returns where the AI and speech services live. API keys are
-// reported only as set or not.
+// reported only as set or not. The media section is reported with its
+// resolved defaults (model falling back to the main connection's gateway).
 func (a *AIServices) GetConfig(w http.ResponseWriter, r *http.Request) {
-	ai, speech := a.resolve(r.Context())
-	writeJSON(w, http.StatusOK, map[string]any{"ai": ai.view(), "tts": speech.view()})
+	ai, media, speech := a.resolve(r.Context())
+	writeJSON(w, http.StatusOK, map[string]any{"ai": ai.view(), "media": media.view(), "tts": speech.view()})
 }
 
 // aiConnectionUpdate is one section of PUT /api/admin/ai/config. A nil
@@ -180,15 +254,16 @@ type aiConnectionUpdate struct {
 // without a restart. Sections set by environment variables can't be changed.
 func (a *AIServices) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		AI  *aiConnectionUpdate `json:"ai"`
-		TTS *aiConnectionUpdate `json:"tts"`
+		AI    *aiConnectionUpdate `json:"ai"`
+		Media *aiConnectionUpdate `json:"media"`
+		TTS   *aiConnectionUpdate `json:"tts"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 	ctx := r.Context()
-	current, currentTTS := a.resolve(ctx)
+	current, currentMedia, currentTTS := a.resolve(ctx)
 
 	type section struct {
 		name                      string
@@ -198,6 +273,7 @@ func (a *AIServices) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	sections := []section{
 		{"AI", req.AI, current.FromEnv, settingAIBaseURL, settingAIModel, settingAIAPIKey},
+		{"media", req.Media, currentMedia.FromEnv, settingMediaBaseURL, settingMediaModel, settingMediaAPIKey},
 		{"speech", req.TTS, currentTTS.FromEnv, settingTTSBaseURL, settingTTSModel, settingTTSAPIKey},
 	}
 	for _, s := range sections {

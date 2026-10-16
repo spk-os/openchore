@@ -54,7 +54,7 @@ func (h *ChoreHandler) AIServices() *AIServices { return h.aiSvc }
 // SetAI replaces the AI client and read-aloud audio directly (tests).
 // Either may be nil.
 func (h *ChoreHandler) SetAI(ai *llm.Client, audio *tts.ChoreAudio) {
-	h.aiSvc.set(ai, audio)
+	h.aiSvc.set(ai, h.aiSvc.Media(), audio)
 }
 
 // WaitForReviews blocks until background photo reviews finish (for tests
@@ -112,6 +112,10 @@ type createChoreRequest struct {
 	Description string `json:"description"`
 	Category    string `json:"category"`
 	Icon        string `json:"icon"`
+	// Subject is the school subject (math/chinese/english/physics/
+	// chemistry), empty for household chores. A pointer so an update can
+	// clear it explicitly while an omitted field keeps it (036).
+	Subject *string `json:"subject"`
 	// PointsValue and MissedPenaltyValue are pointers so we can distinguish
 	// "field omitted" (nil) from "field explicitly set to 0". Without this,
 	// admins can't clear a penalty or zero out a point value via the UI.
@@ -160,6 +164,7 @@ func (h *ChoreHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Title:              req.Title,
 		Description:        req.Description,
 		Category:           req.Category,
+		Subject:            strPtrOrEmpty(req.Subject),
 		Icon:               req.Icon,
 		PointsValue:        intPtrOrZero(req.PointsValue),
 		MissedPenaltyValue: intPtrOrZero(req.MissedPenaltyValue),
@@ -247,6 +252,15 @@ func (h *ChoreHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// empty string) replaces it.
 	if req.ReferencePhotoURL != nil {
 		existing.ReferencePhotoURL = *req.ReferencePhotoURL
+	}
+	// Same protocol for the school subject: omitted keeps it, an explicit
+	// value (including "") reclassifies or clears it.
+	if req.Subject != nil {
+		if !isValidSubject(*req.Subject) {
+			writeError(w, http.StatusBadRequest, "subject must be empty, math, chinese, english, physics, or chemistry")
+			return
+		}
+		existing.Subject = *req.Subject
 	}
 
 	if err := h.store.UpdateChore(r.Context(), existing); err != nil {
@@ -1275,4 +1289,16 @@ func completerFor(caller *model.User, schedule *model.ChoreSchedule, requested i
 		return 0, errors.New("can only complete chores as yourself")
 	}
 	return requested, nil
+}
+
+// isValidSubject checks the school-subject vocabulary (036). The media
+// library and the error book share these five; empty means "not school
+// work" and is always allowed.
+func isValidSubject(subject string) bool {
+	switch subject {
+	case "", "math", "chinese", "english", "physics", "chemistry":
+		return true
+	default:
+		return false
+	}
 }

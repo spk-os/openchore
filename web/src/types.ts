@@ -162,6 +162,8 @@ export interface Chore {
   title: string;
   description: string;
   category: 'required' | 'core' | 'bonus';
+  /** School subject (036): math/chinese/english/physics/chemistry, '' = none. */
+  subject: string;
   icon?: string;
   points_value: number;
   missed_penalty_value: number;
@@ -330,6 +332,9 @@ export interface ScheduledChore {
   photo_url?: string;
   date: string;
   completion_status?: 'approved' | 'pending' | 'rejected' | 'excused';
+  // The chore's school subject (036 media library), empty for household
+  // chores: math/chinese/english/physics/chemistry.
+  subject?: string;
   ai_feedback?: string;
   completed_by_name?: string;
   completed_by_sibling?: boolean;
@@ -517,7 +522,7 @@ export interface AIReviewResult {
 // --- Completion attachments (L0) ---
 
 /** Canvas-style mime class: a completion's proof stream is images, a video, or a PDF. */
-export type MimeClass = 'image' | 'video' | 'pdf';
+export type MimeClass = 'image' | 'video' | 'audio' | 'pdf';
 
 /**
  * One proof file on a completion. Rows live in completion_attachments;
@@ -1277,4 +1282,46 @@ export interface PlannerPlanResponse {
   plan: PlannerDraft;
   mode: 'learner_plan';
   assigned_to: number;
+}
+
+// --- 036: the parent-side media library ---
+
+/** One proof file in the admin media library (GET /api/admin/media). */
+export interface MediaItem {
+  attachment_id: number;
+  completion_id: number;
+  file_path: string;
+  display_name: string;
+  mime_type: string;
+  mime_class: MimeClass;
+  size_bytes: number;
+  created_at: string;
+  chore_id: number;
+  chore_title: string;
+  /** '' groups under "unclassified" (household chores are not school work). */
+  subject: string;
+  category: string;
+  user_id: number;
+  user_name: string;
+  status: string;
+  ai_feedback?: string;
+  ai_confidence?: number;
+  ai_complete?: boolean | null;
+}
+
+export interface MediaSubjectStat {
+  subject: string;
+  count: number;
+}
+
+export interface MediaClassStat {
+  mime_class: MimeClass;
+  count: number;
+}
+
+export interface MediaLibraryResponse {
+  items: MediaItem[];
+  subjects: MediaSubjectStat[];
+  classes: MediaClassStat[];
+  total: number;
 }

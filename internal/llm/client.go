@@ -38,13 +38,6 @@ func New(baseURL, apiKey, model string) *Client {
 // Model returns the configured model name.
 func (c *Client) Model() string { return c.model }
 
-// Part is one piece of a multimodal message: text or an image.
-type Part struct {
-	Type     string    `json:"type"`
-	Text     string    `json:"text,omitempty"`
-	ImageURL *ImageURL `json:"image_url,omitempty"`
-}
-
 // ImageURL holds an image reference; a data: URL carries the bytes inline.
 type ImageURL struct {
 	URL string `json:"url"`

@@ -187,6 +187,28 @@
       "statSample": "Questions",
       "statFixed": "Fixed / wrong"
     },
+    "mediaTab": {
+      "title": "Media library",
+      "subtitle": "{{count}} files — filter by subject, type, date and kid",
+      "allSubjects": "All subjects",
+      "noSubject": "Unclassified",
+      "filterSubject": "Filter by subject",
+      "filterType": "Filter by type",
+      "allTypes": "All types",
+      "cls_image": "Photo",
+      "cls_video": "Video",
+      "cls_audio": "Audio",
+      "cls_pdf": "PDF",
+      "from": "From",
+      "to": "To",
+      "kid": "Kid",
+      "allKids": "All kids",
+      "clear": "Clear filters",
+      "loading": "Loading…",
+      "empty": "No photos, videos or recordings yet",
+      "itemAria": "{{name}}, {{chore}}, {{when}}",
+      "choreDeleted": "Chore deleted"
+    },
     "choresTab": {
       "addChore": "Add Chore",
       "confirmDelete": "Delete chore \"{{name}}\"? This action cannot be undone.",
@@ -323,6 +345,7 @@
       "quickAssign": "Quick Assign",
       "reports": "Reports",
       "tabApprovals": "Approvals",
+      "tabMedia": "Media",
       "tabChores": "Chores",
       "tabKids": "Today",
       "tabLog": "Log",
@@ -376,7 +399,9 @@
       "referencePhotoReplace": "Replace",
       "referencePhotoRemove": "Remove",
       "referencePhotoUploading": "Uploading…",
-      "referencePhotoUploadError": "Upload failed, try again"
+      "referencePhotoUploadError": "Upload failed, try again",
+      "labelSubject": "Subject",
+      "subjectNone": "Unclassified (no subject bucket)"
     },
     "exportConfig": {
       "descriptionAfter": " of what is in the database now, to set up a fresh server.",
@@ -1748,7 +1773,15 @@
       "submit": "Submit ({{count}} attachments)",
       "submitAdd": "Add proof ({{count}})",
       "submitAria": "Submit {{count}} attachments",
-      "reviewNote": "The parent sees every attachment; AI reviews each one on its own."
+      "reviewNote": "The parent sees every attachment; AI reviews each one on its own.",
+      "recAudio": "Record audio",
+      "recVideo": "Record video",
+      "recInProgress": "Recording",
+      "recStop": "Stop",
+      "recCancel": "Cancel",
+      "recDenied": "Microphone/camera unavailable. Check permissions and try again.",
+      "recUnsupported": "This browser cannot record. Upload a file instead.",
+      "cls_audio": "Audio"
     },
     "rewards": {
       "cost_one": "{{count}} pt",
