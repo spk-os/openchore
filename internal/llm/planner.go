@@ -58,19 +58,20 @@ type PlannerRef struct {
 // PlannerChore is one proposed chore — the same card shape the copilot
 // drafts (so the apply path is unchanged), plus the refs that justify it.
 type PlannerChore struct {
-	Title            string   `json:"title"`
-	Description      string   `json:"description"`
-	Category         string   `json:"category"`
-	Icon             string   `json:"icon"`
-	PointsValue      int      `json:"points_value"`
-	MissedPenalty    int      `json:"missed_penalty"`
-	EstimatedMinutes int      `json:"estimated_minutes"`
-	Days             []string `json:"days"`
-	Date             string   `json:"date"`
-	DueBy            string   `json:"due_by"`
-	AvailableAt      string   `json:"available_at"`
-	Confidence       float64  `json:"confidence"`
-	Rationale        string   `json:"rationale"`
+	Title            string       `json:"title"`
+	Description      string       `json:"description"`
+	Category         string       `json:"category"`
+	Icon             string       `json:"icon"`
+	PointsValue      int          `json:"points_value"`
+	MissedPenalty    int          `json:"missed_penalty"`
+	EstimatedMinutes int          `json:"estimated_minutes"`
+	Days             []string     `json:"days"`
+	Date             string       `json:"date"`
+	DueBy            string       `json:"due_by"`
+	AvailableAt      string       `json:"available_at"`
+	Confidence       float64      `json:"confidence"`
+	Rationale        string       `json:"rationale"`
+	Refs             []PlannerRef `json:"refs,omitempty"`
 }
 
 // PlannerReviewBoost proposes extra review load for one weak KC (not a
@@ -102,7 +103,7 @@ var plannerSchema = &Schema{
 		"type": "object",
 		"properties": map[string]any{
 			"source_refs": map[string]any{
-				"type": "array",
+				"type":     "array",
 				"minItems": 1,
 				"items": map[string]any{
 					"type": "object",
@@ -135,6 +136,18 @@ var plannerSchema = &Schema{
 								"available_at":      map[string]any{"type": "string"},
 								"confidence":        map[string]any{"type": "number"},
 								"rationale":         map[string]any{"type": "string"},
+								"refs": map[string]any{
+									"type":  "array",
+									"items": map[string]any{
+										"type": "object",
+										"properties": map[string]any{
+											"type": map[string]any{"type": "string"},
+											"id":   map[string]any{"type": "integer"},
+											"fact": map[string]any{"type": "string"},
+										},
+										"required": []string{"type", "fact"},
+									},
+								},
 							},
 							"required": []string{"title", "category", "points_value", "days"},
 						},
@@ -214,6 +227,7 @@ Hard rules:
 - category: "required" (school/homework must-dos), "core" (daily routine), "bonus" (extra credit).
 - days uses "daily", "weekdays", "weekends", or "mon".."sun"; a one-day task sets "days": [] and "date": "YYYY-MM-DD".
 - Every source_ref's fact must be a concrete, checkable statement drawn ONLY from the profile data below (a mastery rate, a count, a config value). Type it as "kc_mastery", "learner_events", "error_dist", "student_config" or "reward_ladder". At least one ref per plan; cite the weak KC a chore targets.
+- Each new_chore ALSO carries its own "refs": 1-3 facts that justify THAT chore specifically (same typing rules). A chore without its own refs shows only the plan-level citations to the parent — give every chore its own.
 - Low-confidence KCs (n < 5): propose only lightweight observation ("先观察"), never a heavy drill, and say so in the ref.
 - Write titles, rationales, facts and notes in the family's language (default Chinese).
 
@@ -322,6 +336,23 @@ func parsePlannerDraft(raw string) (*PlannerDraft, error) {
 		t.Confidence = min(max(t.Confidence, 0), 1)
 		t.Description = strings.TrimSpace(t.Description)
 		t.Rationale = strings.TrimSpace(t.Rationale)
+		// Per-card refs get the same cleanup as the plan-level ones; a card
+		// without its own citations simply shows the plan's (the UI falls
+		// back), so per-card refs are an enhancement, never a requirement.
+		cardRefs := make([]PlannerRef, 0, len(t.Refs))
+		for _, r := range t.Refs {
+			r.Fact = strings.TrimSpace(r.Fact)
+			if r.Fact == "" {
+				continue
+			}
+			switch r.Type {
+			case "kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder":
+			default:
+				r.Type = "learner_events"
+			}
+			cardRefs = append(cardRefs, r)
+		}
+		t.Refs = cardRefs
 		chores = append(chores, t)
 	}
 	draft.Proposal.NewChores = chores

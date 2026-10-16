@@ -10,11 +10,14 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/liftedkilt/openchore/internal/llm"
 	"github.com/liftedkilt/openchore/internal/model"
 	"github.com/liftedkilt/openchore/internal/store"
 )
@@ -71,13 +74,16 @@ func (h *LearnerHook) recordLearnerEventSafe(ctx context.Context, userID int64, 
 type LearnerHandler struct {
 	store   *store.Store
 	reviews *ReviewHandler
+	aiSvc   *AIServices // optional: powers the AI scaffold ladder
 	LearnerHook
 }
 
-// NewLearnerHandler wires the shared store and the review handler (the
-// profile header reads the review streak from it).
-func NewLearnerHandler(s *store.Store, reviews *ReviewHandler) *LearnerHandler {
-	return &LearnerHandler{store: s, reviews: reviews, LearnerHook: newLearnerHook(s)}
+// NewLearnerHandler wires the shared store, the review handler (the
+// profile header reads the review streak from it) and the optional AI
+// client (the scaffold ladder's per-question hints; nil = the built-in
+// four-step ladder, same stages).
+func NewLearnerHandler(s *store.Store, reviews *ReviewHandler, aiSvc *AIServices) *LearnerHandler {
+	return &LearnerHandler{store: s, reviews: reviews, aiSvc: aiSvc, LearnerHook: newLearnerHook(s)}
 }
 
 // handleGetStudentConfig serves GET /api/admin/student-config?user_id= —
@@ -373,6 +379,41 @@ func scaffoldStepAt(attempts int) (stage int, prompt string) {
 	}
 }
 
+// aiScaffoldHint asks the model for the hint at one ladder stage,
+// tailored to this question and this kid's diagnosis. The stage number
+// stays server-controlled (the prompt only varies the wording); an empty
+// or overlong reply falls back to the built-in line so the ladder is
+// always answerable.
+func aiScaffoldHint(ctx context.Context, ai *llm.Client, item *model.ErrorItem, kidName string, stage int, fallback string) string {
+	if ai == nil {
+		return fallback
+	}
+	stageBrief := map[int]string{
+		1: "Socratic nudge: name the relevant knowledge point as a question; NO formulas, NO steps, at most 40 characters.",
+		2: "Concrete nudge: list the given conditions from the question and what they imply; still no full solution, at most 80 characters.",
+		3: "Decomposition: break the problem into 2-3 numbered mini-steps and ask the kid to do only the first one, at most 120 characters.",
+		4: "Worked example: show the full solution in numbered steps, then invite the kid to redo a similar one, at most 200 characters.",
+	}[stage]
+	if stageBrief == "" {
+		return fallback
+	}
+	q := item.QuestionText
+	if q == "" {
+		q = item.OCRText
+	}
+	prompt := fmt.Sprintf(`A kid is retrying a wrong question on their error book. Kid: %s. Question: %s. Their wrong answer: %s. Recorded mistake analysis: %s. Error type: %s.
+This is scaffold stage %d of 4. Write the hint in the family's language (default Chinese), %s Be encouraging, never scold, never say the answer is wrong. Reply with only the hint text.`,
+		kidName, q, item.WrongAnswerText, item.MistakeAnalysis, item.ErrorType, stage, stageBrief)
+	// The caller's ctx carries its own timeout; a hung model falls back
+	// to the built-in line so the ladder is always answerable.
+	hint, err := ai.Chat(ctx, []llm.Message{{Role: "user", Content: prompt}}, nil)
+	hint = strings.TrimSpace(hint)
+	if err != nil || hint == "" || len(hint) > 600 {
+		return fallback
+	}
+	return hint
+}
+
 // handleKidScaffold is the error-book AI hint ladder (POST /api/kid/scaffold).
 // Body: {error_item_id, attempt}. The attempt counter is client-supplied
 // but clamped server-side (1..20) — a misbehaving client walks the same
@@ -404,6 +445,17 @@ func (h *LearnerHandler) HandleKidScaffold(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	stage, prompt := scaffoldStepAt(req.Attempt)
+	// With AI configured, the same four rungs become per-question hints
+	// (the Khanmigo-style personal touch); without it — or on any AI
+	// hiccup — the built-in ladder answers, so the endpoint never
+	// depends on the model being up.
+	if ai := h.aiSvc.AI(); ai != nil {
+		if kid, err := h.store.GetUser(ctx, user.ID); err == nil && kid != nil {
+			timeout, cancel := context.WithTimeout(ctx, 20*time.Second)
+			defer cancel()
+			prompt = aiScaffoldHint(timeout, ai, item, kid.Name, stage, prompt)
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"stage": stage,
 		"hint":  prompt,

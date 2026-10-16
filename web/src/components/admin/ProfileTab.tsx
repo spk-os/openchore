@@ -519,7 +519,7 @@ export const ProfileTab: React.FC = () => {
                 </div>
                 {c.rationale && <p className={styles.planDesc}>{c.rationale}</p>}
                 <div className={styles.planRefs} data-test={`pp-plan-${idx + 1}-refs`}>
-                  {planRefs.map((ref, i) => (
+                  {(c.refs && c.refs.length > 0 ? c.refs : planRefs).map((ref, i) => (
                     <p key={i} className={styles.planRef}>
                       📊 {t('admin.profileTab.refBasedOn')}：{ref.fact}
                       <span className={styles.refSrc}>{ref.type}{ref.id != null ? ` #${ref.id}` : ''}</span>

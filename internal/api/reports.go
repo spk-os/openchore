@@ -381,16 +381,45 @@ func (h *ReportsHandler) summaryStats(ctx context.Context, userID int64, startSt
 		}
 	}
 
+	// The L1-L4 half: error book, spaced review, weak knowledge points.
+	// Best-effort — a failed lookup leaves zeros (the prompt omits the
+	// learning lines then) and the chores-only summary still goes out.
+	newErr, corrected, open, reviewStreak, reviewTotal, weak := h.learningStats(ctx, userID, startStr, endStr)
+
 	return &llm.WeeklyStats{
-		KidName:        kid.Name,
-		CompletedCount: kid.TotalCompleted,
-		MissedCount:    max(kid.TotalAssigned-kid.TotalCompleted, 0),
-		TotalAssigned:  kid.TotalAssigned,
-		PointsEarned:   kid.PointsEarned,
-		CurrentStreak:  kid.CurrentStreak,
-		CompletionRate: rate,
-		MissedChores:   missedChores,
+		KidName:             kid.Name,
+		CompletedCount:      kid.TotalCompleted,
+		MissedCount:         max(kid.TotalAssigned-kid.TotalCompleted, 0),
+		TotalAssigned:       kid.TotalAssigned,
+		PointsEarned:        kid.PointsEarned,
+		CurrentStreak:       kid.CurrentStreak,
+		CompletionRate:      rate,
+		MissedChores:        missedChores,
+		ErrorNewCount:       newErr,
+		ErrorCorrectedCount: corrected,
+		ErrorOpenCount:      open,
+		ReviewStreak:        reviewStreak,
+		ReviewTotal:         reviewTotal,
+		WeakPoints:          weak,
 	}, nil
+}
+
+// learningStats gathers the L1-L4 half of the weekly summary: the error
+// book's week shape, the spaced-review effort, and the weakest knowledge
+// points. Every query is best-effort — a failed lookup degrades the
+// summary to chores-only, it never blocks it.
+func (h *ReportsHandler) learningStats(ctx context.Context, userID int64, startStr, endStr string) (newCount, corrected, open, reviewStreak, reviewTotal int, weak []string) {
+	if st, err := h.store.ErrorBookWeekStats(ctx, userID, startStr, endStr); err == nil {
+		newCount, corrected, open = int(st.NewCount), int(st.CorrectedCount), int(st.OpenCount)
+	}
+	reviewStreak, _ = h.store.ReviewStreakDays(ctx, userID, time.Now())
+	reviewTotal, _ = h.store.CountReviewsBetween(ctx, userID, startStr, endStr)
+	if tags, err := h.store.WeakKnowledgeTags(ctx, userID, 3); err == nil {
+		for _, t := range tags {
+			weak = append(weak, t.Name)
+		}
+	}
+	return
 }
 
 // StartWeeklySummaries writes each person's summary of last week once it is

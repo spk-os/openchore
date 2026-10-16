@@ -1248,6 +1248,9 @@ export interface PlannerChore {
   available_at: string;
   confidence: number;
   rationale: string;
+  /** Per-card citations (1-3 facts justifying THIS chore); falls back to
+   *  the plan-level source_refs when the model didn't provide any. */
+  refs?: PlannerRef[];
 }
 
 /** A proposed review-load bump for one weak KC. */

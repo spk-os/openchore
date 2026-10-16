@@ -13,7 +13,11 @@ func (c *Client) DraftDescription(ctx context.Context, title, category string) (
 	return c.ask(ctx, fmt.Sprintf(`Write a 1-2 sentence description of the household chore %q (category: %s) for a child aged 5-12. Use simple words, say what "done" looks like, and keep it friendly. It will be shown on screen and read aloud. Reply with only the description.`, title, category))
 }
 
-// WeeklyStats holds what the weekly summary is written from.
+// WeeklyStats holds what the weekly summary is written from. The chore
+// half is the original contract; the learning half (L1-L4) joins the
+// error book, the review streak and the weak knowledge points, so the
+// parent's weekly report finally covers the学习 side too — zeros mean
+// "no learning data this week", and the prompt omits those lines.
 type WeeklyStats struct {
 	KidName        string
 	CompletedCount int
@@ -23,6 +27,13 @@ type WeeklyStats struct {
 	CurrentStreak  int
 	CompletionRate float64
 	MissedChores   []string
+	// Learning dimensions (zeros = none this week; the prompt skips them).
+	ErrorNewCount       int      // wrong questions collected this week
+	ErrorCorrectedCount int      // error-book items the kid worked
+	ErrorOpenCount      int      // backlog still at "new"
+	ReviewStreak        int      // consecutive days of spaced review
+	ReviewTotal         int      // review cards graded this week
+	WeakPoints           []string // weakest knowledge points, worst first
 }
 
 // WeeklySummary writes an encouraging 2-3 sentence summary for a parent.
@@ -31,8 +42,19 @@ func (c *Client) WeeklySummary(ctx context.Context, s WeeklyStats) (string, erro
 	if len(s.MissedChores) > 0 {
 		missed = strings.Join(s.MissedChores, ", ")
 	}
-	return c.ask(ctx, fmt.Sprintf(`Write a brief, encouraging 2-3 sentence summary of this child's chores this week for their parent. Kid: %s. Completed %d of %d (%.0f%%), %d missed, earned %d points, current streak %d days. Most missed: %s. Be specific and suggest one small, practical next step. Reply with only the summary.`,
-		s.KidName, s.CompletedCount, s.TotalAssigned, s.CompletionRate, s.MissedCount, s.PointsEarned, s.CurrentStreak, missed))
+	// The learning half: only the lines with data. A kid with no error
+	// book yet gets a chores-only summary, not a wall of zeros.
+	learning := ""
+	if s.ErrorNewCount > 0 || s.ErrorCorrectedCount > 0 || s.ReviewTotal > 0 {
+		learning = fmt.Sprintf(` Learning this week: collected %d new wrong questions (corrected %d, %d still open), spaced-review streak %d days with %d cards graded.`,
+			s.ErrorNewCount, s.ErrorCorrectedCount, s.ErrorOpenCount, s.ReviewStreak, s.ReviewTotal)
+		if len(s.WeakPoints) > 0 {
+			learning += fmt.Sprintf(` Weakest knowledge points: %s.`, strings.Join(s.WeakPoints, ", "))
+		}
+		learning += ` When learning numbers exist, weave one observation about them into the summary (practical: e.g. schedule a short re-do of the weak points next week).`
+	}
+	return c.ask(ctx, fmt.Sprintf(`Write a brief, encouraging 2-3 sentence summary of this child's chores and learning this week for their parent. Kid: %s. Completed %d of %d (%.0f%%), %d missed, earned %d points, current streak %d days. Most missed: %s.%s Be specific and suggest one small, practical next step. Reply with only the summary.`,
+		s.KidName, s.CompletedCount, s.TotalAssigned, s.CompletionRate, s.MissedCount, s.PointsEarned, s.CurrentStreak, missed, learning))
 }
 
 // DailyNoteStats holds what a day's coaching note is written from. The

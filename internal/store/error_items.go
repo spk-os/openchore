@@ -523,3 +523,32 @@ func (s *Store) DeleteErrorItem(ctx context.Context, id int64) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM error_items WHERE id = ?`, id)
 	return err
 }
+
+// ErrorBookWeekStat is the learning half of the weekly report: how many
+// wrong questions were collected in the range, how many the kid actually
+// corrected (mastery moved off "new"), and how many are still open.
+type ErrorBookWeekStat struct {
+	NewCount       int64 // wrong questions collected in the window
+	CorrectedCount int64 // mastery >= reviewing: the kid worked them
+	OpenCount      int64 // mastery still new — the backlog carried forward
+}
+
+// ErrorBookWeekStats summarizes a kid's error book over [startStr, endStr]
+// (YYYY-MM-DD strings; error_items.created_at stores the same
+// YYYY-MM-DD HH:MM:SS shape, so the string compare keeps the day's items
+// on both edges). The corrected and open counts are point-in-time over
+// ALL the kid's items — the mastery machine has no per-item history, so
+// a question corrected on day 6 still counts even if collected before
+// the window.
+func (s *Store) ErrorBookWeekStats(ctx context.Context, userID int64, startStr, endStr string) (ErrorBookWeekStat, error) {
+	var st ErrorBookWeekStat
+	err := s.db.QueryRowContext(ctx,
+		`SELECT
+		   (SELECT COUNT(*) FROM error_items WHERE user_id = ? AND substr(created_at, 1, 10) >= ? AND substr(created_at, 1, 10) <= ?),
+		   (SELECT COUNT(*) FROM error_items WHERE user_id = ? AND mastery_level >= ?),
+		   (SELECT COUNT(*) FROM error_items WHERE user_id = ? AND mastery_level = ?)`,
+		userID, startStr, endStr,
+		userID, model.MasteryReviewing,
+		userID, model.MasteryNew).Scan(&st.NewCount, &st.CorrectedCount, &st.OpenCount)
+	return st, err
+}

@@ -44,7 +44,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	// review card the moment it lands (see recordErrorItem).
 	chores.SetSpacedRepetition(reviews)
 	courses := NewCourseHandler(s)
-	learner := NewLearnerHandler(s, reviews)
+	learner := NewLearnerHandler(s, reviews, aiSvc)
 	authH := NewAuthHandler(s, auth.Sessions, dispatcher, auth.OIDC)
 	oidcH := auth.OIDC
 

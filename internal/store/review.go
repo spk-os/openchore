@@ -332,6 +332,17 @@ func (s *Store) ReviewHeatmap(ctx context.Context, userID int64, from time.Time)
 	return out, rows.Err()
 }
 
+// CountReviewsBetween counts the kid's graded cards in [startStr, endStr]
+// (YYYY-MM-DD, inclusive both ends) — the weekly summary's "复习 N 张".
+func (s *Store) CountReviewsBetween(ctx context.Context, userID int64, startStr, endStr string) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM review_logs
+		 WHERE user_id = ? AND date(reviewed_at) >= ? AND date(reviewed_at) <= ?`,
+		userID, startStr, endStr).Scan(&n)
+	return n, err
+}
+
 // ReviewStreakDays counts consecutive days (ending today or yesterday)
 // with at least one rating — the 🔥 on the review screens.
 func (s *Store) ReviewStreakDays(ctx context.Context, userID int64, today time.Time) (int, error) {
