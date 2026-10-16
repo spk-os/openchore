@@ -165,7 +165,27 @@
       "linkErrorbook": "Fehlerheft & Wiederholungen des Kindes",
       "linkProfile": "Lernprofil & KI-Planung",
       "linkCourses": "Schwachpunkte in einen Kurs verwandeln",
-      "linkSettings": "Analyse-Schalter & Wiederholungsparameter"
+      "linkSettings": "Analyse-Schalter & Wiederholungsparameter",
+      "uploadAria": "Arbeitsblatt-Upload",
+      "uploadTitle": "Blatt-Analyse (mehrseitig)",
+      "uploadDesc": "Ganzes Blatt hochladen: Die KI schneidet es in Einzelaufgaben, bewertet jede und erstellt die Diagnose; bis zu 9 Bilder oder 1 PDF",
+      "uploadNote": "Fehlgeschlagene Parses werden mit „manuell“ markiert – das Original geht nie verloren",
+      "thumbAria": "Blatt-Miniatur: Aufgabenzeilen mit drei gestrichelten Ausschnittboxen",
+      "thumbBoxCut": "{{count}} geschnitten",
+      "thumbBoxJudging": "Bewertung {{judged}}/{{total}}",
+      "thumbBoxWait": "Zu schneiden",
+      "cut1Active": "① Schneiden…",
+      "cut1Title": "① Geschnitten · {{count}} Aufgaben",
+      "cut1Sub": "Aufgabenblöcke nach Nummer und Layout; das Original bleibt nachvollziehbar",
+      "cut2Title": "② Bewertung · {{judged}}/{{total}} ✨",
+      "cut2Done": "② Bewertet",
+      "cut2Sub": "Jede Antwort verglichen: Rechen- / Konzept- / Lesefehler",
+      "cut3Title": "③ Bericht fehlt noch",
+      "cut3Sub": "Fehlerverteilung und Schwachstellen werden nach der Bewertung zusammengefasst",
+      "statWrongRate": "Fehlerquote",
+      "statWeakest": "Schwachstelle",
+      "statSample": "Aufgaben",
+      "statFixed": "Korrigiert / falsch"
     },
     "choresTab": {
       "addChore": "Aufgabe hinzufügen",
@@ -479,7 +499,10 @@
       "petStatLabel": "Haustier-Status",
       "quickTitle": "Fehleranalyse-Kurzbericht",
       "quickEmpty": "Noch keine Analyse: auf einer Freigabekarte „KI-Fehleranalyse“ antippen",
-      "quickLink": "Bericht ansehen →"
+      "quickLink": "Bericht ansehen →",
+      "dailyTitle": "Heutige Notiz · für Eltern",
+      "dailyStats": "Pflicht {{reqDone}}/{{reqTotal}} · Bonus {{bonusDone}}/{{bonusTotal}} · Heute +{{points}} P",
+      "quickKidLink": "Fehlerheft des Kindes"
     },
     "modal": {
       "close": "Schließen"
@@ -847,7 +870,25 @@
         "limitHelp": "Neue Karten ver-zehnfachen die spätere Last; ≤20 empfohlen (Anki-Standard).",
         "limitUp": "Um 5 erhöhen",
         "limitDown": "Um 5 verringern",
-        "statsLine": "{{name}}: {{streak}} Tage Serie · {{total}} Karten · heute {{due}} fällig"
+        "statsLine": "{{name}}: {{streak}} Tage Serie · {{total}} Karten · heute {{due}} fällig",
+        "l0l4Title": "Lernsystem",
+        "l0l4Tag": "L0-L4 Schalter",
+        "errorbookTitle": "📕 Fehleranalyse",
+        "errorbookTier": "L1",
+        "errorbookDesc": "Ein Arbeitsblatt abfotografieren, die KI schneidet und bewertet; nicht erkannte Fragen gehen auf \"manuell\" und das Originalfoto bleibt. Falsche Fragen landen im Fehlerheft, korrigierte wandern ins Wiederholen.",
+        "errorbookPopover": "? Was passiert aus: Bestehende Fehler und Wiederholungskarten bleiben sichtbar, aber neue Arbeitsblätter werden nicht mehr zerschnitten und bewertet; der Fehlerheft-Eintrag beim Kind verschwindet ebenfalls.",
+        "errorbookLink": "Fehleranalyse-Werkstatt",
+        "errorbookFlag": "Schalter Fehleranalyse",
+        "fsrsTitle": "🔁 Wiederholen nach FSRS",
+        "fsrsTier": "L4",
+        "fsrsDesc": "Wiederholungskarten folgen der Gedächtniskurve; das Kind bekommt täglich eine kleine Portion, sofort neu terminiert bei jeder Antwort.",
+        "fsrsLink": "Kindansicht ansehen",
+        "fsrsFlag": "Schalter Wiederholen",
+        "profileTitle": "📈 Profil & KI-Planung",
+        "profileTier": "L3",
+        "profileDesc": "Fehler, Kurse und Wiederholungen fließen ins Profil; jede KI-Empfehlung nennt ihre Quelle (source_refs) und gilt erst nach Freigabe der Eltern. Chats werden nicht verwendet.",
+        "profileLink": "Profil einrichten →",
+        "profileFlag": "Schalter Profil & KI-Planung"
       }
     },
     "skins": {

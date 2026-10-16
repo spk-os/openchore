@@ -95,6 +95,11 @@ describe('PaperAnalysisModal', () => {
     vi.mocked(api.admin.startPaperAnalysis).mockResolvedValue(runningAnalysis());
     render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={vi.fn()} />);
 
+    // OD pa-upload / pa-upload-note: the launch view explains the flow and
+    // the failed-parse promise before the parent commits.
+    expect(q('[data-test="pa-upload"]')).toBeTruthy();
+    expect(q('[data-test="pa-upload-note"]').textContent).toBeTruthy();
+
     const subject = screen.getByLabelText(/Subject/);
     fireEvent.change(subject, { target: { value: 'physics' } });
     fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
@@ -103,6 +108,12 @@ describe('PaperAnalysisModal', () => {
     // The progress rail replaces the launch form while running.
     await waitFor(() => expect(q('[data-test="pa-progress"]')).toBeTruthy());
     expect(q('[data-test="pa-steps"]')).toBeTruthy();
+    // OD pa-paper-thumb + pa-cut-1/2/3: the live page thumbnail and the
+    // three stage mini cards ride along the progress bar.
+    expect(q('[data-test="pa-paper-thumb"]')).toBeTruthy();
+    expect(q('[data-test="pa-cut-1"]')).toBeTruthy();
+    expect(q('[data-test="pa-cut-2"]')).toBeTruthy();
+    expect(q('[data-test="pa-cut-3"]')).toBeTruthy();
   });
 
   it('polls the running analysis every 2s until the report lands', async () => {
@@ -125,13 +136,19 @@ describe('PaperAnalysisModal', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
     expect(api.admin.getPaperAnalysis).toHaveBeenCalledTimes(2);
 
-    // The report: stats, the error mix, the weak-point list, per-question rows.
+    // The report: stats (OD's four-cell grid), the error mix, the
+    // weak-point list, per-question rows.
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(q('[data-test="pa-report"]')).toBeTruthy();
     expect(q('[data-test="pa-error-dist"]')).toBeTruthy();
     expect(q('[data-test="pa-weak-kc"]')).toBeTruthy();
     expect(q('[data-test="pa-q-1"]')).toBeTruthy();
     expect(q('[data-test="pa-q-2"]')).toBeTruthy();
+    // The four-cell stat grid: wrong rate, sample, wrong count, corrected.
+    const stats = [...document.body.querySelectorAll('[data-test="pa-report-stats"] > div')];
+    expect(stats.length).toBe(4);
+    expect(stats[0].textContent).toContain('33%');
+    expect(stats[1].textContent).toContain('3');
   });
 
   it('renders the report header, export button, source note and follow-up links', async () => {

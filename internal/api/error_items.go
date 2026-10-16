@@ -86,6 +86,12 @@ func (h *ChoreHandler) StartPaperAnalysis(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusServiceUnavailable, "AI is not configured")
 		return
 	}
+	// The parent may have parked the whole L1 loop (flag-errorbook off):
+	// the manual start button obeys the same switch as the auto path.
+	if !h.errorbookEnabled(r.Context()) {
+		writeError(w, http.StatusForbidden, "error analysis is disabled")
+		return
+	}
 
 	// The paper belongs to whoever completed the chore — that's whose
 	// error book the extracted items land in.
@@ -126,6 +132,21 @@ func (h *ChoreHandler) WaitForAnalyses() {
 // contract 「学生拍照上交，自动分析出结果并学习与加强规则措施」.
 const autoPaperAnalysisSetting = "ai_auto_paper_analysis"
 
+// featureErrorbookSetting is the settings-l0l4 master switch for the L1
+// error loop (flag-errorbook). Absent = on; only the literal "false"
+// stops new parses — the popover's promise: existing errors and review
+// cards stay browsable, nothing is deleted.
+const featureErrorbookSetting = "feature_errorbook"
+
+// errorbookEnabled reports whether new paper analyses may start.
+func (h *ChoreHandler) errorbookEnabled(ctx context.Context) bool {
+	on, err := h.store.GetSetting(ctx, featureErrorbookSetting)
+	if err != nil {
+		return true // unreadable setting must not brick the feature
+	}
+	return on != "false"
+}
+
 // queueAutoPaperAnalysis starts the async parse for a completion when the
 // household opted in. Mirrors queueReview's never-block-the-kid shape:
 // the check + create run in a goroutine so a slow settings read can't
@@ -143,6 +164,11 @@ func (h *ChoreHandler) queueAutoPaperAnalysis(completion *model.ChoreCompletion)
 		defer cancel()
 		on, _ := h.store.GetSetting(ctx, autoPaperAnalysisSetting)
 		if on != "true" {
+			return
+		}
+		// The L0-L4 master switch sits above the auto-parse opt-in: both
+		// must be on for the zero-touch path.
+		if !h.errorbookEnabled(ctx) {
 			return
 		}
 		// One analysis per completion: a re-check after an uncheck must not

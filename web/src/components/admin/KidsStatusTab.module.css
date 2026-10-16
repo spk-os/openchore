@@ -605,3 +605,65 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* The quick card's actions row: the report button plus the kid's own
+   error-book link (OD analysis-quick-kid). */
+.quickActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.quickKidLink {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- daily report preview (L1, OD daily-report-preview) ---------- */
+
+/* Today's coach note as the parent's first screen: the date, the note,
+   and the day's chore shape in one line. */
+.dailyReport {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--r-row);
+  background: var(--surface-sunk);
+}
+
+.dailyReport h3 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.dailyDate {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.dailyText {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.dailyStats {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}

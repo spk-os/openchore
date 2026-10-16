@@ -83,6 +83,133 @@
   color: var(--ink-muted);
 }
 
+/* ---------- L0-L4 feature rows (OD settings-l0l4) ---------- */
+
+/* One row per feature: the body (title + L-tier tag, description, the
+   "what if I turn it off" popover) on the left, the deep link and the
+   master switch on the right. */
+.l0l4Row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.l0l4Row + .l0l4Row {
+  border-top: 1px solid var(--line);
+}
+
+.l0l4Body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.l0l4Title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.l0l4Tier {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--waiting) 14%, transparent);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: var(--waiting);
+}
+
+.l0l4Desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 19px;
+  color: var(--ink-muted);
+}
+
+/* The "what if I turn it off" note — always readable, not a hover
+   popover (parents read it before deciding, not after). */
+.l0l4Popover {
+  margin: 2px 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 10px;
+  background: var(--surface-sunk);
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+.l0l4Actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.l0l4Link {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+/* The OD switch: a pill track with a sliding knob. */
+.swSwitch {
+  flex: none;
+  width: 46px;
+  height: 28px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  cursor: pointer;
+}
+
+.swSwitch i {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+}
+
+.swOn {
+  background: var(--done);
+  box-shadow: none;
+}
+
+.swOn i {
+  margin-left: auto;
+  background: var(--on-done);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .swSwitch i {
+    transition: margin-left 0.16s ease, background 0.16s ease;
+  }
+}
+
+@media (max-width: 560px) {
+  .l0l4Row {
+    flex-direction: column;
+  }
+
+  .l0l4Actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
 /* AI connection: one group per service. */
 .connection {
   display: flex;

@@ -6,6 +6,52 @@
   line-height: 20px;
 }
 
+/* OD pa-upload / pa-upload-note: the launch view's upload explainer —
+   what the AI does and what a failed parse means, before the parent
+   commits. */
+.upload {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: var(--surface-sunk);
+}
+
+.uploadIcon {
+  flex: none;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.uploadBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.uploadTitle {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 750;
+}
+
+.uploadDesc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--ink-muted);
+}
+
+.uploadNote {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
 .subjectRow {
   display: flex;
   align-items: center;
@@ -78,6 +124,80 @@
   transition: width 0.4s ease;
 }
 
+/* OD pa-paper-thumb: a thumbnail of the page under parse — printed rule
+   lines plus the dashed cut boxes that track the two stages. */
+.paperThumb {
+  position: relative;
+  margin: var(--space-2) 0 var(--space-3);
+  padding: 10px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+
+.paperThumb .pl {
+  display: block;
+  height: 8px;
+  margin: 6px 6px;
+  border-radius: 3px;
+  background: var(--surface-sunk);
+}
+
+.paperThumb .w9 { width: 92%; }
+.paperThumb .w7 { width: 74%; }
+.paperThumb .w5 { width: 55%; }
+
+.bbox {
+  position: absolute;
+  left: 8px;
+  border: 1.5px dashed var(--waiting);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--waiting);
+  background: color-mix(in srgb, var(--surface-raised) 82%, transparent);
+}
+
+.bbox:nth-of-type(1) { top: 8px; }
+.bbox:nth-of-type(2) { top: 52px; }
+.bbox:nth-of-type(3) { top: 96px; }
+
+.bboxWait {
+  border-color: var(--line);
+  color: var(--ink-muted);
+}
+
+/* OD pa-cut-1/2/3: the three stage mini cards, colour-coded by the left
+   border (done ink / active star / not-yet line). */
+.cutRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mini {
+  padding: 2px 0 2px 10px;
+  border-left: 3px solid var(--line);
+}
+
+.mini b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 750;
+}
+
+.mini p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+.miniDone { border-left-color: var(--done); }
+.miniStar { border-left-color: var(--star); }
+
 /* ---------- the diagnosis report ---------- */
 
 .report {
@@ -133,9 +253,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
-}
-
-.stat {
+}.stat {
   display: flex;
   flex-direction: column;
   gap: 2px;

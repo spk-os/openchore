@@ -108,10 +108,56 @@ const QuickAnalysisCard: React.FC<{
             {a.summary.weak_tags.slice(0, 3).map(w => w.name).join(' · ')}
           </p>
         )}
+        <div className={styles.quickActions}>
+          <button type="button" className={styles.quickLink} data-test="analysis-quick-link" onClick={() => onOpen(a)}>
+            {t('admin.kidsStatusTab.quickLink')}
+          </button>
+          {/* OD analysis-quick-kid: the parent lands in the kid's own
+              error book in one tap — the questions to fix, on the screen
+              the kid sees. */}
+          <button
+            type="button"
+            className={styles.quickKidLink}
+            data-test="analysis-quick-kid"
+            onClick={() => { window.location.hash = '#tab=errorbook'; }}
+          >
+            {t('admin.kidsStatusTab.quickKidLink')}
+          </button>
+        </div>
       </div>
-      <button type="button" className={styles.quickLink} data-test="analysis-quick-link" onClick={() => onOpen(a)}>
-        {t('admin.kidsStatusTab.quickLink')}
-      </button>
+    </section>
+  );
+};
+
+/** OD daily-report-preview: today's coach note as the parent's first
+ *  screen — the date, the note itself and the day's chore shape in one
+ *  line (must-do / bonus / points today). */
+const DailyReportPreview: React.FC<{ kid: KidStatus }> = ({ kid }) => {
+  const { t } = useTranslation();
+  const b = breakdownFor(kid.chores);
+  const note = kid.coachNote;
+  const text = note?.parent_text || note?.child_text || '';
+  const pointsToday = kid.chores
+    .filter(c => c.completed && c.category !== 'bonus')
+    .reduce((n, c) => n + (c.points_value ?? 0), 0);
+  return (
+    <section className={styles.dailyReport} data-test="daily-report-preview">
+      <h3>
+        {t('admin.kidsStatusTab.dailyTitle')}
+        <span className={styles.dailyDate} data-test="daily-report-date">
+          {new Date().toLocaleDateString()}
+        </span>
+      </h3>
+      <p className={styles.dailyText} data-test="daily-report-text">{text}</p>
+      <p className={styles.dailyStats} data-test="daily-report-stats">
+        {t('admin.kidsStatusTab.dailyStats', {
+          reqDone: b.requiredCompleted + b.coreCompleted,
+          reqTotal: b.requiredTotal + b.coreTotal,
+          bonusDone: b.bonusCompleted,
+          bonusTotal: b.bonusTotal,
+          points: pointsToday,
+        })}
+      </p>
     </section>
   );
 };
@@ -405,6 +451,11 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
           kid={kid}
           onOpen={a => { setQuickAnalysis(a); setQuickKidId(kid.user.id); }}
         />
+      ))}
+      {/* OD daily-report-preview: the freshest coach note of the day as a
+          standalone card — the parent's summary before the per-kid rows. */}
+      {kids.filter(k => k.coachNote).slice(0, 1).map(kid => (
+        <DailyReportPreview key={`daily-${kid.user.id}`} kid={kid} />
       ))}
       {quickAnalysis && quickKidId != null && (
         <PaperAnalysisModal

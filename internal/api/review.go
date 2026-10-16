@@ -28,6 +28,10 @@ func NewReviewHandler(s *store.Store) *ReviewHandler {
 	return &ReviewHandler{store: s, LearnerHook: newLearnerHook(s)}
 }
 
+// featureFSRSSetting is the settings-l0l4 master switch for spaced
+// review (flag-fsrs). Absent = on; only the literal "false" disables.
+const featureFSRSSetting = "feature_fsrs"
+
 // reviewTodayResponse is the kid's queue: the cards, the parent's
 // preview list ("接下来还会遇到"), and the streak for the 🔥 line.
 type reviewTodayResponse struct {
@@ -49,6 +53,16 @@ type reviewTodayCard struct {
 // upcoming preview, and the streak.
 func (h *ReviewHandler) GetReviewToday(w http.ResponseWriter, r *http.Request) {
 	user := UserFromContext(r.Context())
+	// The L0-L4 master switch (settings-l0l4's flag-fsrs): off means the
+	// kid sees an empty queue — the review screen's "nothing due" state —
+	// but nothing is graded, suspended or deleted. Missing key = on.
+	if off, _ := h.store.GetSetting(r.Context(), featureFSRSSetting); off == "false" {
+		writeJSON(w, http.StatusOK, reviewTodayResponse{
+			Due:      []reviewTodayCard{},
+			Upcoming: []reviewTodayCard{},
+		})
+		return
+	}
 	now := time.Now()
 	start := dayStart(now)
 

@@ -931,7 +931,27 @@
       "linkErrorbook": "孩子端错题本与复习",
       "linkProfile": "学习画像与 AI 规划",
       "linkCourses": "把薄弱点变成一门专项课",
-      "linkSettings": "错题分析开关与复习参数"
+      "linkSettings": "错题分析开关与复习参数",
+      "uploadAria": "上传试卷区",
+      "uploadTitle": "拍卷分析（支持多页）",
+      "uploadDesc": "上传整张试卷，AI 自动切成单题、判读错因、生成诊断报告；一次最多 9 张图或 1 份 PDF",
+      "uploadNote": "解析失败会标「待人工」，不会丢原图",
+      "thumbAria": "试卷缩略示意：纸张上的题目行，三处虚线框为已切分的题目区域",
+      "thumbBoxCut": "已切 {{count}} 题",
+      "thumbBoxJudging": "判读中 {{judged}}/{{total}}",
+      "thumbBoxWait": "待切分",
+      "cut1Active": "① 切题中…",
+      "cut1Title": "① 切分完成 · {{count}} 题",
+      "cut1Sub": "按题号 + 版式切出题目块，原图保留可回溯",
+      "cut2Title": "② 判读中 · {{judged}}/{{total}} ✨",
+      "cut2Done": "② 判读完成",
+      "cut2Sub": "逐题比对标准答案，判「计算错误 / 概念不清 / 审题失误」",
+      "cut3Title": "③ 报告未生成",
+      "cut3Sub": "判读完成后自动汇总错因分布与薄弱知识点",
+      "statWrongRate": "错题率",
+      "statWeakest": "最薄弱知识点",
+      "statSample": "切题数",
+      "statFixed": "已订正 / 错题"
     },
     "choresTab": {
       "addChore": "添加任务",
@@ -1245,7 +1265,10 @@
       "petStatLabel": "宠物状态",
       "quickTitle": "错题分析快报",
       "quickEmpty": "还没有卷面分析：审批卡里点「AI 错题分析」拍卷开始",
-      "quickLink": "查看报告 →"
+      "quickLink": "查看报告 →",
+      "dailyTitle": "今日点评 · 家长版",
+      "dailyStats": "必做 {{reqDone}}/{{reqTotal}} · 加分 {{bonusDone}}/{{bonusTotal}} · 今日 +{{points}} 分",
+      "quickKidLink": "孩子端错题本"
     },
     "modal": {
       "close": "关闭"
@@ -1613,7 +1636,25 @@
         "limitHelp": "新卡每日 10 倍放大复习负载，建议 ≤20（Anki 官方默认值）。",
         "limitUp": "增加 5 张",
         "limitDown": "减少 5 张",
-        "statsLine": "{{name}}：连续复习 {{streak}} 天 · 共 {{total}} 张卡 · 今天待复习 {{due}} 张"
+        "statsLine": "{{name}}：连续复习 {{streak}} 天 · 共 {{total}} 张卡 · 今天待复习 {{due}} 张",
+        "l0l4Title": "学习系统",
+        "l0l4Tag": "L0-L4 开关",
+        "errorbookTitle": "📕 错题分析",
+        "errorbookTier": "L1",
+        "errorbookDesc": "拍卷自动切题判读，失败标「待人工」不丢原图；错题进孩子端错题本，订正后自动排入复习",
+        "errorbookPopover": "? 关掉后会怎样：已有错题与复习卡保留可查，但新拍的试卷不再切题判读、不再自动入错题本；孩子端错题本入口同时隐藏。",
+        "errorbookLink": "错题分析工作台",
+        "errorbookFlag": "错题分析开关",
+        "fsrsTitle": "🔁 间隔复习（FSRS）",
+        "fsrsTier": "L4",
+        "fsrsDesc": "按记忆曲线排复习卡；孩子端每天一小份，答对 / 再想一次即时改排期",
+        "fsrsLink": "预览孩子端",
+        "fsrsFlag": "间隔复习开关",
+        "profileTitle": "📈 画像与 AI 规划",
+        "profileTier": "L3",
+        "profileDesc": "聚合错题 / 课程 / 复习数据生成画像，AI 建议全部标注依据（source_refs），家长终审后生效；不使用聊天记录",
+        "profileLink": "配置画像 →",
+        "profileFlag": "画像与 AI 规划开关"
       }
     },
     "skins": {

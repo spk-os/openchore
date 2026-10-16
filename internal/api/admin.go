@@ -25,6 +25,10 @@ var writableSettings = map[string]bool{
 	"pet_enabled":               true,
 	"bonus_drop_enabled":        true,
 	"fsrs_daily_new_cards":      true,
+	// The L0-L4 master switches (settings-l0l4): one per feature row.
+	"feature_errorbook": true,
+	"feature_fsrs":      true,
+	"feature_profile":   true,
 }
 
 type AdminHandler struct {

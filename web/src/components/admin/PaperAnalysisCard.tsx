@@ -54,6 +54,50 @@ const StepRail: React.FC<{ analysis: PaperAnalysis }> = ({ analysis }) => {
   );
 };
 
+/** The OD pa-paper-thumb: a thumbnail of the page being parsed — rule
+ *  lines for the printed questions plus three dashed cut boxes marking
+ *  where the segmenter has been, where the judge is, and what is left. */
+const PaperThumb: React.FC<{ analysis: PaperAnalysis }> = ({ analysis }) => {
+  const { t } = useTranslation();
+  // The three boxes' captions track the live stage: everything cut so
+  // far, the judge's current position (progress-blended), and the rest.
+  const total = analysis.total_questions > 0 ? analysis.total_questions : 0;
+  const judged = Math.max(1, Math.round(analysis.progress / 100 * Math.max(total, 1)));
+  const cutting = analysis.stage === 'segmenting' || analysis.stage === 'queued';
+  return (
+    <div
+      className={s.paperThumb}
+      data-test="pa-paper-thumb"
+      role="img"
+      aria-label={t('admin.analysis.thumbAria')}
+    >
+      <i className={s.pl} /><i className={`${s.pl} ${s.w9}`} /><i className={`${s.pl} ${s.w7}`} />
+      <i className={`${s.pl} ${s.w9}`} /><i className={`${s.pl} ${s.w5}`} /><i className={`${s.pl} ${s.w9}`} />
+      <i className={`${s.pl} ${s.w7}`} />
+      <span className={s.bbox}>
+        <b>{cutting ? t('admin.analysis.cut1Active') : t('admin.analysis.thumbBoxCut', { count: total })}</b>
+      </span>
+      <span className={s.bbox}>
+        <b>{t('admin.analysis.thumbBoxJudging', { judged: cutting ? 0 : judged, total })}</b>
+      </span>
+      <span className={`${s.bbox} ${s.bboxWait}`}>
+        <b>{t('admin.analysis.thumbBoxWait')}</b>
+      </span>
+    </div>
+  );
+};
+
+/** One of the OD pa-cut-{1,2,3} mini cards: the stage's one-line state,
+ *  colour-coded by left border (done / active / not-yet). */
+const CutMini: React.FC<{ test: string; tone: 'done' | 'star' | 'line'; title: string; sub: string }> = ({ test, tone, title, sub }) => (
+  <div className={`${s.mini} ${tone === 'done' ? s.miniDone : tone === 'star' ? s.miniStar : s.miniLine}`} data-test={test}>
+    <div>
+      <b>{title}</b>
+      <p>{sub}</p>
+    </div>
+  </div>
+);
+
 /** The diagnosis report: stats, error mix, weak points, per-question rows. */
 const ReportView: React.FC<{
   analysis: PaperAnalysis;
@@ -181,13 +225,24 @@ const ReportView: React.FC<{
       </div>
 
       <div className={s.stats} data-test="pa-report-stats">
+        {/* OD pa-report-stats is a four-cell grid: the wrong rate, the
+            sample count, the corrected share and the totals — the paper's
+            whole shape in one row. */}
+        <div className={s.stat}>
+          <b>{wrongPct}%</b>
+          <span>{t('admin.analysis.statWrongRate')}</span>
+        </div>
         <div className={s.stat}>
           <b>{analysis.total_questions}</b>
-          <span>{t('admin.analysis.totalStat')}</span>
+          <span>{t('admin.analysis.statSample')}</span>
         </div>
         <div className={s.stat}>
           <b>{analysis.wrong_count}</b>
           <span>{t('admin.analysis.wrongStat')}</span>
+        </div>
+        <div className={s.stat}>
+          <b>{analysis.total_questions - analysis.wrong_count}</b>
+          <span>{t('admin.analysis.statFixed')}</span>
         </div>
       </div>
 
@@ -518,6 +573,17 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
         {!analysis && (
           <>
             <p className={s.launchHint}>{t('admin.analysis.launchHint')}</p>
+            {/* OD pa-upload / pa-upload-note: the launch view tells the
+                parent what happens on a failed parse before they commit —
+                「解析失败会标待人工，不会丢原图」. */}
+            <div className={s.upload} data-test="pa-upload" role="group" aria-label={t('admin.analysis.uploadAria')}>
+              <span className={s.uploadIcon} aria-hidden>📄</span>
+              <div className={s.uploadBody}>
+                <p className={s.uploadTitle}>{t('admin.analysis.uploadTitle')}</p>
+                <p className={s.uploadDesc}>{t('admin.analysis.uploadDesc')}</p>
+                <p className={s.uploadNote} data-test="pa-upload-note">{t('admin.analysis.uploadNote')}</p>
+              </div>
+            </div>
             <label className={s.subjectRow}>
               <span>{t('admin.analysis.subjectLabel')}</span>
               <select value={subject} onChange={e => setSubject(e.target.value)}>
@@ -541,6 +607,37 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
             </p>
             <div className={s.progressBar}>
               <i style={{ width: `${analysis.progress}%` }} />
+            </div>
+            {/* OD pa-paper-thumb + pa-cut-1/2/3: the page being parsed and
+                the three stage cards — what is cut, what is judged, what the
+                report will hold. All from the live progress snapshot. */}
+            <PaperThumb analysis={analysis} />
+            <div className={s.cutRow}>
+              <CutMini
+                test="pa-cut-1"
+                tone={analysis.stage === 'segmenting' || analysis.stage === 'queued' ? 'star' : 'done'}
+                title={analysis.stage === 'segmenting' || analysis.stage === 'queued'
+                  ? t('admin.analysis.cut1Active')
+                  : t('admin.analysis.cut1Title', { count: analysis.total_questions || 0 })}
+                sub={t('admin.analysis.cut1Sub')}
+              />
+              <CutMini
+                test="pa-cut-2"
+                tone={analysis.stage === 'judging' ? 'star' : analysis.stage === 'done' ? 'done' : 'line'}
+                title={analysis.stage === 'judging'
+                  ? t('admin.analysis.cut2Title', {
+                      judged: Math.max(1, Math.round(analysis.progress / 100 * Math.max(analysis.total_questions, 1))),
+                      total: analysis.total_questions || 0,
+                    })
+                  : analysis.stage === 'done' ? t('admin.analysis.cut2Done') : t('admin.analysis.cut2Sub')}
+                sub={analysis.stage === 'judging' || analysis.stage === 'done' ? t('admin.analysis.cut2Sub') : ''}
+              />
+              <CutMini
+                test="pa-cut-3"
+                tone={analysis.stage === 'done' ? 'done' : 'line'}
+                title={t('admin.analysis.cut3Title')}
+                sub={t('admin.analysis.cut3Sub')}
+              />
             </div>
           </div>
         )}

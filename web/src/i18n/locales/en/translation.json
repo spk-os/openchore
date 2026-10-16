@@ -165,7 +165,27 @@
       "linkErrorbook": "Kid's error book & reviews",
       "linkProfile": "Learning profile & AI planning",
       "linkCourses": "Turn weak points into a course",
-      "linkSettings": "Analysis switches & review params"
+      "linkSettings": "Analysis switches & review params",
+      "uploadAria": "Paper upload area",
+      "uploadTitle": "Paper analysis (multi-page)",
+      "uploadDesc": "Upload the whole paper: AI cuts it into single questions, judges each one and builds the diagnosis; up to 9 images or 1 PDF at a time",
+      "uploadNote": "Failed parses are flagged \"manual\" — the original photo is never lost",
+      "thumbAria": "Paper thumbnail: question lines with three dashed cut boxes",
+      "thumbBoxCut": "{{count}} cut",
+      "thumbBoxJudging": "Judging {{judged}}/{{total}}",
+      "thumbBoxWait": "To cut",
+      "cut1Active": "① Cutting…",
+      "cut1Title": "① Cut · {{count}} questions",
+      "cut1Sub": "Question blocks cut by number and layout; the original stays traceable",
+      "cut2Title": "② Judging · {{judged}}/{{total}} ✨",
+      "cut2Done": "② Judged",
+      "cut2Sub": "Each answer compared: calculation / concept / reading errors",
+      "cut3Title": "③ Report not built",
+      "cut3Sub": "Error mix and weak points are summarized once judging finishes",
+      "statWrongRate": "Wrong rate",
+      "statWeakest": "Weakest point",
+      "statSample": "Questions",
+      "statFixed": "Fixed / wrong"
     },
     "choresTab": {
       "addChore": "Add Chore",
@@ -479,7 +499,10 @@
       "petStatLabel": "Pet status",
       "quickTitle": "Mistake analysis flash",
       "quickEmpty": "No paper analysis yet: tap “AI mistake analysis” on an approval card to start",
-      "quickLink": "See the report →"
+      "quickLink": "See the report →",
+      "dailyTitle": "Today's note · for parents",
+      "dailyStats": "Must-do {{reqDone}}/{{reqTotal}} · Bonus {{bonusDone}}/{{bonusTotal}} · Today +{{points}} pts",
+      "quickKidLink": "Kid's error book"
     },
     "modal": {
       "close": "Close"
@@ -847,7 +870,25 @@
         "limitHelp": "New cards amplify ~10× into future reviews; keep it ≤20 (Anki's default).",
         "limitUp": "Increase by 5",
         "limitDown": "Decrease by 5",
-        "statsLine": "{{name}}: {{streak}}-day streak · {{total}} cards · {{due}} due today"
+        "statsLine": "{{name}}: {{streak}}-day streak · {{total}} cards · {{due}} due today",
+        "l0l4Title": "Learning system",
+        "l0l4Tag": "L0-L4 switches",
+        "errorbookTitle": "📕 Error analysis",
+        "errorbookTier": "L1",
+        "errorbookDesc": "Photograph a paper and the AI segments and grades it; failed parses go to \"manual review\" and keep the original photo. Wrong questions land in the kid's error book and corrected ones flow into review.",
+        "errorbookPopover": "? What happens when it's off: existing errors and review cards stay browsable, but newly photographed papers are no longer segmented or graded and no longer enter the error book; the kid-side error book entry hides too.",
+        "errorbookLink": "Error analysis workbench",
+        "errorbookFlag": "Error analysis switch",
+        "fsrsTitle": "🔁 Spaced review (FSRS)",
+        "fsrsTier": "L4",
+        "fsrsDesc": "Review cards follow the memory curve; the kid gets a small daily batch, re-scheduled the moment they answer.",
+        "fsrsLink": "Preview kid side",
+        "fsrsFlag": "Spaced review switch",
+        "profileTitle": "📈 Profile & AI planning",
+        "profileTier": "L3",
+        "profileDesc": "Aggregates errors, courses and review data into a profile; every AI suggestion cites its basis (source_refs) and takes effect only after the parent approves. No chat logs are used.",
+        "profileLink": "Configure profile →",
+        "profileFlag": "Profile & AI planning switch"
       }
     },
     "skins": {
