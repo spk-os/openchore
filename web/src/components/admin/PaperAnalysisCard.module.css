@@ -95,6 +95,40 @@
   color: var(--ink-muted);
 }
 
+/* OD pa-report-head: the one-line verdict of the whole paper. */
+.reportHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reportHeadBig {
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 24px;
+}
+
+.reportHeadBig em {
+  font-style: normal;
+  color: var(--waiting);
+}
+
+.reportHeadSub {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-muted);
+}
+
+/* OD pa-source-note: the traceability one-liner under the actions. */
+.sourceNote {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
 .stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -382,3 +416,32 @@
   font-weight: 650;
   line-height: 20px;
 }
+
+/* OD pa-links-card 「接着去哪」: the report's follow-up links. */
+.linksCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: var(--surface-sunk);
+}
+
+.linksCard h4 {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.linkRow {
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 20px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.linkRow:hover { text-decoration: underline; }

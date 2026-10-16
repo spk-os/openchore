@@ -76,6 +76,11 @@ describe('ErrorBookScreen', () => {
     expect(q(container, '[data-test="eb-mastery-new"]')).toBeTruthy();
     expect(q(container, '[data-test="eb-mastery-reviewing"]')).toBeTruthy();
     expect(q(container, '[data-test="eb-mastery-mastered"]')).toBeTruthy();
+    // Each card's mastery fill line carries the OD three-state mapping
+    // (10/45/100) and is addressable per item.
+    expect(q(container, '[data-test="eb-mastery-bar-1"] i')?.getAttribute('style')).toContain('10%');
+    expect(q(container, '[data-test="eb-mastery-bar-2"] i')?.getAttribute('style')).toContain('45%');
+    expect(q(container, '[data-test="eb-mastery-bar-3"] i')?.getAttribute('style')).toContain('100%');
     // The AI explanation card and the kid's own answer are both shown.
     expect(q(container, '[data-test="eb-ai-card"]')).toBeTruthy();
     expect(qAll(container, 'span').filter(el => el.textContent === 'You wrote:').length).toBe(3);

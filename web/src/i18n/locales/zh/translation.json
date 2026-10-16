@@ -305,7 +305,8 @@
       "entryTodo": "{{count}} 题待订正 · ✨ AI 讲解已就绪（只讲错的那一步）",
       "entryOpen": "查看 →",
       "entryEmptyTodo": "{{count}} 题在册 · ✨ AI 讲解已就绪",
-      "choreSource": "来自：{{source}}"
+      "choreSource": "来自：{{source}}",
+      "masteryBarLabel": "掌握度 {{percent}}%"
     },
     "goal": {
       "addPlaceholder": "加入积分（最多 {{max}}）",
@@ -915,7 +916,22 @@
       "distilled": "已提炼 {{count}} 条学习措施，在「措施」tab 管理",
       "distillFailed": "提炼失败，稍后再试",
       "loopTitle": "L1 错题闭环",
-      "loopSteps": "拍卷分析 → 错题入本 → 订正任务 → 孩子订正 → FSRS 复习巩固"
+      "loopSteps": "拍卷分析 → 错题入本 → 订正任务 → 孩子订正 → FSRS 复习巩固",
+      "headTotal": "共 {{total}} 题，错",
+      "headWrong": "{{wrong}} 题",
+      "headWrongRate": "错题率 {{percent}}%",
+      "exportBtn": "导出报告",
+      "exportCopied": "报告已复制到剪贴板",
+      "exportDownloaded": "报告已下载",
+      "exportTitle": "卷面分析报告",
+      "sourceNote": "生成的每项任务都会带溯源标签「来自：{{source}}」，孩子端任务行与审批卡都能看到出处",
+      "sourceName": "卷面分析",
+      "qVerdictWrong": "错题",
+      "linksTitle": "接着去哪",
+      "linkErrorbook": "孩子端错题本与复习",
+      "linkProfile": "学习画像与 AI 规划",
+      "linkCourses": "把薄弱点变成一门专项课",
+      "linkSettings": "错题分析开关与复习参数"
     },
     "choresTab": {
       "addChore": "添加任务",

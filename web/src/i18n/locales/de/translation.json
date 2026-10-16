@@ -150,7 +150,22 @@
       "distilled": "{{count}} Maßnahmen destilliert — im Tab „Maßnahmen“ verwalten",
       "distillFailed": "Destillieren fehlgeschlagen, später erneut versuchen",
       "loopTitle": "L1 Fehlerfrage-Schleife",
-      "loopSteps": "Foto-Analyse → Fehlerheft → Korrekturaufgaben → Kind korrigiert → FSRS-Wiederholung"
+      "loopSteps": "Foto-Analyse → Fehlerheft → Korrekturaufgaben → Kind korrigiert → FSRS-Wiederholung",
+      "headTotal": "{{total}} Fragen,",
+      "headWrong": "{{wrong}} falsch",
+      "headWrongRate": "{{percent}}% Fehlerquote",
+      "exportBtn": "Bericht exportieren",
+      "exportCopied": "Bericht in die Zwischenablage kopiert",
+      "exportDownloaded": "Bericht heruntergeladen",
+      "exportTitle": "Korrekturanalyse-Bericht",
+      "sourceNote": "Jede erzeugte Aufgabe trägt ein Rückverweis-Label「von: {{source}}», sichtbar in der Aufgabenzeile des Kindes und auf der Prüfkarte",
+      "sourceName": "Korrekturanalyse",
+      "qVerdictWrong": "falsch",
+      "linksTitle": "Wie geht es weiter",
+      "linkErrorbook": "Fehlerheft & Wiederholungen des Kindes",
+      "linkProfile": "Lernprofil & KI-Planung",
+      "linkCourses": "Schwachpunkte in einen Kurs verwandeln",
+      "linkSettings": "Analyse-Schalter & Wiederholungsparameter"
     },
     "choresTab": {
       "addChore": "Aufgabe hinzufügen",
@@ -1566,7 +1581,8 @@
       "entryTodo": "{{count}} zu korrigieren · ✨ AI-Erklärung bereit",
       "entryOpen": "Öffnen →",
       "entryEmptyTodo": "{{count}} im Heft · ✨ AI-Erklärung bereit",
-      "choreSource": "Aus: {{source}}"
+      "choreSource": "Aus: {{source}}",
+      "masteryBarLabel": "Beherrschung {{percent}}%"
     },
     "goal": {
       "addPlaceholder": "Punkte dazu (bis {{max}})",

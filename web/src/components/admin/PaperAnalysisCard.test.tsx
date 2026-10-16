@@ -134,6 +134,26 @@ describe('PaperAnalysisModal', () => {
     expect(q('[data-test="pa-q-2"]')).toBeTruthy();
   });
 
+  it('renders the report header, export button, source note and follow-up links', async () => {
+    vi.mocked(api.admin.startPaperAnalysis).mockResolvedValue(doneAnalysis());
+    vi.mocked(api.errorItems.list).mockResolvedValue([]);
+    render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
+
+    // The one-line verdict (OD pa-report-head): totals + wrong rate.
+    await waitFor(() => expect(q('[data-test="pa-report-head"]')).toBeTruthy());
+    expect(q('[data-test="pa-report-head"]').textContent).toContain('3');
+    expect(q('[data-test="pa-report-head"]').textContent).toContain('33%');
+    // Export (OD pa-export-btn) and the traceability note (pa-source-note).
+    expect(q('[data-test="pa-export-btn"]')).toBeTruthy();
+    expect(q('[data-test="pa-source-note"]').textContent).toContain('paper analysis');
+    // The follow-up links (OD pa-links-card) navigate to dashboard tabs.
+    expect(q('[data-test="pa-links-card"]')).toBeTruthy();
+    expect(q('[data-test="pa-link-errorbook"]').getAttribute('href')).toBe('#tab=errorbook');
+    expect(q('[data-test="pa-link-settings"]').getAttribute('href')).toBe('#tab=settings');
+  });
+
   it('creates a correction task from a wrong question with one tap', async () => {
     vi.mocked(api.admin.startPaperAnalysis).mockResolvedValue(doneAnalysis());
     vi.mocked(api.errorItems.list).mockResolvedValue([]);

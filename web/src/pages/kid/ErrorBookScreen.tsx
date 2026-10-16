@@ -22,6 +22,18 @@ const errorTypeLabel = (t: (k: string) => string, type?: string) => {
   }
 };
 
+/** The OD eb-cause-{type} suffix: the cause chip's test hook names the
+ *  error type (calc / concept / read / method / unknown). */
+const causeSuffix = (type?: string) => {
+  switch (type) {
+    case 'calculation': return 'calc';
+    case 'concept': return 'concept';
+    case 'reading': return 'read';
+    case 'method': return 'method';
+    default: return 'unknown';
+  }
+};
+
 /** A subject's display name: the known five translate, the rest stay as-is. */
 const subjectLabel = (t: (k: string) => string, subject: string) => {
   const known = ['math', 'chinese', 'english', 'physics', 'chemistry'];
@@ -31,6 +43,10 @@ const subjectLabel = (t: (k: string) => string, subject: string) => {
 /** The mastery badge: 🆕 / 🔁 / ✅ — the card's most scannable signal. */
 const masteryClass = (m: number) =>
   m === 2 ? 'mastered' : m === 1 ? 'reviewing' : 'new';
+
+/** The mastery bar's fill: the OD prototype's three-state mapping
+ *  (new ≈ just recorded, reviewing = the 45% midline, mastered = full). */
+const masteryPercent = (m: number) => (m === 2 ? 100 : m === 1 ? 45 : 10);
 
 /** "明天" / "3 天后" style relative label for the next review date. */
 function reviewWhen(t: ReturnType<typeof useTranslation>['t'], iso?: string): string {
@@ -99,7 +115,7 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ item, onDone, configSummary }) =>
       <header className={s.ebCardHead}>
         <div className={s.ebCardMeta}>
           <span className={s.ebSubject}>{subjectLabel(t, item.subject)}</span>
-          <span className={s.ebCause} data-test="eb-cause">
+          <span className={s.ebCause} data-test={`eb-cause-${causeSuffix(item.error_type)}`}>
             {errorTypeLabel(t, item.error_type)}
           </span>
         </div>
@@ -112,6 +128,18 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ item, onDone, configSummary }) =>
             : t('kid.errorbook.masteryNew')}
         </span>
       </header>
+
+      {/* The OD eb-mastery-bar: the three-state machine made visible as a
+          fill line under the header — how far this question has travelled
+          from "just got it wrong" to "mastered". */}
+      <div
+        className={s.ebMasteryBar}
+        data-test={`eb-mastery-bar-${item.id}`}
+        role="img"
+        aria-label={t('kid.errorbook.masteryBarLabel', { percent: masteryPercent(item.mastery_level) })}
+      >
+        <i style={{ width: `${masteryPercent(item.mastery_level)}%` }} />
+      </div>
 
       <MathText as="p" className={s.ebStem} text={item.question_text} />
 

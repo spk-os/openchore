@@ -405,3 +405,45 @@ func TestAutoPaperAnalysisOffByDefault(t *testing.T) {
 		t.Fatalf("expected no auto analysis with the setting off, got %d", len(analyses))
 	}
 }
+
+
+// TestErrorItemsSurviveCompletionDelete locks the 035 migration's contract:
+// deleting the chore (which cascades schedules → completions) must keep the
+// kid's extracted error items — the error book is a learning asset that
+// outlives the task that produced it. Regression guard for the silent
+// history loss the CASCADE foreign key used to cause.
+func TestErrorItemsSurviveCompletionDelete(t *testing.T) {
+	env, _ := setupPaperTest(t)
+	env.createAdmin(t)
+	kidID, completionID := completePhotoChore(t, env)
+
+	analysisID := env.startAnalysis(t, completionID)
+	env.chores.WaitForAnalyses()
+	_ = env.waitForAnalysisDone(t, analysisID)
+
+	// The kid owns their extracted items before any cleanup.
+	resp := env.expectStatus(t, "GET", "/api/error-items", nil, childHeaders(kidID), http.StatusOK)
+	var items []errorItemResp
+	decodeBody(t, resp, &items)
+	if len(items) == 0 {
+		t.Fatal("expected error items before the chore delete")
+	}
+
+	// Which chore the completion belongs to: the completion row carries the
+	// schedule, the schedule the chore. Delete the chore (the parent's task
+	// cleanup) — schedules and completions cascade away.
+	cc := env.completion(t, completionID)
+	var scheduleID, choreID int64
+	env.db.QueryRow(
+		"SELECT id, chore_id FROM chore_schedules WHERE id = ?", cc.ChoreScheduleID,
+	).Scan(&scheduleID, &choreID)
+	env.expectStatus(t, "DELETE", fmt.Sprintf("/api/chores/%d", choreID), nil, adminHeaders(), http.StatusNoContent)
+
+	// The error book survives: same items, only the completion link dropped.
+	resp = env.expectStatus(t, "GET", "/api/error-items", nil, childHeaders(kidID), http.StatusOK)
+	var after []errorItemResp
+	decodeBody(t, resp, &after)
+	if len(after) != len(items) {
+		t.Fatalf("error items must survive the chore delete: had %d, left %d", len(items), len(after))
+	}
+}

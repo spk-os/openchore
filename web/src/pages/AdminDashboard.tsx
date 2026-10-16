@@ -55,9 +55,32 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user, session } = useAuth();
-  const [tab, setTab] = useState<Tab>('kids-status');
+  // The tab is state, not a route — but deep links (#tab=errorbook) and the
+  // paper-analysis report's 「接着去哪」 links need to move it from outside
+  // the component, so a tiny hash protocol covers both: the hash names the
+  // tab, and hashchange lands on it (and clears the hash so refresh stays
+  // on the default).
+  const tabFromHash = () => {
+    const m = window.location.hash.match(/^#tab=([a-z-]+)/);
+    return m && (TABS.some(x => x.id === m[1])) ? (m[1] as Tab) : null;
+  };
+  const [tab, setTab] = useState<Tab>(() => tabFromHash() ?? 'kids-status');
   const [pendingCount, setPendingCount] = useState(0);
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
+
+  useEffect(() => {
+    const onHash = () => {
+      const next = tabFromHash();
+      if (next) {
+        setTab(next);
+        // Strip the hash so a refresh returns to the default tab and the
+        // browser back button doesn't replay tab switches.
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
   const refreshCount = useCallback(() => {
     api.chores.listPending().then(p => setPendingCount(p.length)).catch(() => {});

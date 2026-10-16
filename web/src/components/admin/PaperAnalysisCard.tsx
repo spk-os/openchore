@@ -58,7 +58,8 @@ const StepRail: React.FC<{ analysis: PaperAnalysis }> = ({ analysis }) => {
 const ReportView: React.FC<{
   analysis: PaperAnalysis;
   onToast: (msg: string) => void;
-}> = ({ analysis, onToast }) => {
+  onClose: () => void;
+}> = ({ analysis, onToast, onClose }) => {
   const { t } = useTranslation();
   const summary = analysis.summary;
   const [taskFor, setTaskFor] = useState<Record<number, 'busy' | 'done'>>({});
@@ -121,12 +122,63 @@ const ReportView: React.FC<{
     setDistillBusy(false);
   };
 
+  // OD pa-export-btn: print/save the finished report as a one-off file —
+  // the browser's print dialog handles PDF, the clipboard handles sharing.
+  const exportReport = async () => {
+    const lines: string[] = [
+      t('admin.analysis.exportTitle'),
+      `${t(`admin.analysis.subject_${analysis.subject}`, { defaultValue: analysis.subject })} · ${new Date(analysis.created_at).toLocaleString()}`,
+      `${t('admin.analysis.totalStat')}: ${analysis.total_questions} · ${t('admin.analysis.wrongStat')}: ${analysis.wrong_count}`,
+      '',
+    ];
+    for (const q of summary?.questions ?? []) {
+      lines.push(`#${q.number} ${q.question_text}`);
+      lines.push(q.is_wrong
+        ? `  ${t('admin.analysis.qVerdictWrong')} · ${q.mistake_analysis ?? ''}`
+        : `  ${t('admin.analysis.qRight')}`);
+      lines.push('');
+    }
+    const text = lines.join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      onToast(t('admin.analysis.exportCopied'));
+    } catch {
+      // Clipboard may be denied (non-secure context): fall back to a
+      // download so the export always produces something.
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `paper-analysis-${analysis.id}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      onToast(t('admin.analysis.exportDownloaded'));
+    }
+  };
+
   if (!summary) return null;
   const typeTotal = Object.values(summary.error_type_counts).reduce((a, b) => a + b, 0);
+  // OD pa-report-head: the one-line verdict of the whole paper — how many
+  // questions, how many wrong, the subject and date, at a glance.
+  const wrongPct = analysis.total_questions > 0
+    ? Math.round(analysis.wrong_count / analysis.total_questions * 100)
+    : 0;
+  const dateLabel = new Date(analysis.created_at).toLocaleDateString();
 
   return (
     <div className={s.report} data-test="pa-report">
       <p className={s.reportNote}>{t('admin.analysis.reportAiNote')}</p>
+
+      <div className={s.reportHead} data-test="pa-report-head">
+        <div className={s.reportHeadBig}>
+          {t('admin.analysis.headTotal', { total: analysis.total_questions })}
+          {' '}
+          <em>{t('admin.analysis.headWrong', { wrong: analysis.wrong_count })}</em>
+        </div>
+        <p className={s.reportHeadSub}>
+          {t(`admin.analysis.subject_${analysis.subject}`, { defaultValue: analysis.subject })} · {dateLabel} · {t('admin.analysis.headWrongRate', { percent: wrongPct })}
+        </p>
+      </div>
 
       <div className={s.stats} data-test="pa-report-stats">
         <div className={s.stat}>
@@ -254,12 +306,69 @@ const ReportView: React.FC<{
               ? t('admin.analysis.distilling')
               : t('admin.analysis.distillBtn')}
         </button>
+        {/* OD pa-export-btn: the report travels — a printable one-off file
+            with the diagnosis, saved from the same place it was read. */}
+        <button
+          type="button"
+          className={ui.btnGhost}
+          data-test="pa-export-btn"
+          onClick={exportReport}
+        >
+          {t('admin.analysis.exportBtn')}
+        </button>
       </div>
+
+      {/* OD pa-source-note: every generated task carries a traceability
+          label back to this analysis, visible on the kid's task row and the
+          approval card. */}
+      <p className={s.sourceNote} data-test="pa-source-note">
+        {t('admin.analysis.sourceNote', { source: t('admin.analysis.sourceName') })}
+      </p>
 
       <div className={s.loopCard} data-test="pa-loop-card">
         <h4>{t('admin.analysis.loopTitle')}</h4>
         <p>{t('admin.analysis.loopSteps')}</p>
       </div>
+
+      {/* OD pa-links-card 「接着去哪」: the report is not a dead end — the
+          five follow-ups the parent most likely wants next. Hash-links to
+          the dashboard tabs (the AdminDashboard hash protocol), the modal
+          closes so the destination is visible. */}
+      <nav className={s.linksCard} data-test="pa-links-card" aria-label={t('admin.analysis.linksTitle')}>
+        <h4>{t('admin.analysis.linksTitle')}</h4>
+        <a
+          className={s.linkRow}
+          data-test="pa-link-errorbook"
+          href="#tab=errorbook"
+          onClick={onClose}
+        >
+          📕 {t('admin.analysis.linkErrorbook')} →
+        </a>
+        <a
+          className={s.linkRow}
+          data-test="pa-link-review"
+          href="#tab=profile"
+          onClick={onClose}
+        >
+          📈 {t('admin.analysis.linkProfile')} →
+        </a>
+        <a
+          className={s.linkRow}
+          data-test="pa-link-courses"
+          href="#tab=courses"
+          onClick={onClose}
+        >
+          📚 {t('admin.analysis.linkCourses')} →
+        </a>
+        <a
+          className={s.linkRow}
+          data-test="pa-link-settings"
+          href="#tab=settings"
+          onClick={onClose}
+        >
+          ⚙️ {t('admin.analysis.linkSettings')} →
+        </a>
+      </nav>
     </div>
   );
 };
@@ -441,7 +550,7 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
         )}
 
         {analysis?.status === 'done' && (
-          <ReportView analysis={analysis} onToast={onToast} />
+          <ReportView analysis={analysis} onToast={onToast} onClose={onClose} />
         )}
 
         {analysis?.status === 'done' && unknownItems && unknownItems.length > 0 && (

@@ -150,7 +150,22 @@
       "distilled": "Distilled {{count}} measures — manage them in the Measures tab",
       "distillFailed": "Distilling failed, try again later",
       "loopTitle": "L1 wrong-question loop",
-      "loopSteps": "Photo analysis → error book → correction tasks → kid corrects → FSRS review"
+      "loopSteps": "Photo analysis → error book → correction tasks → kid corrects → FSRS review",
+      "headTotal": "{{total}} questions,",
+      "headWrong": "{{wrong}} wrong",
+      "headWrongRate": "{{percent}}% wrong",
+      "exportBtn": "Export report",
+      "exportCopied": "Report copied to clipboard",
+      "exportDownloaded": "Report downloaded",
+      "exportTitle": "Paper analysis report",
+      "sourceNote": "Every generated task carries a traceability label「from: {{source}}」, visible on the kid's task row and the approval card",
+      "sourceName": "paper analysis",
+      "qVerdictWrong": "wrong",
+      "linksTitle": "Where next",
+      "linkErrorbook": "Kid's error book & reviews",
+      "linkProfile": "Learning profile & AI planning",
+      "linkCourses": "Turn weak points into a course",
+      "linkSettings": "Analysis switches & review params"
     },
     "choresTab": {
       "addChore": "Add Chore",
@@ -1566,7 +1581,8 @@
       "entryTodo": "{{count}} to fix · ✨ AI explanation ready (only the wrong step)",
       "entryOpen": "Open →",
       "entryEmptyTodo": "{{count}} in the book · ✨ AI explanation ready",
-      "choreSource": "From: {{source}}"
+      "choreSource": "From: {{source}}",
+      "masteryBarLabel": "Mastery {{percent}}%"
     },
     "goal": {
       "addPlaceholder": "Add points (up to {{max}})",
