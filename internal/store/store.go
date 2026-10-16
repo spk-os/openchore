@@ -496,7 +496,7 @@ func (s *Store) GetScheduledChoresForUser(ctx context.Context, userID int64, dat
 			cs.assignment_type, cs.available_at, cs.due_by, cs.expiry_penalty, cs.expiry_penalty_value,
 			cs.day_of_week, cs.specific_date,
 			cc.id, cc.completed_at, cc.photo_url, cc.status, cc.ai_feedback,
-			c.tts_audio_url,
+			c.tts_audio_url, c.external_id,
 			(SELECT u2.name FROM chore_completions cc2
 			 JOIN chore_schedules cs2 ON cs2.id = cc2.chore_schedule_id
 			 JOIN users u2 ON u2.id = cc2.completed_by
@@ -561,7 +561,7 @@ func (s *Store) GetScheduledChoresForUser(ctx context.Context, userID int64, dat
 				&sc.ExpiryPenalty, &sc.ExpiryPenaltyValue,
 				&dayOfWeek, &specificDate,
 				&compID, &completedAt, &photoURL, &compStatus, &aiFeedback,
-				&sc.TTSAudioURL, &siblingName); err != nil {
+				&sc.TTSAudioURL, &sc.ExternalID, &siblingName); err != nil {
 				rows.Close()
 				return nil, err
 			}

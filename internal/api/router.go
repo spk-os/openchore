@@ -328,6 +328,18 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Get("/admin/users/{userID}/error-book-report", chores.GetErrorBookReport)
 				r.Post("/admin/error-items/{id}/correction-task", chores.CreateCorrectionTask)
 				r.Put("/admin/error-items/{id}", chores.UpdateErrorItem)
+				r.Delete("/admin/error-items/{id}", chores.DeleteErrorItem)
+
+				// Learning-measure engine (034): the analysis→measures
+				// distill pass, the parent's CRUD over them, and the AI
+				// strengthen pass rewriting one against fresh error data.
+				r.Get("/admin/measures", chores.ListLearningMeasures)
+				r.Post("/admin/measures", chores.CreateLearningMeasure)
+				r.Put("/admin/measures/{id}", chores.UpdateLearningMeasure)
+				r.Delete("/admin/measures/{id}", chores.DeleteLearningMeasure)
+				r.Post("/admin/measures/{id}/status", chores.SetLearningMeasureStatus)
+				r.Post("/admin/measures/{id}/strengthen", chores.StrengthenMeasure)
+				r.Post("/admin/analyses/{id}/measures", chores.DistillMeasures)
 
 				// L4 spaced repetition, parent side: the mastery dashboard
 				// (heatmap / 30-day load forecast / streak), the FSRS

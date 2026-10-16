@@ -493,3 +493,11 @@ func trimSpaces(s string) string {
 	}
 	return s[start:end]
 }
+
+// DeleteErrorItem removes one wrong question (the parent's cleanup of
+// misparsed rows). The knowledge tags and review card survive — they are
+// shared state, not the item's property.
+func (s *Store) DeleteErrorItem(ctx context.Context, id int64) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM error_items WHERE id = ?`, id)
+	return err
+}

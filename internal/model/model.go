@@ -464,7 +464,11 @@ type ScheduledChore struct {
 	CompletedBySibling bool       `json:"completed_by_sibling,omitempty"`
 	TTSAudioURL        string     `json:"tts_audio_url,omitempty"`
 	ReferencePhotoURL  string     `json:"reference_photo_url,omitempty"`
-	Date               string     `json:"date"`
+	// ExternalID traces a chore back to its source object — the
+	// correction task's "error_item:<id>|<来源>" (the kid's task row
+	// renders「来自：卷面分析」from it) or the copilot's apply date.
+	ExternalID string     `json:"external_id,omitempty"`
+	Date       string     `json:"date"`
 }
 
 // AIReviewResult is an AI photo review: advice for a parent, never a verdict.
@@ -725,6 +729,43 @@ type ErrorItem struct {
 	UpdatedAt        time.Time      `json:"updated_at"`
 	Tags             []KnowledgeTag `json:"tags,omitempty"`
 }
+
+// LearningMeasure is one actionable learning measure (迁移 034): the
+// analysis results distilled into something executable the parent can
+// pause, finish or have the AI strengthen. Origin records where it came
+// from — the paper analysis pipeline, the parent by hand, or an AI
+// strengthen pass rewriting an existing measure.
+type LearningMeasure struct {
+	ID         int64     `json:"id"`
+	UserID     int64     `json:"user_id"`
+	Subject    string    `json:"subject"`
+	KCTagID    *int64    `json:"kc_tag_id,omitempty"`
+	KCName     string    `json:"kc_name,omitempty"`
+	Title      string    `json:"title"`
+	Detail     string    `json:"detail"`
+	ErrorTypes []string  `json:"error_types"`
+	Origin     string    `json:"origin"`
+	OriginID   *int64    `json:"origin_id,omitempty"`
+	Status     string    `json:"status"`
+	Priority   int       `json:"priority"`
+	CreatedBy  int64     `json:"created_by"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// Learning-measure origins (where a measure came from).
+const (
+	MeasureOriginAnalysis   = "analysis"
+	MeasureOriginManual     = "manual"
+	MeasureOriginStrengthen = "ai_strengthen"
+)
+
+// Learning-measure statuses.
+const (
+	MeasureStatusActive = "active"
+	MeasureStatusPaused = "paused"
+	MeasureStatusDone   = "done"
+)
 
 // KnowledgeTag is one knowledge point. Adjacency list, never JSON: the
 // upstream project's own [DEPRECATED] marker on its JSON column is the

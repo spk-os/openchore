@@ -336,6 +336,7 @@ func progressFor(pageIdx, questionIdx, totalPages, questionsInPage, questionWeig
 	return min(base+inPage, 99)
 }
 
+// countWrong counts the wrong questions in one cut page.
 func countWrong(questions []analysisQuestion) int {
 	n := 0
 	for _, q := range questions {
@@ -361,6 +362,16 @@ func (h *ChoreHandler) recordErrorItem(ctx context.Context, analysis *model.Pape
 	if originalURL == "" {
 		originalURL = fmt.Sprintf("completion:%d", completion.ID)
 	}
+	// The 来源 line (error_items.source): the chore the photographed
+	// paper was submitted against — 「来自：数学错题订正」 in the book.
+	source := "试卷分析"
+	if completion != nil && completion.ChoreScheduleID != 0 {
+		if sched, err := h.store.GetSchedule(ctx, completion.ChoreScheduleID); err == nil && sched != nil {
+			if chore, err := h.store.GetChore(ctx, sched.ChoreID); err == nil && chore != nil {
+				source = chore.Title
+			}
+		}
+	}
 	ei := &model.ErrorItem{
 		UserID:           analysis.UserID,
 		CompletionID:     &analysis.CompletionID,
@@ -374,6 +385,7 @@ func (h *ChoreHandler) recordErrorItem(ctx context.Context, analysis *model.Pape
 		MistakeStatus:    mistakeStatus,
 		ErrorType:        item.ErrorType,
 		AIConfidence:     item.Confidence,
+		Source:           source,
 		MasteryLevel:     model.MasteryNew,
 	}
 	if j != nil {
@@ -650,6 +662,15 @@ func (h *ChoreHandler) CreateCorrectionTask(w http.ResponseWriter, r *http.Reque
 		description = "把这道错题重新做一遍。错因：" + item.MistakeAnalysis
 	}
 
+	// Traceability (OD chore-source-analysis contract): ExternalID points
+	// back at the error item so the kid's task row can render「来自：卷面
+	// 分析」. The scheduled-chore query joins chores.external_id, and the
+	// kid side renders the label when it parses as error_item:<id>.
+	externalID := fmt.Sprintf("error_item:%d", item.ID)
+	if item.Source != "" {
+		externalID = "error_item:" + strconv.FormatInt(item.ID, 10) + "|" + item.Source
+	}
+
 	chore := &model.Chore{
 		Title:            title,
 		Description:      description,
@@ -658,6 +679,7 @@ func (h *ChoreHandler) CreateCorrectionTask(w http.ResponseWriter, r *http.Reque
 		PointsValue:      points,
 		RequiresApproval: true,
 		Source:           model.SourceManual,
+		ExternalID:       externalID,
 		CreatedBy:        UserFromContext(r.Context()).ID,
 	}
 	if err := h.store.CreateChore(r.Context(), chore); err != nil {
