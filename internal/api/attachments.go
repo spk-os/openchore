@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -106,9 +107,16 @@ func allowedProofType(mimeType string) bool {
 
 // saveProofFile writes one multipart file to disk with a unique
 // timestamped name (same scheme as UploadPhoto) and returns its URL path,
-// detected MIME type and sha256 hash. The hash is computed while copying —
+// resolved MIME type and sha256 hash. The hash is computed while copying —
 // no second read of a possibly-100MB video.
-func saveProofFile(file io.Reader, filename, prefix string) (url, mimeType, sha string, size int64, err error) {
+//
+// declaredType is the part's Content-Type. It wins whenever it is on the
+// whitelist: content sniffing cannot tell an audio/webm recording from a
+// video one (both are EBML, Go sniffs both as video/webm), nor m4a audio
+// from generic mp4, so the browser's declared type — which comes from the
+// MediaRecorder's real mime — is the only audio signal. Anything else
+// (octet-stream from file pickers, empty) falls back to sniffing.
+func saveProofFile(file io.Reader, filename, declaredType, prefix string) (url, mimeType, sha string, size int64, err error) {
 	tmp, err := os.CreateTemp(uploadDir, "att_*")
 	if err != nil {
 		return "", "", "", 0, err
@@ -129,7 +137,13 @@ func saveProofFile(file io.Reader, filename, prefix string) (url, mimeType, sha 
 		return
 	}
 	sniff := buf[:n]
-	mimeType = http.DetectContentType(sniff)
+	// Trust the part's declared type when the whitelist knows it (strip
+	// parameters like ";codecs=opus" first); otherwise sniff the bytes.
+	if mt, _, perr := mime.ParseMediaType(declaredType); perr == nil && allowedProofType(mt) {
+		mimeType = mt
+	} else {
+		mimeType = http.DetectContentType(sniff)
+	}
 	if !allowedProofType(mimeType) {
 		err = fmt.Errorf("only photos, videos (MP4, WebM, MOV), audio recordings and PDF files are allowed")
 		return
@@ -247,8 +261,10 @@ func (h *ChoreHandler) UploadAttachments(w http.ResponseWriter, r *http.Request)
 			writeError(w, http.StatusBadRequest, "failed to read file")
 			return
 		}
-		// fh is a *multipart.FileHeader; its name is kid-visible.
-		urlPath, mimeType, sha, size, err := saveProofFile(file, fh.Filename, "upload")
+		// fh is a *multipart.FileHeader; its name is kid-visible. Its
+		// Content-Type is the browser's — the audio/video tell sniffing
+		// can't make (a webm recording's container is video to the sniffer).
+		urlPath, mimeType, sha, size, err := saveProofFile(file, fh.Filename, fh.Header.Get("Content-Type"), "upload")
 		file.Close()
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())

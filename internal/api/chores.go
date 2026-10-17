@@ -158,6 +158,13 @@ func (h *ChoreHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "photo_source must be child, external, or both")
 		return
 	}
+	// Same vocabulary check as Update: the media library's subject filter
+	// only knows the five (036), so a junk subject on create would fall
+	// into no bucket at all.
+	if req.Subject != nil && !isValidSubject(*req.Subject) {
+		writeError(w, http.StatusBadRequest, "subject must be empty, math, chinese, english, physics, or chemistry")
+		return
+	}
 
 	user := UserFromContext(r.Context())
 	chore := &model.Chore{
