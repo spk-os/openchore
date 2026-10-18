@@ -313,7 +313,7 @@ func applyBody(assignedTo int, source string, tasks ...map[string]any) map[strin
 	if tasks == nil {
 		tasks = []map[string]any{{
 			"title": "背单词 20 个", "description": "当天完成", "category": "core",
-			"icon": "📚", "points_value": 5, "estimated_minutes": 20,
+			"subject": "english", "icon": "📚", "points_value": 5, "estimated_minutes": 20,
 			"days": []string{"daily"}, "expiry": "block",
 		}}
 	}
@@ -337,19 +337,21 @@ func TestApplyCopilotDraft(t *testing.T) {
 		t.Fatalf("expected 1 applied chore, got %d", out.Applied)
 	}
 
-	rows, err := env.db.Query(`SELECT title, source, external_id, points_value FROM chores`)
+	// The card's subject lands on the chore: AI-drafted schoolwork must
+	// show up under the media library's subject chip.
+	rows, err := env.db.Query(`SELECT title, source, external_id, points_value, COALESCE(subject, '') FROM chores`)
 	if err != nil {
 		t.Fatalf("query chores: %v", err)
 	}
 	defer rows.Close()
 	// Drain the rows fully (MaxOpenConns(1): an open Rows holds the only
 	// connection, so leaving one undrained deadlocks the next query).
-	var title, source, ext string
+	var title, source, ext, subject string
 	var pts int
 	seen := 0
 	for rows.Next() {
 		seen++
-		if err := rows.Scan(&title, &source, &ext, &pts); err != nil {
+		if err := rows.Scan(&title, &source, &ext, &pts, &subject); err != nil {
 			t.Fatalf("scan: %v", err)
 		}
 	}
@@ -361,6 +363,9 @@ func TestApplyCopilotDraft(t *testing.T) {
 	}
 	if title != "背单词 20 个" || source != "copilot" || pts != 5 {
 		t.Fatalf("chore row wrong: %q %q %d", title, source, pts)
+	}
+	if subject != "english" {
+		t.Fatalf("expected the card's subject=english on the chore, got %q", subject)
 	}
 
 	// One schedule per expanded day (daily = 7).
@@ -436,6 +441,11 @@ func TestApplyCopilotDraftValidates(t *testing.T) {
 		adminHeaders(), http.StatusBadRequest)
 	env.expectStatus(t, "POST", "/api/admin/copilot/apply",
 		applyBody(kid, "copilot", map[string]any{"title": "x", "category": "core", "points_value": 99, "days": []string{"daily"}}),
+		adminHeaders(), http.StatusBadRequest)
+	// A subject outside the five-value vocabulary is rejected like a
+	// bad category — the media library's chips only know the five.
+	env.expectStatus(t, "POST", "/api/admin/copilot/apply",
+		applyBody(kid, "copilot", map[string]any{"title": "x", "category": "core", "points_value": 5, "subject": "history", "days": []string{"daily"}}),
 		adminHeaders(), http.StatusBadRequest)
 
 	// Atomicity: the second card fails, the first must not land.

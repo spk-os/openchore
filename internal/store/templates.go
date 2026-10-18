@@ -39,9 +39,9 @@ func (t *TemplateTx) CreateChore(ctx context.Context, c *model.Chore) error {
 		photoSource = model.PhotoSourceChild
 	}
 	res, err := t.tx.ExecContext(ctx,
-		`INSERT INTO chores (title, description, category, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, created_by)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		c.Title, c.Description, c.Category, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.TTSAudioURL, c.CreatedBy)
+		`INSERT INTO chores (title, description, category, subject, icon, points_value, missed_penalty_value, estimated_minutes, requires_approval, requires_photo, photo_source, reference_photo_url, source, external_id, tts_audio_url, created_by)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.Title, c.Description, c.Category, c.Subject, c.Icon, c.PointsValue, c.MissedPenaltyValue, c.EstimatedMinutes, requiresApproval, requiresPhoto, photoSource, c.ReferencePhotoURL, c.Source, c.ExternalID, c.TTSAudioURL, c.CreatedBy)
 	if err != nil {
 		return err
 	}

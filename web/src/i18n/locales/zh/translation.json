@@ -980,8 +980,10 @@
       "clear": "清除筛选",
       "loading": "加载中…",
       "empty": "还没有上传的照片、视频或录音",
+      "emptyFiltered": "当前筛选条件下没有内容，试试放宽筛选",
       "itemAria": "{{name}}，{{chore}}，{{when}}",
-      "choreDeleted": "任务已删除"
+      "choreDeleted": "任务已删除",
+      "openRaw": "新窗口打开原文件"
     },
     "choresTab": {
       "addChore": "添加任务",
@@ -1020,7 +1022,8 @@
       "ai": {
         "aiLabel": "AI",
         "generateTitle": "AI 生成",
-        "generating": "生成中…"
+        "generating": "生成中…",
+        "planWithAI": "让 AI 建议与规划任务"
       },
       "error": {
         "createFailed": "创建任务失败",
@@ -1132,7 +1135,9 @@
       "tabCourses": "课程",
       "tabProfile": "画像",
       "tabErrorbook": "错题",
-      "tabMeasures": "措施"
+      "tabMeasures": "措施",
+      "navMore": "还有 {{count}} 项未显示，左右滑动查看",
+      "navScrollHint": "左右滑动查看更多栏目"
     },
     "editChore": {
       "labelCategory": "类别",

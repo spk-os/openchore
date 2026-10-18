@@ -147,6 +147,7 @@
 
 /* ---------- tabs ---------- */
 .nav {
+  position: relative;
   max-width: var(--admin-max);
   margin: 0 auto;
   overflow-x: auto;
@@ -155,6 +156,54 @@
 
 .nav::-webkit-scrollbar {
   display: none;
+}
+
+/* The overflow affordance (问题④: "系统配置界面在哪里了？"): with 14 tabs
+   the row scrolls on phones but the hidden scrollbar made that invisible,
+   so settings read as missing. Soft gradient edges appear on the side(s)
+   that still have content beyond them. */
+.fadeLeft,
+.fadeRight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.fadeLeft {
+  left: 0;
+  background: linear-gradient(to right, var(--surface), transparent);
+}
+.fadeRight {
+  right: 0;
+  background: linear-gradient(to left, var(--surface), transparent);
+}
+.navOverflow .fadeLeft,
+.navOverflow .fadeRight {
+  opacity: 1;
+}
+
+/* Edge fades only on the side that actually has more content: the scroll
+   listener toggles these data-attrs as the row moves. */
+.fadeLeft[data-hidden='true'],
+.fadeRight[data-hidden='true'] {
+  opacity: 0;
+}
+
+/* The SR-only hint naming how many tabs are off-screen. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .navInner {

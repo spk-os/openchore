@@ -321,6 +321,9 @@ type copilotApplyTask struct {
 	Title            string   `json:"title"`
 	Description      string   `json:"description"`
 	Category         string   `json:"category"`
+	// Subject rides along from the draft (or the parent's card edit): the
+	// five-value vocabulary the media library filters on, "" = household.
+	Subject          string   `json:"subject"`
 	Icon             string   `json:"icon"`
 	PointsValue      int      `json:"points_value"`
 	MissedPenalty    int      `json:"missed_penalty"`
@@ -394,6 +397,13 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 			writeError(w, http.StatusBadRequest, "category must be required, core, or bonus")
 			return
 		}
+		// Same vocabulary check as Create/Update: the media library's
+		// subject chips only know the five, a junk value would fall into
+		// no bucket at all.
+		if !isValidSubject(t.Subject) {
+			writeError(w, http.StatusBadRequest, "subject must be empty, math, chinese, english, physics, or chemistry")
+			return
+		}
 		expiry := t.Expiry
 		if expiry == "" {
 			expiry = model.ExpiryBlock
@@ -411,6 +421,7 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 			Title:              t.Title,
 			Description:        t.Description,
 			Category:           category,
+			Subject:            t.Subject,
 			Icon:               t.Icon,
 			PointsValue:        t.PointsValue,
 			MissedPenaltyValue: t.MissedPenalty,

@@ -11,6 +11,13 @@ import styles from './QuickAssign.module.css';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * The tab to open on. Default 'quick'; passing 'copilot' lands the
+   * parent straight on the AI planning tab — the wizard's 「AI 规划」
+   * entry and the learning feed's 「转任务」 both jump here (问题③: the
+   * create wizard had no AI suggestion/planning entry at all).
+   */
+  initialMode?: Mode;
 }
 
 type Mode = 'quick' | 'copilot' | 'flyer';
@@ -20,7 +27,7 @@ interface DraftCard extends CopilotTask {
   checked: boolean;
 }
 
-const QuickAssign: React.FC<Props> = ({ isOpen, onClose }) => {
+const QuickAssign: React.FC<Props> = ({ isOpen, onClose, initialMode = 'quick' }) => {
   const { t } = useTranslation();
   const aiStatus = useAIStatus();
   const [chores, setChores] = useState<Chore[]>([]);
@@ -61,7 +68,7 @@ const QuickAssign: React.FC<Props> = ({ isOpen, onClose }) => {
       setChores(c);
       setUsers(u);
     });
-    setMode('quick');
+    setMode(initialMode);
     setSelectedChoreId('');
     setNewTitle('');
     setNewPoints(5);
@@ -77,7 +84,10 @@ const QuickAssign: React.FC<Props> = ({ isOpen, onClose }) => {
     setDraftNotes([]);
     setDraftError('');
     setError('');
-  }, [isOpen]);
+    // initialMode changes only with the opener's intent (the wizard's AI
+    // entry), and re-opening with the same intent is a no-op — the reset
+    // runs on every open regardless.
+  }, [isOpen, initialMode]);
 
   const kids = users.filter(u => u.role === 'child');
 
@@ -199,6 +209,7 @@ const QuickAssign: React.FC<Props> = ({ isOpen, onClose }) => {
           title: c.title,
           description: c.description,
           category: c.category,
+          subject: c.subject,
           icon: c.icon,
           points_value: c.points_value,
           missed_penalty: c.missed_penalty,

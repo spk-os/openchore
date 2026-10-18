@@ -61,6 +61,10 @@ type PlannerChore struct {
 	Title            string       `json:"title"`
 	Description      string       `json:"description"`
 	Category         string       `json:"category"`
+	// Subject: the school subject when the chore is schoolwork (math/
+	// chinese/english/physics/chemistry), "" for household chores — so
+	// adopted planner chores land in the media library's subject buckets.
+	Subject          string       `json:"subject"`
 	Icon             string       `json:"icon"`
 	PointsValue      int          `json:"points_value"`
 	MissedPenalty    int          `json:"missed_penalty"`
@@ -126,6 +130,7 @@ var plannerSchema = &Schema{
 								"title":             map[string]any{"type": "string"},
 								"description":       map[string]any{"type": "string"},
 								"category":          map[string]any{"type": "string"},
+								"subject":           map[string]any{"type": "string", "enum": []string{"", "math", "chinese", "english", "physics", "chemistry"}},
 								"icon":              map[string]any{"type": "string"},
 								"points_value":      map[string]any{"type": "integer"},
 								"missed_penalty":    map[string]any{"type": "integer"},
@@ -309,6 +314,7 @@ func parsePlannerDraft(raw string) (*PlannerDraft, error) {
 	draft.SourceRefs = refs
 
 	validCats := map[string]bool{"required": true, "core": true, "bonus": true}
+	validSubjects := map[string]bool{"": true, "math": true, "chinese": true, "english": true, "physics": true, "chemistry": true}
 	chores := make([]PlannerChore, 0, len(draft.Proposal.NewChores))
 	for _, t := range draft.Proposal.NewChores {
 		t.Title = strings.TrimSpace(t.Title)
@@ -317,6 +323,11 @@ func parsePlannerDraft(raw string) (*PlannerDraft, error) {
 		}
 		if !validCats[t.Category] {
 			t.Category = "core"
+		}
+		// Same fold as the copilot: a subject outside the five (+"")
+		// would land in no media-library bucket, so it becomes "".
+		if !validSubjects[t.Subject] {
+			t.Subject = ""
 		}
 		if t.PointsValue < 1 {
 			t.PointsValue = 1

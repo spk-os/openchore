@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api';
 import { Icon } from '../../design';
+import Modal from '../Modal/Modal';
 import type { MediaClassStat, MediaItem, MediaSubjectStat, MimeClass, User } from '../../types';
 import ui from './ui.module.css';
 import styles from './MediaTab.module.css';
@@ -39,6 +40,42 @@ const formatSize = (bytes: number): string => {
 const formatWhen = (iso: string, lang: string): string =>
   new Date(iso).toLocaleString(lang, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+/**
+ * The in-app preview of one proof file: a video/audio player (or the
+ * image itself) inside the page instead of a bare new-tab link — "点视频
+ * 直接报错" was the browser leaving the app for a raw file, and a
+ * phone browser often has no handler for webm proof.
+ */
+const MediaPreview: React.FC<{ item: MediaItem; onClose: () => void }> = ({ item, onClose }) => {
+  const { t, i18n } = useTranslation();
+  const openRaw = (
+    <a className={styles.previewRaw} href={item.file_path} target="_blank" rel="noreferrer">
+      {t('admin.mediaTab.openRaw')}
+    </a>
+  );
+  return (
+    <Modal isOpen onClose={onClose} title={item.display_name} maxWidth="720px">
+      <div className={styles.preview} data-test="media-preview">
+        {item.mime_class === 'image' && <img className={styles.previewImg} src={item.file_path} alt={item.display_name} />}
+        {item.mime_class === 'video' && <video className={styles.previewMedia} src={item.file_path} controls autoPlay playsInline />}
+        {item.mime_class === 'audio' && <audio className={styles.previewAudio} src={item.file_path} controls autoPlay />}
+        {item.mime_class === 'pdf' && (
+          <object className={styles.previewPdf} data={item.file_path} type="application/pdf" aria-label={item.display_name}>
+            {openRaw}
+          </object>
+        )}
+        <p className={styles.previewMeta}>
+          {item.user_name} · {item.chore_title || t('admin.mediaTab.choreDeleted')}
+          {item.subject ? ` · ${subjectLabel(t, item.subject)}` : ''} · {formatWhen(item.created_at, i18n.language)} · {formatSize(item.size_bytes)}
+        </p>
+        <div className={styles.previewActions}>
+          {item.mime_class !== 'pdf' && openRaw}
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
 export const MediaTab: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -55,6 +92,10 @@ export const MediaTab: React.FC = () => {
   const [to, setTo] = useState('');
   const [kid, setKid] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
+  // The item open in the in-page preview modal; null = no preview. Clicks
+  // on a grid cell open this instead of navigating the browser to the raw
+  // file ("点视频直接报错" was the browser leaving the app for webm).
+  const [preview, setPreview] = useState<MediaItem | null>(null);
 
   useEffect(() => {
     api.users.list().then(u => setUsers(u.filter(x => x.role === 'child'))).catch(() => {});
@@ -101,21 +142,21 @@ export const MediaTab: React.FC = () => {
       </div>
 
       {/* Subject chips — the five school subjects plus the unclassified
-          bucket, each with its live count under the other filters. */}
+          bucket, each with its live count under the other filters. All
+          six always render (even at 0): a missing chip reads as "没有
+          做分类", a zero chip reads as "这个科目还没有内容". */}
       <div className={styles.filterRow} data-test="media-subject-filter" role="group" aria-label={t('admin.mediaTab.filterSubject')}>
         <button type="button" className={chip(subject === '')} onClick={() => setSubject('')}>
           {t('admin.mediaTab.allSubjects')} <b>{total}</b>
         </button>
-        {SUBJECTS.map(subj => subjectCount(subj) > 0 && (
+        {SUBJECTS.map(subj => (
           <button key={subj} type="button" className={chip(subject === subj)} data-test={`media-subject-${subj}`} onClick={() => setSubject(subj)}>
             {subjectLabel(t, subj)} <b>{subjectCount(subj)}</b>
           </button>
         ))}
-        {subjectCount('') > 0 && (
-          <button type="button" className={chip(subject === '')} onClick={() => setSubject('')}>
-            {t('admin.mediaTab.noSubject')} <b>{subjectCount('')}</b>
-          </button>
-        )}
+        <button type="button" className={chip(subject === '')} onClick={() => setSubject('')}>
+          {t('admin.mediaTab.noSubject')} <b>{subjectCount('')}</b>
+        </button>
       </div>
 
       {/* Media class chips + date range + kid. */}
@@ -156,20 +197,22 @@ export const MediaTab: React.FC = () => {
       {!loading && items.length === 0 && !error && (
         <div className={ui.empty}>
           <Icon name="camera" />
-          <p>{t('admin.mediaTab.empty')}</p>
+          {/* A filtered-empty is "nothing here under these filters", not
+              "the library is empty" — a different message keeps the parent
+              from thinking their uploads vanished. */}
+          <p>{hasFilter ? t('admin.mediaTab.emptyFiltered') : t('admin.mediaTab.empty')}</p>
         </div>
       )}
 
       {!loading && items.length > 0 && (
         <div className={styles.grid} data-test="media-grid" role="list">
           {items.map(m => (
-            <a
+            <button
               key={m.attachment_id}
+              type="button"
               className={styles.cell}
               data-test="media-item"
-              href={m.file_path}
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => setPreview(m)}
               role="listitem"
               aria-label={t('admin.mediaTab.itemAria', { name: m.display_name, chore: m.chore_title, when: formatWhen(m.created_at, i18n.language) })}
             >
@@ -191,10 +234,12 @@ export const MediaTab: React.FC = () => {
               <span className={styles.meta}>
                 {m.user_name} · {m.chore_title || t('admin.mediaTab.choreDeleted')} · {formatWhen(m.created_at, i18n.language)} · {formatSize(m.size_bytes)}
               </span>
-            </a>
+            </button>
           ))}
         </div>
       )}
+
+      {preview && <MediaPreview item={preview} onClose={() => setPreview(null)} />}
     </div>
   );
 };

@@ -11,7 +11,7 @@ import { TriggerManager } from './TriggerManager';
 import { CHORE_CATEGORIES, IconWell } from './pickers';
 import ui from './ui.module.css';
 
-export const ChoresTab: React.FC = () => {
+export const ChoresTab: React.FC<{ onOpenCopilot?: () => void }> = ({ onOpenCopilot }) => {
   const { t } = useTranslation();
   const [chores, setChores] = useState<Chore[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -83,6 +83,7 @@ export const ChoresTab: React.FC = () => {
           load();
         }}
         users={users}
+        onOpenCopilot={onOpenCopilot}
       />
 
       {savedTemplate && (

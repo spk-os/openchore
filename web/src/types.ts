@@ -708,6 +708,8 @@ export interface CopilotTask {
   title: string;
   description: string;
   category: 'required' | 'core' | 'bonus';
+  /** School subject when the card is schoolwork (media-library buckets). */
+  subject: string;
   icon: string;
   points_value: number;
   missed_penalty: number;
@@ -756,6 +758,8 @@ export interface CopilotApplyTask {
   title: string;
   description: string;
   category: 'required' | 'core' | 'bonus';
+  /** School subject when the card is schoolwork (media-library buckets). */
+  subject: string;
   icon: string;
   points_value: number;
   missed_penalty: number;
@@ -1243,6 +1247,8 @@ export interface PlannerChore {
   title: string;
   description: string;
   category: 'required' | 'core' | 'bonus';
+  /** School subject when the chore is schoolwork (media-library buckets). */
+  subject: string;
   icon: string;
   points_value: number;
   missed_penalty: number;

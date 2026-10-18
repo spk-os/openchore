@@ -167,4 +167,57 @@ describe('MediaTab', () => {
     expect(badge).toBeTruthy();
     expect(badge!.textContent).toContain('92%');
   });
+
+  it('always renders all six subject chips, zero counts included', async () => {
+    vi.mocked(api.users.list).mockResolvedValue([kid()]);
+    // Only math has content: the other four subjects and unclassified
+    // still render at count 0 — a missing chip reads as "没有做分类".
+    vi.mocked(api.chores.listMedia).mockResolvedValue(library({
+      items: [item()],
+      subjects: [{ subject: 'math', count: 1 }],
+      total: 1,
+    }));
+
+    const { container } = render(<MediaTab />);
+    await waitFor(() => {
+      expect(container.querySelectorAll('[data-test="media-item"]').length).toBe(1);
+    });
+    for (const subj of ['math', 'chinese', 'english', 'physics', 'chemistry']) {
+      const chipEl = container.querySelector(`[data-test="media-subject-${subj}"]`);
+      expect(chipEl, `subject chip ${subj} should always render`).toBeTruthy();
+      expect(chipEl!.textContent).toContain(subj === 'math' ? '1' : '0');
+    }
+    // The unclassified chip has no data-test — it is the last chip of the
+    // subject row after the five; find it by its en label.
+    expect(container.textContent).toContain('Unclassified');
+  });
+
+  it('opens the in-page preview instead of navigating on cell click', async () => {
+    vi.mocked(api.users.list).mockResolvedValue([kid()]);
+    vi.mocked(api.chores.listMedia).mockResolvedValue(library({
+      // A video: the old bare <a href> opened the raw file in a new tab
+      // (the "点视频直接报错" report); the cell is now a button that opens
+      // the in-page player.
+      items: [item({ mime_class: 'video', mime_type: 'video/mp4', file_path: '/uploads/a2.mp4', display_name: 'demo.mp4' })],
+      total: 1,
+    }));
+
+    const { container } = render(<MediaTab />);
+    const cell = await waitFor(() => {
+      const el = container.querySelector('[data-test="media-item"]');
+      expect(el).toBeTruthy();
+      return el as HTMLElement;
+    });
+    // The cell must no longer be a raw link.
+    expect((cell as HTMLAnchorElement).tagName).not.toBe('A');
+    fireEvent.click(cell);
+    // The modal portals to document.body, not the render container.
+    const preview = await waitFor(() => {
+      const el = document.querySelector('[data-test="media-preview"]');
+      expect(el).toBeTruthy();
+      return el as HTMLElement;
+    });
+    expect(preview.querySelector('video')).toBeTruthy();
+    expect(preview.querySelector('video')!.getAttribute('src')).toBe('/uploads/a2.mp4');
+  });
 });

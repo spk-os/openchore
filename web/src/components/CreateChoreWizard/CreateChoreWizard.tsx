@@ -8,13 +8,16 @@ import type { User } from '../../types';
 import { localDateStr, toggleInArray } from '../../utils';
 import { useAIStatus } from '../../hooks/useAIStatus';
 import { Icon, catFromCategory } from '../../design';
-import { CategoryLabel, CategoryPicker, IconPicker, IconWell, PersonName, PersonToggle } from '../admin/pickers';
+import { CategoryLabel, CategoryPicker, IconPicker, IconWell, PersonName, PersonToggle, SubjectPicker } from '../admin/pickers';
 import styles from './CreateChoreWizard.module.css';
 
 interface ChoreData {
   title: string;
   description: string;
   category: 'required' | 'core' | 'bonus';
+  /** School subject when the chore is schoolwork; '' = household (036:
+   *  the media library filters and groups on this, so the wizard asks). */
+  subject: string;
   icon: string;
   points: number;
   missedPenalty: number;
@@ -42,6 +45,13 @@ interface Props {
   onClose: () => void;
   onComplete: (choreId: number) => void;
   users: User[];
+  /**
+   * The parent asked for AI planning (the wizard's 「AI 规划」 button or
+   * the learning feed's 转任务): the wizard closes itself and the caller
+   * opens QuickAssign on its copilot tab (问题③ — the create path had no
+   * AI suggestion/planning entry, only AI description text).
+   */
+  onOpenCopilot?: () => void;
 }
 
 const DAY_LABELS = DAY_NAMES;
@@ -50,7 +60,7 @@ const WEEKDAYS = [1, 2, 3, 4, 5];
 const WEEKENDS = [0, 6];
 
 const defaultChoreData: ChoreData = {
-  title: '', description: '', category: 'core', icon: '', points: 5, missedPenalty: 0,
+  title: '', description: '', category: 'core', subject: '', icon: '', points: 5, missedPenalty: 0,
   estimatedMinutes: 5, requiresApproval: false, requiresPhoto: false, photoSource: 'child',
 };
 
@@ -61,7 +71,7 @@ const defaultScheduleData: ScheduleData = {
   availableAt: '', dueBy: '', expiryPenalty: 'block', expiryPenaltyValue: 5,
 };
 
-const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users }) => {
+const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users, onOpenCopilot }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [chore, setChore] = useState<ChoreData>({ ...defaultChoreData });
@@ -98,6 +108,11 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
   };
 
   const handleClose = () => { reset(); onClose(); };
+
+  // The AI planning hand-off (问题③): the same Copilot the FAB drawer
+  // offers, reachable from the wizard itself instead of only from the
+  // floating button. The wizard closes first so only one modal is open.
+  const handleOpenCopilot = () => { reset(); onClose(); onOpenCopilot?.(); };
 
   const canNext0 = chore.title.trim().length > 0;
   const canNext1 = skipSchedule || (schedule.selectedUsers.length > 0 && (
@@ -140,6 +155,7 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
         title: chore.title.trim(),
         description: chore.description.trim(),
         category: chore.category,
+        subject: chore.subject,
         icon: chore.icon,
         points_value: chore.points,
         missed_penalty_value: chore.missedPenalty || 0,
@@ -230,6 +246,8 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
       </div>
 
       <CategoryPicker value={chore.category} onChange={category => setChore(c => ({ ...c, category }))} label={t('admin.createChore.field.categoryLabel')} />
+
+      <SubjectPicker value={chore.subject} onChange={subject => setChore(c => ({ ...c, subject }))} label={t('admin.editChore.labelSubject')} />
 
       <div className={styles.formRow}>
         <label className={styles.formGroup}>
@@ -394,6 +412,12 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
               <dt className={styles.reviewLabel}>{t('admin.createChore.review.categoryLabel')}</dt>
               <dd className={styles.reviewValue}><CategoryLabel category={chore.category} /></dd>
             </div>
+            {chore.subject && (
+              <div className={styles.reviewRow}>
+                <dt className={styles.reviewLabel}>{t('admin.editChore.labelSubject')}</dt>
+                <dd className={styles.reviewValue}>{t(`admin.analysis.subject_${chore.subject}`)}</dd>
+              </div>
+            )}
             <div className={styles.reviewRow}>
               <dt className={styles.reviewLabel}>{t('admin.createChore.review.pointsLabel')}</dt>
               <dd className={styles.reviewValue}>{chore.points} {t('admin.createChore.review.pts')}{chore.missedPenalty > 0 && ` / −${chore.missedPenalty} ${t('admin.createChore.review.penalty')}`}</dd>
@@ -478,6 +502,15 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
           </li>
         ))}
       </ol>
+
+      {/* The AI planning hand-off (问题③): the parent creating a task
+          never had to know the FAB drawer hides the Copilot — surface it
+          here, on the step where the request text would live. */}
+      {step === 0 && (
+        <button type="button" className={styles.aiPlanBtn} onClick={handleOpenCopilot} data-test="wizard-ai-plan">
+          <Icon name="spark" /> {t('admin.createChore.ai.planWithAI')}
+        </button>
+      )}
 
       {step === 0 && renderStep0()}
       {step === 1 && renderStep1()}

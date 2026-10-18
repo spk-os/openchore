@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
@@ -71,6 +71,41 @@ export const AdminDashboard: React.FC = () => {
   const [tab, setTab] = useState<Tab>(() => tabFromHash() ?? 'kids-status');
   const [pendingCount, setPendingCount] = useState(0);
   const [quickAssignOpen, setQuickAssignOpen] = useState(false);
+  // The QuickAssign tab to open with: 'copilot' when the entry came from
+  // the wizard's 「让 AI 建议与规划任务」 (问题③), else the quick tab.
+  const [quickAssignMode, setQuickAssignMode] = useState<'quick' | 'copilot'>('quick');
+
+  const openQuickAssign = useCallback((mode: 'quick' | 'copilot' = 'quick') => {
+    setQuickAssignMode(mode);
+    setQuickAssignOpen(true);
+  }, []);
+  // The 14 tabs overflow on phones; the row scrolls but hides its
+  // scrollbar, so a "settings?" dead-end is easy to hit (问题④). The edge
+  // fades + a screen-reader-only hint make the overflow observable.
+  const navRef = useRef<HTMLElement>(null);
+  const [navOverflow, setNavOverflow] = useState(false);
+  // Edge fades: left fade only while scrolled in, right fade only while
+  // content remains on the right — the fade is the scroll affordance.
+  const [fadeLeft, setFadeLeft] = useState(false);
+  const [fadeRight, setFadeRight] = useState(false);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const check = () => {
+      const over = el.scrollWidth > el.clientWidth + 1;
+      setNavOverflow(over);
+      setFadeLeft(over && el.scrollLeft > 2);
+      setFadeRight(over && el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+    };
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => {
+      el.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, []);
 
   useEffect(() => {
     const onHash = () => {
@@ -120,7 +155,14 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </div>
         </div>
-        <nav className={styles.nav} aria-label={t('admin.dashboard.navLabel')}>
+        <nav
+          ref={navRef}
+          className={clsx(styles.nav, navOverflow && styles.navOverflow)}
+          aria-label={t('admin.dashboard.navLabel')}
+        >
+          {/* Screen-reader hint first: the visible row overflows and the
+              fade is invisible to AT, so the hidden count is named. */}
+          <span className={styles.srOnly}>{navOverflow ? t('admin.dashboard.navMore', { count: TABS.length }) : ''}</span>
           <div className={styles.navInner}>
             {TABS.map(({ id, label, icon }) => (
               <button
@@ -138,12 +180,17 @@ export const AdminDashboard: React.FC = () => {
               </button>
             ))}
           </div>
+          {/* The overflow affordance: soft edges on the side(s) that still
+              have content beyond them (设置 hides off-screen on phones —
+              问题④). */}
+          <span className={styles.fadeLeft} data-hidden={!fadeLeft} aria-hidden />
+          <span className={styles.fadeRight} data-hidden={!fadeRight} aria-hidden />
         </nav>
       </header>
 
       <main className={styles.content}>
         {tab === 'kids-status' && <KidsStatusTab onPendingChange={setPendingCount} />}
-        {tab === 'chores' && <ChoresTab />}
+        {tab === 'chores' && <ChoresTab onOpenCopilot={() => openQuickAssign('copilot')} />}
         {tab === 'templates' && <TemplatesTab />}
         {tab === 'courses' && <CoursesTab />}
         {tab === 'profile' && <ProfileTab />}
@@ -161,14 +208,18 @@ export const AdminDashboard: React.FC = () => {
       <button
         type="button"
         className={styles.fab}
-        onClick={() => setQuickAssignOpen(true)}
+        onClick={() => openQuickAssign()}
         title={t('admin.dashboard.quickAssign')}
         aria-label={t('admin.dashboard.quickAssign')}
       >
         <Icon name="plus" />
       </button>
 
-      <QuickAssign isOpen={quickAssignOpen} onClose={() => { setQuickAssignOpen(false); refreshCount(); }} />
+      <QuickAssign
+        isOpen={quickAssignOpen}
+        initialMode={quickAssignMode}
+        onClose={() => { setQuickAssignOpen(false); refreshCount(); }}
+      />
     </HouseScope>
   );
 };

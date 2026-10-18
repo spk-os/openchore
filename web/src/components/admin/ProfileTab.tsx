@@ -224,6 +224,7 @@ export const ProfileTab: React.FC = () => {
           title: c.title,
           description: c.description,
           category: c.category,
+          subject: c.subject,
           icon: c.icon,
           points_value: c.points_value,
           missed_penalty: c.missed_penalty,

@@ -206,8 +206,10 @@
       "clear": "Clear filters",
       "loading": "Loading…",
       "empty": "No photos, videos or recordings yet",
+      "emptyFiltered": "Nothing matches the current filters — try loosening them",
       "itemAria": "{{name}}, {{chore}}, {{when}}",
-      "choreDeleted": "Chore deleted"
+      "choreDeleted": "Chore deleted",
+      "openRaw": "Open the raw file in a new tab"
     },
     "choresTab": {
       "addChore": "Add Chore",
@@ -246,7 +248,8 @@
       "ai": {
         "aiLabel": "AI",
         "generateTitle": "Generate with AI",
-        "generating": "Generating..."
+        "generating": "Generating...",
+        "planWithAI": "Plan tasks with AI"
       },
       "error": {
         "createFailed": "Failed to create chore",
@@ -358,7 +361,9 @@
       "tabCourses": "Courses",
       "tabProfile": "Profile",
       "tabErrorbook": "Mistakes",
-      "tabMeasures": "Measures"
+      "tabMeasures": "Measures",
+      "navMore": "{{count}} more tabs hidden — swipe the row",
+      "navScrollHint": "Swipe for more tabs"
     },
     "editChore": {
       "labelCategory": "Category",

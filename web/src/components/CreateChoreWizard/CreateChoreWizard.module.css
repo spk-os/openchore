@@ -397,3 +397,35 @@
 @keyframes wizard-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ---------- AI planning hand-off (问题③) ---------- */
+
+/* A full-width quiet entry under the stepper: the AI planner is a peer of
+   the manual path, not a garnish on the description field. */
+.aiPlanBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  margin: 4px 0 2px;
+  padding: 0 14px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.aiPlanBtn:hover {
+  border-color: var(--ink);
+  background: var(--surface-sunk);
+}
+
+.aiPlanBtn svg {
+  width: 17px;
+  height: 17px;
+}
