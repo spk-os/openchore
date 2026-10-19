@@ -396,7 +396,7 @@ func (s *Store) GetChore(ctx context.Context, id int64) (*model.Chore, error) {
 
 func (s *Store) ListChores(ctx context.Context) ([]model.Chore, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT ` + choreColumns + ` FROM chores ORDER BY title`)
+		`SELECT `+choreColumns+` FROM chores ORDER BY title`)
 	if err != nil {
 		return nil, err
 	}
@@ -441,9 +441,9 @@ func (s *Store) UpdateChoreTTSAudioURL(ctx context.Context, choreID int64, url s
 
 func (s *Store) CreateSchedule(ctx context.Context, cs *model.ChoreSchedule) error {
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO chore_schedules (chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		cs.ChoreID, cs.AssignedTo, cs.AssignmentType, cs.FcfsGroupID, cs.DayOfWeek, cs.SpecificDate, cs.AvailableAt, cs.PointsMultiplier, cs.StartDate, cs.EndDate, cs.RecurrenceInterval, cs.RecurrenceStart, cs.DueBy, cs.ExpiryPenalty, cs.ExpiryPenaltyValue)
+		`INSERT INTO chore_schedules (chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, day_of_month, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		cs.ChoreID, cs.AssignedTo, cs.AssignmentType, cs.FcfsGroupID, cs.DayOfWeek, cs.DayOfMonth, cs.SpecificDate, cs.AvailableAt, cs.PointsMultiplier, cs.StartDate, cs.EndDate, cs.RecurrenceInterval, cs.RecurrenceStart, cs.DueBy, cs.ExpiryPenalty, cs.ExpiryPenaltyValue)
 	if err != nil {
 		return err
 	}
@@ -467,7 +467,7 @@ func (s *Store) ScheduleExistsForDate(ctx context.Context, choreID, userID int64
 
 func (s *Store) ListSchedulesForChore(ctx context.Context, choreID int64) ([]model.ChoreSchedule, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value, created_at
+		`SELECT id, chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, day_of_month, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value, created_at
 		 FROM chore_schedules WHERE chore_id = ? ORDER BY id`, choreID)
 	if err != nil {
 		return nil, err
@@ -476,7 +476,7 @@ func (s *Store) ListSchedulesForChore(ctx context.Context, choreID int64) ([]mod
 	var schedules []model.ChoreSchedule
 	for rows.Next() {
 		var cs model.ChoreSchedule
-		if err := rows.Scan(&cs.ID, &cs.ChoreID, &cs.AssignedTo, &cs.AssignmentType, &cs.FcfsGroupID, &cs.DayOfWeek, &cs.SpecificDate, &cs.AvailableAt, &cs.PointsMultiplier, &cs.StartDate, &cs.EndDate, &cs.RecurrenceInterval, &cs.RecurrenceStart, &cs.DueBy, &cs.ExpiryPenalty, &cs.ExpiryPenaltyValue, &cs.CreatedAt); err != nil {
+		if err := rows.Scan(&cs.ID, &cs.ChoreID, &cs.AssignedTo, &cs.AssignmentType, &cs.FcfsGroupID, &cs.DayOfWeek, &cs.DayOfMonth, &cs.SpecificDate, &cs.AvailableAt, &cs.PointsMultiplier, &cs.StartDate, &cs.EndDate, &cs.RecurrenceInterval, &cs.RecurrenceStart, &cs.DueBy, &cs.ExpiryPenalty, &cs.ExpiryPenaltyValue, &cs.CreatedAt); err != nil {
 			return nil, err
 		}
 		schedules = append(schedules, cs)
@@ -522,8 +522,9 @@ func (s *Store) GetScheduledChoresForUser(ctx context.Context, userID int64, dat
 			)
 		WHERE cs.assigned_to = ?
 		  AND (
-			(cs.day_of_week = ? AND cs.specific_date IS NULL AND cs.recurrence_interval IS NULL)
+			(cs.day_of_week = ? AND cs.specific_date IS NULL AND cs.day_of_month IS NULL AND cs.recurrence_interval IS NULL)
 			OR (cs.specific_date = ? AND cs.recurrence_interval IS NULL)
+			OR (cs.day_of_month = ? AND cs.specific_date IS NULL AND cs.recurrence_interval IS NULL)
 			OR (cs.recurrence_interval IS NOT NULL AND cs.recurrence_start IS NOT NULL
 				AND CAST((julianday(?) - julianday(cs.recurrence_start)) AS INTEGER) >= 0
 				AND CAST((julianday(?) - julianday(cs.recurrence_start)) AS INTEGER) % cs.recurrence_interval = 0)
@@ -541,7 +542,8 @@ func (s *Store) GetScheduledChoresForUser(ctx context.Context, userID int64, dat
 			return nil, fmt.Errorf("invalid date %s: %w", dateStr, err)
 		}
 		dow := int(t.Weekday())
-		rows, err := s.db.QueryContext(ctx, query, dateStr, dateStr, userID, dow, dateStr, dateStr, dateStr, dateStr, dateStr)
+		dom := t.Day()
+		rows, err := s.db.QueryContext(ctx, query, dateStr, dateStr, userID, dow, dateStr, dom, dateStr, dateStr, dateStr, dateStr, dateStr)
 		if err != nil {
 			return nil, err
 		}
@@ -1008,9 +1010,9 @@ func (s *Store) ReverseAutoContributeReversals(ctx context.Context, completionID
 func (s *Store) GetSchedule(ctx context.Context, id int64) (*model.ChoreSchedule, error) {
 	cs := &model.ChoreSchedule{}
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value, created_at
+		`SELECT id, chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, day_of_month, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value, created_at
 		 FROM chore_schedules WHERE id = ?`, id).
-		Scan(&cs.ID, &cs.ChoreID, &cs.AssignedTo, &cs.AssignmentType, &cs.FcfsGroupID, &cs.DayOfWeek, &cs.SpecificDate, &cs.AvailableAt, &cs.PointsMultiplier, &cs.StartDate, &cs.EndDate, &cs.RecurrenceInterval, &cs.RecurrenceStart, &cs.DueBy, &cs.ExpiryPenalty, &cs.ExpiryPenaltyValue, &cs.CreatedAt)
+		Scan(&cs.ID, &cs.ChoreID, &cs.AssignedTo, &cs.AssignmentType, &cs.FcfsGroupID, &cs.DayOfWeek, &cs.DayOfMonth, &cs.SpecificDate, &cs.AvailableAt, &cs.PointsMultiplier, &cs.StartDate, &cs.EndDate, &cs.RecurrenceInterval, &cs.RecurrenceStart, &cs.DueBy, &cs.ExpiryPenalty, &cs.ExpiryPenaltyValue, &cs.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1179,6 +1181,30 @@ func (s *Store) SaveWeeklySummary(ctx context.Context, userID int64, weekStart, 
 		`INSERT INTO weekly_summaries (user_id, week_start, summary) VALUES (?, ?, ?)
 		 ON CONFLICT (user_id, week_start) DO UPDATE SET summary = excluded.summary, created_at = CURRENT_TIMESTAMP`,
 		userID, weekStart, summary)
+	return err
+}
+
+// --- Monthly summaries (问题③) ---
+
+// GetMonthlySummary returns the stored summary for a user's month (keyed by
+// the month's first day), or "" if none has been generated.
+func (s *Store) GetMonthlySummary(ctx context.Context, userID int64, periodStart string) (string, error) {
+	var summary string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT summary FROM monthly_summaries WHERE user_id = ? AND period_start = ?`,
+		userID, periodStart).Scan(&summary)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return summary, err
+}
+
+// SaveMonthlySummary stores (or replaces) the summary for a user's month.
+func (s *Store) SaveMonthlySummary(ctx context.Context, userID int64, periodStart, summary string) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO monthly_summaries (user_id, period_start, summary) VALUES (?, ?, ?)
+		 ON CONFLICT (user_id, period_start) DO UPDATE SET summary = excluded.summary, created_at = CURRENT_TIMESTAMP`,
+		userID, periodStart, summary)
 	return err
 }
 
@@ -3781,8 +3807,9 @@ func (s *Store) GetExpiredChores(ctx context.Context, date string, currentTime s
 		  AND cs.due_by <= ?
 		  AND cc.id IS NULL
 		  AND (
-			(cs.day_of_week = ? AND cs.specific_date IS NULL AND cs.recurrence_interval IS NULL)
-			OR cs.specific_date = ?
+			(cs.day_of_week = ? AND cs.specific_date IS NULL AND cs.day_of_month IS NULL AND cs.recurrence_interval IS NULL)
+			OR (cs.specific_date = ? AND cs.day_of_month IS NULL AND cs.recurrence_interval IS NULL)
+			OR (cs.day_of_month = ? AND cs.specific_date IS NULL AND cs.recurrence_interval IS NULL)
 			OR (cs.recurrence_interval IS NOT NULL AND cs.recurrence_start IS NOT NULL
 				AND CAST((julianday(?) - julianday(cs.recurrence_start)) AS INTEGER) >= 0
 				AND CAST((julianday(?) - julianday(cs.recurrence_start)) AS INTEGER) % cs.recurrence_interval = 0)
@@ -3790,8 +3817,8 @@ func (s *Store) GetExpiredChores(ctx context.Context, date string, currentTime s
 		  AND (cs.start_date IS NULL OR cs.start_date <= ?)
 		  AND (cs.end_date IS NULL OR cs.end_date >= ?)`,
 		date, currentTime,
-		func() int { t, _ := time.Parse(model.DateFormat, date); return int(t.Weekday()) }(),
-		date, date, date, date, date)
+		int(func() time.Time { t, _ := time.Parse(model.DateFormat, date); return t }().Weekday()),
+		date, func() time.Time { t, _ := time.Parse(model.DateFormat, date); return t }().Day(), date, date, date, date, date)
 	if err != nil {
 		return nil, err
 	}

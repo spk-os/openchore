@@ -18,14 +18,14 @@ import (
 )
 
 type ChoreHandler struct {
-	store      *store.Store
-	dispatcher *webhook.Dispatcher
-	discord    *discord.Notifier
-	aiSvc      *AIServices    // optional AI and read-aloud audio
-	reviews    sync.WaitGroup // in-flight background photo reviews
-	analyses   sync.WaitGroup // in-flight background paper analyses (L1)
-	spaced     *ReviewHandler // L4 hook target (T+0 card creation), may be nil
-	LearnerHook               // L3 append-only learner event stream
+	store       *store.Store
+	dispatcher  *webhook.Dispatcher
+	discord     *discord.Notifier
+	aiSvc       *AIServices    // optional AI and read-aloud audio
+	reviews     sync.WaitGroup // in-flight background photo reviews
+	analyses    sync.WaitGroup // in-flight background paper analyses (L1)
+	spaced      *ReviewHandler // L4 hook target (T+0 card creation), may be nil
+	LearnerHook                // L3 append-only learner event stream
 }
 
 // bonusDropEnabledSetting gates the surprise bonus on completion
@@ -300,6 +300,7 @@ type createScheduleRequest struct {
 	AssignedTo         int64   `json:"assigned_to"`
 	AssignmentType     string  `json:"assignment_type"`
 	DayOfWeek          *int    `json:"day_of_week"`
+	DayOfMonth         *int    `json:"day_of_month"`
 	SpecificDate       *string `json:"specific_date"`
 	AvailableAt        *string `json:"available_at"`
 	DueBy              *string `json:"due_by"`
@@ -342,8 +343,18 @@ func (h *ChoreHandler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "recurrence_start is required with recurrence_interval")
 			return
 		}
+	} else if req.DayOfMonth != nil {
+		// 问题④: the Nth of every month. A 31 only fires in 31-day months.
+		if *req.DayOfMonth < 1 || *req.DayOfMonth > 31 {
+			writeError(w, http.StatusBadRequest, "day_of_month must be between 1 and 31")
+			return
+		}
+		if req.DayOfWeek != nil || req.SpecificDate != nil {
+			writeError(w, http.StatusBadRequest, "day_of_month cannot combine with day_of_week or specific_date")
+			return
+		}
 	} else if req.DayOfWeek == nil && req.SpecificDate == nil {
-		writeError(w, http.StatusBadRequest, "day_of_week, specific_date, or recurrence_interval is required")
+		writeError(w, http.StatusBadRequest, "day_of_week, day_of_month, specific_date, or recurrence_interval is required")
 		return
 	}
 	if req.AssignmentType == "" {
@@ -369,6 +380,7 @@ func (h *ChoreHandler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 		AssignedTo:         req.AssignedTo,
 		AssignmentType:     req.AssignmentType,
 		DayOfWeek:          req.DayOfWeek,
+		DayOfMonth:         req.DayOfMonth,
 		SpecificDate:       req.SpecificDate,
 		AvailableAt:        req.AvailableAt,
 		DueBy:              req.DueBy,

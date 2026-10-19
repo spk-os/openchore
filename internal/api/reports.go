@@ -34,12 +34,12 @@ func (h *ReportsHandler) SetAI(ai *llm.Client) {
 // ReportsResponse is the full payload returned by GET /api/admin/reports.
 type ReportsResponse struct {
 	Period     string          `json:"period"`
-	StartDate  string         `json:"start_date"`
-	EndDate    string         `json:"end_date"`
-	Kids       []KidSummary   `json:"kids"`
-	MostMissed []MissedChore  `json:"most_missed"`
-	Trend      []TrendDay     `json:"trend"`
-	Categories []CategoryStat `json:"categories"`
+	StartDate  string          `json:"start_date"`
+	EndDate    string          `json:"end_date"`
+	Kids       []KidSummary    `json:"kids"`
+	MostMissed []MissedChore   `json:"most_missed"`
+	Trend      []TrendDay      `json:"trend"`
+	Categories []CategoryStat  `json:"categories"`
 	Points     []PointsSummary `json:"points"`
 	DayOfWeek  []DayOfWeekStat `json:"day_of_week"`
 }
@@ -277,6 +277,38 @@ func periodRange(period string, ref time.Time) (time.Time, time.Time) {
 	}
 }
 
+// The scheduled summaries' run times and switches (问题③). All are
+// "HH:MM" 24h app_settings the admin can change; the daily coach keeps
+// its own keys in coach.go.
+const (
+	weeklyTimeSetting     = "weekly_time"  // Sunday's weekly wrap-up
+	monthlyTimeSetting    = "monthly_time" // the month-end wrap-up
+	monthlyEnabledSetting = "ai_monthly_summary"
+	defaultSummaryTime    = "22:30" // both wrap-ups' fallback run time
+)
+
+// parseSummaryTime reads a "HH:MM" setting and falls back to
+// defaultSummaryTime.
+func parseSummaryTime(v string) (hour, minute int) {
+	parts := strings.Split(defaultSummaryTime, ":")
+	hour, _ = strconv.Atoi(parts[0])
+	minute, _ = strconv.Atoi(parts[1])
+	if v == "" {
+		return
+	}
+	parts = strings.Split(v, ":")
+	if len(parts) != 2 {
+		return
+	}
+	if h, err := strconv.Atoi(parts[0]); err == nil && h >= 0 && h < 24 {
+		hour = h
+	}
+	if m, err := strconv.Atoi(parts[1]); err == nil && m >= 0 && m < 60 {
+		minute = m
+	}
+	return
+}
+
 // GetAISummary returns a narrative summary of one person's period. Summaries
 // of finished weeks are generated once and kept; anything else is written
 // on demand.
@@ -313,10 +345,17 @@ func (h *ReportsHandler) GetAISummary(w http.ResponseWriter, r *http.Request) {
 	start, end := periodRange(period, refDate)
 	startStr, endStr := start.Format(model.DateFormat), end.Format(model.DateFormat)
 
-	// A finished week's summary never changes, so reuse it.
-	finishedWeek := period == "week" && endStr < time.Now().Format(model.DateFormat)
-	if finishedWeek {
+	// A finished week's or month's summary never changes, so reuse it
+	// (问题③: finished months now cache like finished weeks always did).
+	finished := endStr < time.Now().Format(model.DateFormat)
+	if finished && period == "week" {
 		if cached, err := h.store.GetWeeklySummary(r.Context(), userID, startStr); err == nil && cached != "" {
+			writeJSON(w, http.StatusOK, map[string]string{"summary": cached})
+			return
+		}
+	}
+	if finished && period == "month" {
+		if cached, err := h.store.GetMonthlySummary(r.Context(), userID, startStr); err == nil && cached != "" {
 			writeJSON(w, http.StatusOK, map[string]string{"summary": cached})
 			return
 		}
@@ -337,9 +376,16 @@ func (h *ReportsHandler) GetAISummary(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, "AI summary generation failed: "+err.Error())
 		return
 	}
-	if finishedWeek {
-		if err := h.store.SaveWeeklySummary(r.Context(), userID, startStr, summary); err != nil {
-			log.Printf("ai: saving weekly summary for user %d: %v", userID, err)
+	if finished {
+		switch period {
+		case "week":
+			if err := h.store.SaveWeeklySummary(r.Context(), userID, startStr, summary); err != nil {
+				log.Printf("ai: saving weekly summary for user %d: %v", userID, err)
+			}
+		case "month":
+			if err := h.store.SaveMonthlySummary(r.Context(), userID, startStr, summary); err != nil {
+				log.Printf("ai: saving monthly summary for user %d: %v", userID, err)
+			}
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"summary": summary})
@@ -426,7 +472,7 @@ func (h *ReportsHandler) learningStats(ctx context.Context, userID int64, startS
 // over and shares it via webhooks and Discord. It only acts while AI is
 // configured and the ai_weekly_summary setting is on. Blocks until ctx ends.
 func (h *ReportsHandler) StartWeeklySummaries(ctx context.Context) {
-	ticker := time.NewTicker(time.Hour)
+	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 	for {
 		h.WriteWeeklySummaries(ctx, time.Now())
@@ -439,8 +485,11 @@ func (h *ReportsHandler) StartWeeklySummaries(ctx context.Context) {
 }
 
 // WriteWeeklySummaries generates any missing summaries for the week before
-// now. It waits until Monday noon so late approvals for Sunday count.
-// StartWeeklySummaries calls it hourly.
+// now. The week ends Sunday, and the wrap-up runs once the configured time
+// (weekly_time, default 22:30) has passed that Sunday evening (问题③) —
+// the household asked for the report on Sunday night, not Monday noon.
+// StartWeeklySummaries calls it every minute; the finished-week cache
+// keeps repeats cheap.
 func (h *ReportsHandler) WriteWeeklySummaries(ctx context.Context, now time.Time) {
 	ai := h.aiSvc.AI()
 	if ai == nil {
@@ -449,13 +498,22 @@ func (h *ReportsHandler) WriteWeeklySummaries(ctx context.Context, now time.Time
 	if on, _ := h.store.GetSetting(ctx, "ai_weekly_summary"); on != "true" {
 		return
 	}
-	thisWeek, _ := periodRange("week", now)
-	thisWeek = time.Date(thisWeek.Year(), thisWeek.Month(), thisWeek.Day(), 0, 0, 0, 0, now.Location())
-	if now.Before(thisWeek.Add(12 * time.Hour)) {
-		return
+	// The week to wrap is the latest one whose Sunday's configured
+	// weekly_time has passed. On Sunday evening that is the week containing
+	// now — looking back 7 days from a Sunday lands a week early, since
+	// Sunday is the week's last day. Any other time it is the finished
+	// week before, so a server that was down on Sunday catches up on
+	// Monday; the finished-week cache makes the re-check cheap.
+	thisWeekStart, _ := periodRange("week", now)
+	wrapStart := thisWeekStart
+	weekEnd := wrapStart.AddDate(0, 0, 6)
+	hour, minute := parseSummaryTime(mustGetSetting(ctx, h.store, weeklyTimeSetting))
+	runAt := time.Date(weekEnd.Year(), weekEnd.Month(), weekEnd.Day(), hour, minute, 0, 0, now.Location())
+	if now.Before(runAt) {
+		wrapStart = wrapStart.AddDate(0, 0, -7)
+		weekEnd = wrapStart.AddDate(0, 0, 6)
 	}
-	start, end := periodRange("week", thisWeek.AddDate(0, 0, -7))
-	startStr, endStr := start.Format(model.DateFormat), end.Format(model.DateFormat)
+	startStr, endStr := wrapStart.Format(model.DateFormat), weekEnd.Format(model.DateFormat)
 
 	kids, err := h.store.ReportKidSummaries(ctx, startStr, endStr)
 	if err != nil {
@@ -492,6 +550,83 @@ func (h *ReportsHandler) WriteWeeklySummaries(ctx context.Context, now time.Time
 			"week_start": startStr,
 			"week_end":   endStr,
 			"summary":    summary,
+		})
+		h.discord.NotifyWeeklySummary(kid.Name, startStr, summary)
+	}
+}
+
+// StartMonthlySummaries writes each person's month-end wrap-up on the last
+// day of the month, once the configured time (monthly_time, default 22:30)
+// has passed (问题③). Blocks until ctx ends.
+func (h *ReportsHandler) StartMonthlySummaries(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		h.WriteMonthlySummaries(ctx, time.Now())
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+// WriteMonthlySummaries generates any missing monthly summaries once the
+// month's last day has reached the configured run time. The month is
+// summarized as it ends, so late approvals on the last evening still count
+// as long as they land before monthly_time.
+func (h *ReportsHandler) WriteMonthlySummaries(ctx context.Context, now time.Time) {
+	ai := h.aiSvc.AI()
+	if ai == nil {
+		return
+	}
+	if on, _ := h.store.GetSetting(ctx, monthlyEnabledSetting); on != "true" {
+		return
+	}
+	start, end := periodRange("month", now)
+	// The wrap-up only exists on the month's last day, after monthly_time.
+	hour, minute := parseSummaryTime(mustGetSetting(ctx, h.store, monthlyTimeSetting))
+	runAt := time.Date(end.Year(), end.Month(), end.Day(), hour, minute, 0, 0, now.Location())
+	if now.Format(model.DateFormat) != end.Format(model.DateFormat) || now.Before(runAt) {
+		return
+	}
+	startStr, endStr := start.Format(model.DateFormat), end.Format(model.DateFormat)
+
+	kids, err := h.store.ReportKidSummaries(ctx, startStr, endStr)
+	if err != nil {
+		log.Printf("ai: monthly summaries: %v", err)
+		return
+	}
+	for _, kid := range kids {
+		if ctx.Err() != nil {
+			return
+		}
+		if kid.TotalAssigned == 0 {
+			continue
+		}
+		if cached, err := h.store.GetMonthlySummary(ctx, kid.UserID, startStr); err != nil || cached != "" {
+			continue
+		}
+		stats, err := h.summaryStats(ctx, kid.UserID, startStr, endStr)
+		if err != nil || stats == nil {
+			continue
+		}
+		summary, err := ai.WeeklySummary(ctx, *stats)
+		if err != nil {
+			log.Printf("ai: monthly summary for %s failed: %v", kid.Name, err)
+			continue
+		}
+		if err := h.store.SaveMonthlySummary(ctx, kid.UserID, startStr, summary); err != nil {
+			log.Printf("ai: saving monthly summary for %s: %v", kid.Name, err)
+			continue
+		}
+		log.Printf("ai: wrote monthly summary for %s (month of %s)", kid.Name, startStr)
+		h.dispatcher.Fire(webhook.EventWeeklySummary, map[string]any{
+			"user_id":      kid.UserID,
+			"user_name":    kid.Name,
+			"period_start": startStr,
+			"period_end":   endStr,
+			"summary":      summary,
 		})
 		h.discord.NotifyWeeklySummary(kid.Name, startStr, summary)
 	}

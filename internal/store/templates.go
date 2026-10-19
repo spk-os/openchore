@@ -52,9 +52,9 @@ func (t *TemplateTx) CreateChore(ctx context.Context, c *model.Chore) error {
 // CreateSchedule inserts one schedule of the import.
 func (t *TemplateTx) CreateSchedule(ctx context.Context, cs *model.ChoreSchedule) error {
 	res, err := t.tx.ExecContext(ctx,
-		`INSERT INTO chore_schedules (chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		cs.ChoreID, cs.AssignedTo, cs.AssignmentType, cs.FcfsGroupID, cs.DayOfWeek, cs.SpecificDate, cs.AvailableAt, cs.PointsMultiplier, cs.StartDate, cs.EndDate, cs.RecurrenceInterval, cs.RecurrenceStart, cs.DueBy, cs.ExpiryPenalty, cs.ExpiryPenaltyValue)
+		`INSERT INTO chore_schedules (chore_id, assigned_to, assignment_type, fcfs_group_id, day_of_week, day_of_month, specific_date, available_at, points_multiplier, start_date, end_date, recurrence_interval, recurrence_start, due_by, expiry_penalty, expiry_penalty_value)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		cs.ChoreID, cs.AssignedTo, cs.AssignmentType, cs.FcfsGroupID, cs.DayOfWeek, cs.DayOfMonth, cs.SpecificDate, cs.AvailableAt, cs.PointsMultiplier, cs.StartDate, cs.EndDate, cs.RecurrenceInterval, cs.RecurrenceStart, cs.DueBy, cs.ExpiryPenalty, cs.ExpiryPenaltyValue)
 	if err != nil {
 		return err
 	}

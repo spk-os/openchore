@@ -23,8 +23,9 @@ export const ScheduleManager: React.FC<{
   const [schedules, setSchedules] = useState<ChoreSchedule[]>([]);
   const [adding, setAdding] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<number[]>(users[0] ? [users[0].id] : []);
-  const [schedType, setSchedType] = useState<'recurring' | 'oneoff' | 'interval'>('recurring');
+  const [schedType, setSchedType] = useState<'recurring' | 'monthly' | 'oneoff' | 'interval'>('recurring');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [dayOfMonth, setDayOfMonth] = useState('1');
   const [specificDate, setSpecificDate] = useState('');
   const [availableAt, setAvailableAt] = useState('');
   const [dueBy, setDueBy] = useState('');
@@ -77,6 +78,10 @@ export const ScheduleManager: React.FC<{
           for (const day of selectedDays) {
             promises.push(api.chores.createSchedule(choreId, { assigned_to: userId, day_of_week: day, ...common }));
           }
+        } else if (schedType === 'monthly') {
+          const dom = parseInt(dayOfMonth);
+          if (!dom || dom < 1 || dom > 31) continue;
+          promises.push(api.chores.createSchedule(choreId, { assigned_to: userId, day_of_month: dom, ...common }));
         } else if (schedType === 'interval') {
           const interval = parseInt(intervalDays);
           if (!interval || interval < 1 || !intervalStart) continue;
@@ -109,12 +114,14 @@ export const ScheduleManager: React.FC<{
 
   const canAdd = selectedUsers.length > 0 && (
     schedType === 'recurring' ? selectedDays.length > 0 :
+    schedType === 'monthly' ? parseInt(dayOfMonth) >= 1 && parseInt(dayOfMonth) <= 31 :
     schedType === 'oneoff' ? !!specificDate :
     parseInt(intervalDays) >= 1 && !!intervalStart
   );
 
   type Group = { key: string; userId: number; availableAt?: string; dueBy?: string; expiryPenalty?: string; expiryPenaltyValue?: number; scheduleIds: number[]; } & (
     | { type: 'recurring'; days: number[] }
+    | { type: 'monthly'; day: number }
     | { type: 'interval'; interval: number; start: string }
     | { type: 'oneoff'; date: string }
   );
@@ -124,6 +131,8 @@ export const ScheduleManager: React.FC<{
     const base = { userId: s.assigned_to, availableAt: s.available_at ?? undefined, dueBy: s.due_by ?? undefined, expiryPenalty: s.expiry_penalty, expiryPenaltyValue: s.expiry_penalty_value };
     if (s.recurrence_interval) {
       groups.push({ key: `${s.id}`, ...base, scheduleIds: [s.id], type: 'interval', interval: s.recurrence_interval, start: s.recurrence_start || '' });
+    } else if (s.day_of_month != null) {
+      groups.push({ key: `${s.id}`, ...base, scheduleIds: [s.id], type: 'monthly', day: s.day_of_month });
     } else if (s.day_of_week != null) {
       const gKey = `${s.assigned_to}-weekly-${time}`;
       const existing = groups.find(g => g.key === gKey && g.type === 'recurring');
@@ -193,8 +202,9 @@ export const ScheduleManager: React.FC<{
 
           <label className={ui.field}>
             <span className={ui.label} title={t('admin.scheduleManager.scheduleTypeTitle')}>{t('admin.scheduleManager.labelScheduleType')}</span>
-            <select className={ui.input} value={schedType} onChange={e => setSchedType(e.target.value as 'recurring' | 'oneoff' | 'interval')}>
+            <select className={ui.input} value={schedType} onChange={e => setSchedType(e.target.value as 'recurring' | 'monthly' | 'oneoff' | 'interval')}>
               <option value="recurring">{t('admin.scheduleManager.optionRecurring')}</option>
+              <option value="monthly">{t('admin.scheduleManager.optionMonthly')}</option>
               <option value="interval">{t('admin.scheduleManager.optionInterval')}</option>
               <option value="oneoff">{t('admin.scheduleManager.optionOneoff')}</option>
             </select>
@@ -221,6 +231,14 @@ export const ScheduleManager: React.FC<{
                 <button type="button" className={ui.chip} aria-pressed={selectedDays.length === 2 && WEEKENDS.every(d => selectedDays.includes(d))} onClick={() => setDayPreset(WEEKENDS)}>{t('admin.scheduleManager.presetWeekends')}</button>
               </div>
             </div>
+          ) : schedType === 'monthly' ? (
+            <label className={ui.field}>
+              <span className={ui.label}>{t('admin.scheduleManager.labelDayOfMonth')}</span>
+              <span className={styles.suffixed}>
+                <input className={ui.input} type="number" min="1" max="31" value={dayOfMonth} onChange={e => setDayOfMonth(e.target.value)} />
+                <span>{t('admin.scheduleManager.suffixDayOfMonth')}</span>
+              </span>
+            </label>
           ) : schedType === 'interval' ? (
             <div className={ui.formRow}>
               <label className={ui.field}>
@@ -293,6 +311,7 @@ export const ScheduleManager: React.FC<{
               <PersonName user={users.find(u => u.id === g.userId)} name={t('admin.scheduleManager.userFallback', { id: g.userId })} />
               <span className={styles.when}>
                 {g.type === 'recurring' ? formatDays(g.days)
+                  : g.type === 'monthly' ? t('admin.scheduleManager.monthlyDisplay', { day: g.day })
                   : g.type === 'interval' ? t('admin.scheduleManager.intervalDisplay', { interval: g.interval, start: g.start })
                   : g.date}
               </span>

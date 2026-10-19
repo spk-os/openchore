@@ -175,15 +175,15 @@ type OIDCProvider struct {
 }
 
 type Chore struct {
-	ID                 int64  `json:"id"`
-	Title              string `json:"title"`
-	Description        string `json:"description"`
-	Category           string `json:"category"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
 	// Subject names the school subject this chore belongs to (math/
 	// chinese/english/physics/chemistry — the error_items vocabulary),
 	// empty for household chores that are not school work. The media
 	// library groups uploaded proof by it (036).
-	Subject string `json:"subject"`
+	Subject            string `json:"subject"`
 	Icon               string `json:"icon,omitempty"`
 	PointsValue        int    `json:"points_value"`
 	MissedPenaltyValue int    `json:"missed_penalty_value"`
@@ -205,12 +205,15 @@ type Chore struct {
 }
 
 type ChoreSchedule struct {
-	ID                 int64   `json:"id"`
-	ChoreID            int64   `json:"chore_id"`
-	AssignedTo         int64   `json:"assigned_to"`
-	AssignmentType     string  `json:"assignment_type"`
-	FcfsGroupID        *string `json:"fcfs_group_id,omitempty"`
-	DayOfWeek          *int    `json:"day_of_week,omitempty"`
+	ID             int64   `json:"id"`
+	ChoreID        int64   `json:"chore_id"`
+	AssignedTo     int64   `json:"assigned_to"`
+	AssignmentType string  `json:"assignment_type"`
+	FcfsGroupID    *string `json:"fcfs_group_id,omitempty"`
+	DayOfWeek      *int    `json:"day_of_week,omitempty"`
+	// DayOfMonth (问题④): the Nth of every month, 1-31. A 31 only fires in
+	// 31-day months; shorter months skip the occurrence.
+	DayOfMonth         *int    `json:"day_of_month,omitempty"`
 	SpecificDate       *string `json:"specific_date,omitempty"`
 	AvailableAt        *string `json:"available_at,omitempty"`
 	PointsMultiplier   float64 `json:"points_multiplier"`
@@ -473,8 +476,8 @@ type ScheduledChore struct {
 	// ExternalID traces a chore back to its source object — the
 	// correction task's "error_item:<id>|<来源>" (the kid's task row
 	// renders「来自：卷面分析」from it) or the copilot's apply date.
-	ExternalID string     `json:"external_id,omitempty"`
-	Date       string     `json:"date"`
+	ExternalID string `json:"external_id,omitempty"`
+	Date       string `json:"date"`
 }
 
 // AIReviewResult is an AI photo review: advice for a parent, never a verdict.
@@ -804,10 +807,10 @@ const (
 // TEXT in SQL (readable diffs) matched against the library's own
 // State.String(); the store layer converts both ways.
 const (
-	ReviewStateNew         = "New"
-	ReviewStateLearning    = "Learning"
-	ReviewStateReview      = "Review"
-	ReviewStateRelearning  = "Relearning"
+	ReviewStateNew        = "New"
+	ReviewStateLearning   = "Learning"
+	ReviewStateReview     = "Review"
+	ReviewStateRelearning = "Relearning"
 )
 
 // Review ratings, the go-fsrs Rating names as stored in review_logs.
@@ -827,24 +830,24 @@ const (
 // source object (UNIQUE(source_type, source_id)); suspended is the
 // parent's pause switch.
 type ReviewItem struct {
-	ID              int64      `json:"id"`
-	UserID          int64      `json:"user_id"`
-	SourceType      string     `json:"source_type"`
-	SourceID        int64      `json:"source_id"`
-	FrontText       string     `json:"front_text"`
-	BackText        string     `json:"back_text,omitempty"`
-	Subject         string     `json:"subject,omitempty"`
-	Due             time.Time  `json:"due"`
-	Stability       float64    `json:"stability"`
-	Difficulty      float64    `json:"difficulty"`
-	ScheduledDays   int64      `json:"scheduled_days"`
-	Reps            int64      `json:"reps"`
-	Lapses          int64      `json:"lapses"`
-	State           string     `json:"state"`
-	LastReview      *time.Time `json:"last_review,omitempty"`
-	RemainingSteps  int        `json:"remaining_steps"`
-	Suspended       bool       `json:"suspended"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ID             int64      `json:"id"`
+	UserID         int64      `json:"user_id"`
+	SourceType     string     `json:"source_type"`
+	SourceID       int64      `json:"source_id"`
+	FrontText      string     `json:"front_text"`
+	BackText       string     `json:"back_text,omitempty"`
+	Subject        string     `json:"subject,omitempty"`
+	Due            time.Time  `json:"due"`
+	Stability      float64    `json:"stability"`
+	Difficulty     float64    `json:"difficulty"`
+	ScheduledDays  int64      `json:"scheduled_days"`
+	Reps           int64      `json:"reps"`
+	Lapses         int64      `json:"lapses"`
+	State          string     `json:"state"`
+	LastReview     *time.Time `json:"last_review,omitempty"`
+	RemainingSteps int        `json:"remaining_steps"`
+	Suspended      bool       `json:"suspended"`
+	CreatedAt      time.Time  `json:"created_at"`
 
 	// The traced source object, joined in for the review screen (the
 	// subject badge and the "来自：期中卷 第 17 题" provenance line).
@@ -870,14 +873,14 @@ type ReviewLog struct {
 // important setting") and the daily new-card cap (a settings key, not
 // here — it shapes the queue, not the scheduler).
 type FSRSParams struct {
-	UserID             int64     `json:"user_id"`
-	RequestRetention   float64   `json:"request_retention"`
-	MaximumInterval    int64     `json:"maximum_interval"`
-	LearningStepsJSON  string    `json:"learning_steps_json"`
-	RelearningStepsJSON string  `json:"relearning_steps_json"`
-	EnableFuzz         bool      `json:"enable_fuzz"`
-	WeightsJSON        string    `json:"weights,omitempty"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	UserID              int64     `json:"user_id"`
+	RequestRetention    float64   `json:"request_retention"`
+	MaximumInterval     int64     `json:"maximum_interval"`
+	LearningStepsJSON   string    `json:"learning_steps_json"`
+	RelearningStepsJSON string    `json:"relearning_steps_json"`
+	EnableFuzz          bool      `json:"enable_fuzz"`
+	WeightsJSON         string    `json:"weights,omitempty"`
+	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 // --- Course system (L2): Canvas Modules mapped onto SQLite ---
@@ -914,10 +917,10 @@ const (
 // Completion predicate types (Canvas completion_requirement, six enums
 // cut to four for a household). NULL/"" = display-only, never gates.
 const (
-	CompletionMustView    = "must_view"    // viewed_seconds > 0
-	CompletionMustSubmit  = "must_submit"  // submitted_ref non-empty
-	CompletionMinScore    = "min_score"    // score >= min_score
-	CompletionMinMinutes  = "min_minutes"  // viewed_seconds >= min_minutes*60
+	CompletionMustView   = "must_view"   // viewed_seconds > 0
+	CompletionMustSubmit = "must_submit" // submitted_ref non-empty
+	CompletionMinScore   = "min_score"   // score >= min_score
+	CompletionMinMinutes = "min_minutes" // viewed_seconds >= min_minutes*60
 )
 
 // Outcome calculation methods (Canvas Outcomes, six enums cut to four;
@@ -973,15 +976,15 @@ type Course struct {
 // JSON int array (prerequisite_module_ids verbatim), and the optional
 // unlock_at gate (NULL = immediately eligible once prerequisites clear).
 type CourseUnit struct {
-	ID                       int64      `json:"id"`
-	CourseID                 int64      `json:"course_id"`
-	Title                    string     `json:"title"`
-	Position                 int        `json:"position"`
-	PrerequisiteUnitIDsJSON  string     `json:"prerequisite_unit_ids_json"`
-	RequirementType          string     `json:"requirement_type"`
-	RequireSequentialProgress bool      `json:"require_sequential_progress"`
-	UnlockAt                 *time.Time `json:"unlock_at,omitempty"`
-	Published                bool       `json:"published"`
+	ID                        int64      `json:"id"`
+	CourseID                  int64      `json:"course_id"`
+	Title                     string     `json:"title"`
+	Position                  int        `json:"position"`
+	PrerequisiteUnitIDsJSON   string     `json:"prerequisite_unit_ids_json"`
+	RequirementType           string     `json:"requirement_type"`
+	RequireSequentialProgress bool       `json:"require_sequential_progress"`
+	UnlockAt                  *time.Time `json:"unlock_at,omitempty"`
+	Published                 bool       `json:"published"`
 }
 
 // UnitResource is the Canvas ModuleItem: a typed resource plus its
@@ -1083,14 +1086,14 @@ const (
 // marks thin samples (< 5) so the UI greys them out and the planner
 // down-weights them.
 type KCMastery struct {
-	ID           int64      `json:"id"`
-	UserID       int64      `json:"user_id"`
-	TagID        int64      `json:"tag_id"`
-	CorrectCount int        `json:"correct_count"`
-	TotalCount   int        `json:"total_count"`
-	Mastery      float64    `json:"mastery"`
-	LowConfidence bool      `json:"low_confidence"`
-	LastEventAt  *time.Time `json:"last_event_at,omitempty"`
+	ID            int64      `json:"id"`
+	UserID        int64      `json:"user_id"`
+	TagID         int64      `json:"tag_id"`
+	CorrectCount  int        `json:"correct_count"`
+	TotalCount    int        `json:"total_count"`
+	Mastery       float64    `json:"mastery"`
+	LowConfidence bool       `json:"low_confidence"`
+	LastEventAt   *time.Time `json:"last_event_at,omitempty"`
 }
 
 // StudentConfig is the Mr.-Ranedeer configuration cut down to the five

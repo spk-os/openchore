@@ -114,6 +114,10 @@ export const SettingsTab: React.FC = () => {
   // 学生拍照上交自动分析（L1）：开启后孩子带图完成任务即自动切题判读并蒸馏措施。
   const [aiAutoPaperAnalysis, setAiAutoPaperAnalysis] = useState(false);
   const [coachTime, setCoachTime] = useState('21:00');
+  // 定时总结体系（问题③）：周总结/月总结各一个运行时间；月总结另有开关。
+  const [weeklyTime, setWeeklyTime] = useState('22:30');
+  const [monthlyTime, setMonthlyTime] = useState('22:30');
+  const [aiMonthlySummary, setAiMonthlySummary] = useState(false);
   const [ttsVoice, setTtsVoice] = useState('');
   const [savedTtsVoice, setSavedTtsVoice] = useState('');
   const [aiSaving, setAiSaving] = useState(false);
@@ -161,8 +165,8 @@ export const SettingsTab: React.FC = () => {
       .then(data => setDiscordUrl(data.value || ''))
       .catch(() => {});
     const setting = (key: string) => api.admin.getSetting(key).then(d => d.value || '').catch(() => '');
-    Promise.all(['ai_photo_review', 'ai_auto_approve', 'ai_auto_approve_threshold', 'ai_weekly_summary', 'ai_daily_coach', 'coach_time', 'tts_voice', 'ai_auto_paper_analysis'].map(setting))
-      .then(([photoReview, autoApprove, threshold, weeklySummary, dailyCoach, coachTimeVal, voice, autoAnalysis]) => {
+    Promise.all(['ai_photo_review', 'ai_auto_approve', 'ai_auto_approve_threshold', 'ai_weekly_summary', 'ai_daily_coach', 'coach_time', 'tts_voice', 'ai_auto_paper_analysis', 'weekly_time', 'monthly_time', 'ai_monthly_summary'].map(setting))
+      .then(([photoReview, autoApprove, threshold, weeklySummary, dailyCoach, coachTimeVal, voice, autoAnalysis, weeklyTimeVal, monthlyTimeVal, monthlySummary]) => {
         setAiPhotoReview(photoReview === 'true');
         setAiAutoApprove(autoApprove === 'true');
         setAiThreshold(threshold || '0.85');
@@ -172,6 +176,9 @@ export const SettingsTab: React.FC = () => {
         setTtsVoice(voice);
         setSavedTtsVoice(voice);
         setAiAutoPaperAnalysis(autoAnalysis === 'true');
+        setWeeklyTime(weeklyTimeVal || '22:30');
+        setMonthlyTime(monthlyTimeVal || '22:30');
+        setAiMonthlySummary(monthlySummary === 'true');
       });
     api.admin.getSetting('pet_enabled')
       .then(d => setPetEnabled(d.value === 'true'))
@@ -247,6 +254,9 @@ export const SettingsTab: React.FC = () => {
         api.admin.setSetting('ai_daily_coach', aiDailyCoach ? 'true' : 'false'),
         api.admin.setSetting('ai_auto_paper_analysis', aiAutoPaperAnalysis ? 'true' : 'false'),
         api.admin.setSetting('coach_time', coachTime.trim()),
+        api.admin.setSetting('weekly_time', weeklyTime.trim()),
+        api.admin.setSetting('monthly_time', monthlyTime.trim()),
+        api.admin.setSetting('ai_monthly_summary', aiMonthlySummary ? 'true' : 'false'),
         api.admin.setSetting('tts_voice', ttsVoice.trim()),
       ]);
       // A new voice means every chore's audio needs re-recording.
@@ -471,6 +481,41 @@ export const SettingsTab: React.FC = () => {
                     </label>
                     <span className={ui.help}>{t('admin.settingsTab.ai.weeklySummaryHelp')}</span>
                   </div>
+
+                  {aiWeeklySummary && (
+                    <label className={ui.field}>
+                      <span className={ui.label}>{t('admin.settingsTab.ai.weeklyTimeLabel')}</span>
+                      <input
+                        type="time"
+                        className={ui.input}
+                        value={weeklyTime}
+                        onChange={e => setWeeklyTime(e.target.value)}
+                      />
+                      <span className={ui.help}>{t('admin.settingsTab.ai.weeklyTimeHelp')}</span>
+                    </label>
+                  )}
+
+                  {/* 月总结（问题③）：与周总结并排的月末汇总，时间可配。 */}
+                  <div className={ui.field}>
+                    <label className={ui.check}>
+                      <input type="checkbox" checked={aiMonthlySummary} onChange={e => setAiMonthlySummary(e.target.checked)} />
+                      <span className={ui.checkLabel}>{t('admin.settingsTab.ai.monthlySummaryLabel')}</span>
+                    </label>
+                    <span className={ui.help}>{t('admin.settingsTab.ai.monthlySummaryHelp')}</span>
+                  </div>
+
+                  {aiMonthlySummary && (
+                    <label className={ui.field}>
+                      <span className={ui.label}>{t('admin.settingsTab.ai.monthlyTimeLabel')}</span>
+                      <input
+                        type="time"
+                        className={ui.input}
+                        value={monthlyTime}
+                        onChange={e => setMonthlyTime(e.target.value)}
+                      />
+                      <span className={ui.help}>{t('admin.settingsTab.ai.monthlyTimeHelp')}</span>
+                    </label>
+                  )}
 
                   <div className={ui.field}>
                     <label className={ui.check}>

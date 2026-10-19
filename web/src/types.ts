@@ -182,6 +182,7 @@ export interface ChoreSchedule {
   assigned_to: number;
   assignment_type: string;
   day_of_week?: number;
+  day_of_month?: number;
   specific_date?: string;
   available_at?: string;
   due_by?: string;

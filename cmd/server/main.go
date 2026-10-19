@@ -127,6 +127,7 @@ func main() {
 		}
 	}()
 	go reportsHandler.StartWeeklySummaries(context.Background())
+	go reportsHandler.StartMonthlySummaries(context.Background())
 	go coachHandler.StartDailyCoach(context.Background())
 
 	log.Printf("starting server on :%s", port)

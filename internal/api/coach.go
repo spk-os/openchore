@@ -23,9 +23,10 @@ import (
 // Generated nightly by a background worker; never a verdict, always a
 // conversation starter.
 
-// defaultCoachTime is when the nightly worker runs, "21:00" local by
-// default (after the day's chores wrap, before bedtime).
-const defaultCoachTime = "21:00"
+// defaultCoachTime is when the nightly worker runs, "22:30" local by
+// default (after the day's chores wrap, before bedtime) — 问题③ moved it
+// from 21:00 to 22:30.
+const defaultCoachTime = "22:30"
 
 // coachTimeSetting is the app_settings key for the nightly run time.
 const coachTimeSetting = "coach_time"
@@ -296,9 +297,9 @@ func saveCoachAudio(userID int64, date string, audio []byte) (string, error) {
 }
 
 // parseCoachTime reads the coach_time setting ("HH:MM", 24h) and falls
-// back to 21:00.
+// back to 22:30.
 func parseCoachTime(v string) (hour, minute int) {
-	hour, minute = 21, 0
+	hour, minute = 22, 30
 	if v == "" {
 		return
 	}
@@ -316,7 +317,7 @@ func parseCoachTime(v string) (hour, minute int) {
 }
 
 // StartDailyCoach runs the nightly worker until ctx ends. Each tick it
-// checks whether the configured time (coach_time, default 21:00) has
+// checks whether the configured time (coach_time, default 22:30) has
 // passed for today and the day's notes are still missing.
 func (h *CoachHandler) StartDailyCoach(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)

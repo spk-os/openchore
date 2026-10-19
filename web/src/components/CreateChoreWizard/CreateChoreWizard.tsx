@@ -29,8 +29,9 @@ interface ChoreData {
 
 interface ScheduleData {
   selectedUsers: number[];
-  scheduleType: 'weekly' | 'interval' | 'oneoff';
+  scheduleType: 'weekly' | 'monthly' | 'interval' | 'oneoff';
   selectedDays: number[];
+  dayOfMonth: number;
   interval: number;
   intervalStart: string;
   specificDate: string;
@@ -65,7 +66,7 @@ const defaultChoreData: ChoreData = {
 };
 
 const defaultScheduleData: ScheduleData = {
-  selectedUsers: [], scheduleType: 'weekly', selectedDays: [],
+  selectedUsers: [], scheduleType: 'weekly', selectedDays: [], dayOfMonth: 1,
   interval: 2, intervalStart: localDateStr(new Date()),
   specificDate: localDateStr(new Date()),
   availableAt: '', dueBy: '', expiryPenalty: 'block', expiryPenaltyValue: 5,
@@ -117,6 +118,7 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
   const canNext0 = chore.title.trim().length > 0;
   const canNext1 = skipSchedule || (schedule.selectedUsers.length > 0 && (
     (schedule.scheduleType === 'weekly' && schedule.selectedDays.length > 0) ||
+    (schedule.scheduleType === 'monthly' && schedule.dayOfMonth >= 1 && schedule.dayOfMonth <= 31) ||
     (schedule.scheduleType === 'interval' && schedule.interval > 0) ||
     (schedule.scheduleType === 'oneoff' && schedule.specificDate)
   ));
@@ -185,6 +187,10 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
                 api.chores.createSchedule(created.id, { assigned_to: userId, day_of_week: day, ...common }).then(() => ({ userId }))
               );
             }
+          } else if (schedule.scheduleType === 'monthly') {
+            promises.push(
+              api.chores.createSchedule(created.id, { assigned_to: userId, day_of_month: schedule.dayOfMonth, ...common }).then(() => ({ userId }))
+            );
           } else if (schedule.scheduleType === 'interval') {
             promises.push(
               api.chores.createSchedule(created.id, { assigned_to: userId, recurrence_interval: schedule.interval, recurrence_start: schedule.intervalStart, ...common }).then(() => ({ userId }))
@@ -309,6 +315,7 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
         <span className={styles.label}>{t('admin.createChore.schedule.typeLabel')}</span>
         <select className={styles.input} value={schedule.scheduleType} onChange={e => setSchedule(s => ({ ...s, scheduleType: e.target.value as ScheduleData['scheduleType'] }))}>
           <option value="weekly">{t('admin.createChore.scheduleType.weekly')}</option>
+          <option value="monthly">{t('admin.createChore.scheduleType.monthly')}</option>
           <option value="interval">{t('admin.createChore.scheduleType.interval')}</option>
           <option value="oneoff">{t('admin.createChore.scheduleType.oneoff')}</option>
         </select>
@@ -328,6 +335,24 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
             <button type="button" className={styles.chip} aria-pressed={presetOn(WEEKENDS)} onClick={() => setDayPreset(WEEKENDS)}>{t('admin.createChore.preset.weekends')}</button>
           </div>
         </div>
+      )}
+
+      {schedule.scheduleType === 'monthly' && (
+        <label className={styles.formGroup}>
+          <span className={styles.label}>{t('admin.createChore.schedule.dayOfMonthLabel')}</span>
+          <div className={styles.intervalInput}>
+            <input
+              className={styles.input}
+              type="number"
+              min={1}
+              max={31}
+              value={schedule.dayOfMonth}
+              onChange={e => setSchedule(s => ({ ...s, dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) }))}
+              aria-label={t('admin.createChore.schedule.dayOfMonthLabel')}
+            />
+            <span className={styles.intervalSuffix}>{t('admin.createChore.schedule.dayOfMonthSuffix')}</span>
+          </div>
+        </label>
       )}
 
       {schedule.scheduleType === 'interval' && (
@@ -385,6 +410,8 @@ const CreateChoreWizard: React.FC<Props> = ({ isOpen, onClose, onComplete, users
     let when = '';
     if (schedule.scheduleType === 'weekly') {
       when = schedule.selectedDays.slice().sort((a, b) => a - b).map(d => DAY_LABELS[d]).join(', ');
+    } else if (schedule.scheduleType === 'monthly') {
+      when = t('admin.createChore.review.monthlyWhen', { day: schedule.dayOfMonth });
     } else if (schedule.scheduleType === 'interval') {
       when = t('admin.createChore.review.intervalWhen', { interval: schedule.interval, start: schedule.intervalStart });
     } else {

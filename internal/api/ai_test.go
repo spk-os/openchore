@@ -455,12 +455,15 @@ func TestWriteWeeklySummaries(t *testing.T) {
 	}
 
 	env.setSetting(t, "ai_weekly_summary", "true")
-	env.reports.WriteWeeklySummaries(t.Context(), thisMonday.Add(9*time.Hour))
+	// 问题③: the week wraps once its Sunday 22:30 has passed — still
+	// Sunday evening means the week is not wrappable yet.
+	lastSunday, _ := time.ParseInLocation(model.DateFormat, thisMonday.AddDate(0, 0, -1).Format(model.DateFormat), time.Local)
+	env.reports.WriteWeeklySummaries(t.Context(), lastSunday.Add(22*time.Hour))
 	if f.calls() != 0 {
-		t.Fatalf("expected to wait until Monday noon, got %d calls", f.calls())
+		t.Fatalf("expected to wait until Sunday 22:30, got %d calls", f.calls())
 	}
 
-	env.reports.WriteWeeklySummaries(t.Context(), mondayAfternoon)
+	env.reports.WriteWeeklySummaries(t.Context(), lastSunday.Add(23*time.Hour))
 	if f.calls() != 1 {
 		t.Fatalf("expected one summary (the idle kid is skipped), got %d calls", f.calls())
 	}
@@ -469,7 +472,7 @@ func TestWriteWeeklySummaries(t *testing.T) {
 		t.Fatal("expected last week's summary to be stored")
 	}
 
-	env.reports.WriteWeeklySummaries(t.Context(), mondayAfternoon.Add(time.Hour))
+	env.reports.WriteWeeklySummaries(t.Context(), lastSunday.Add(23*time.Hour).Add(time.Hour))
 	if f.calls() != 1 {
 		t.Fatalf("expected no regeneration, got %d calls", f.calls())
 	}
@@ -478,4 +481,64 @@ func TestWriteWeeklySummaries(t *testing.T) {
 func mondayOf(d time.Time) string {
 	offset := (int(d.Weekday()) + 6) % 7
 	return d.AddDate(0, 0, -offset).Format(model.DateFormat)
+}
+
+// monthEnd returns the last day of the month containing t, at midnight.
+func monthEnd(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location()).AddDate(0, 1, -1)
+}
+
+// TestWriteMonthlySummaries covers 问题③'s month-end wrap-up: it only runs
+// on the month's last day, only after monthly_time, only once (the
+// finished-month cache), and never while ai_monthly_summary is off.
+func TestWriteMonthlySummaries(t *testing.T) {
+	env, f := setupAITest(t, false)
+	env.createAdmin(t)
+	kidID := env.createChild(t, "Kid")
+	env.createChild(t, "Idle") // no chores: nothing to summarize
+
+	// Activity inside the current month.
+	thisMonthStart := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Local)
+	midMonth := thisMonthStart.AddDate(0, 0, 14).Format(model.DateFormat)
+	resp := env.expectStatus(t, "POST", "/api/chores", map[string]any{"title": "Dishes", "category": "core"}, adminHeaders(), http.StatusCreated)
+	var chore map[string]any
+	decodeBody(t, resp, &chore)
+	resp = env.expectStatus(t, "POST", fmt.Sprintf("/api/chores/%d/schedules", int(chore["id"].(float64))),
+		map[string]any{"assigned_to": kidID, "specific_date": midMonth}, adminHeaders(), http.StatusCreated)
+	var sched map[string]any
+	decodeBody(t, resp, &sched)
+	env.expectStatus(t, "POST", fmt.Sprintf("/api/schedules/%d/complete", int(sched["id"].(float64))),
+		map[string]any{"completion_date": midMonth}, childHeaders(kidID), http.StatusCreated).Body.Close()
+
+	lastDay := monthEnd(time.Now())
+
+	// A mid-month evening: never the wrap-up moment, even past 22:30.
+	env.setSetting(t, "ai_monthly_summary", "true")
+	midMonthEvening := time.Date(time.Now().Year(), time.Now().Month(), 14, 23, 0, 0, 0, time.Local)
+	env.reports.WriteMonthlySummaries(t.Context(), midMonthEvening)
+	if f.calls() != 0 {
+		t.Fatalf("expected nothing mid-month, got %d calls", f.calls())
+	}
+
+	// The last day, but before monthly_time (default 22:30): still waiting.
+	env.reports.WriteMonthlySummaries(t.Context(), lastDay.Add(22*time.Hour))
+	if f.calls() != 0 {
+		t.Fatalf("expected to wait until monthly_time, got %d calls", f.calls())
+	}
+
+	// Past monthly_time on the last day: one summary per active kid.
+	env.reports.WriteMonthlySummaries(t.Context(), lastDay.Add(23*time.Hour))
+	if f.calls() != 1 {
+		t.Fatalf("expected one summary (the idle kid is skipped), got %d calls", f.calls())
+	}
+	monthStartStr := thisMonthStart.Format(model.DateFormat)
+	if got, _ := env.store.GetMonthlySummary(t.Context(), int64(kidID), monthStartStr); got == "" {
+		t.Fatal("expected the month's summary to be stored")
+	}
+
+	// The finished-month cache keeps repeats cheap.
+	env.reports.WriteMonthlySummaries(t.Context(), lastDay.Add(23*time.Hour).Add(time.Hour))
+	if f.calls() != 1 {
+		t.Fatalf("expected no regeneration, got %d calls", f.calls())
+	}
 }
