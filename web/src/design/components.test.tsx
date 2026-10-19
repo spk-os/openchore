@@ -67,8 +67,9 @@ describe('TabBar', () => {
 
   it('renders buttons without hrefs', () => {
     render(<TabBar />);
-    // today / week / errorbook / review / rewards — five tabs since L4.
-    expect(screen.getAllByRole('button')).toHaveLength(5);
+    // today / week / history / errorbook / review / rewards — six tabs
+    // since 问题② added the whole-past History tab.
+    expect(screen.getAllByRole('button')).toHaveLength(6);
   });
 });
 

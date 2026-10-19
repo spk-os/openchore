@@ -76,6 +76,10 @@ const ThemeSection: React.FC = () => {
       <span className={ui.help}>
         {pick === 'auto' ? t('admin.settingsTab.theme.autoHelp') : t('admin.settingsTab.theme.pickHelp')}
       </span>
+      {/* 问题③: "管理的主题在哪选择" — the look itself (skin + colour)
+          lives per-person, not in this device pick. Name both places so
+          this card answers the question instead of hiding it. */}
+      <span className={ui.help}>{t('admin.settingsTab.theme.skinHint')}</span>
     </section>
   );
 };

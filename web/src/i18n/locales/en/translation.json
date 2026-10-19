@@ -538,7 +538,16 @@
       "quickLink": "See the report →",
       "dailyTitle": "Today's note · for parents",
       "dailyStats": "Must-do {{reqDone}}/{{reqTotal}} · Bonus {{bonusDone}}/{{bonusTotal}} · Today +{{points}} pts",
-      "quickKidLink": "Kid's error book"
+      "quickKidLink": "Kid's error book",
+      "historyButton": "History",
+      "historyTitle": "Past chores",
+      "historyMonthLabel": "Month",
+      "historyPrev": "Previous month",
+      "historyNext": "Next month",
+      "historyLoading": "Loading history…",
+      "historyEmpty": "No chores recorded this month.",
+      "historyDayLabel": "{{date}}",
+      "historyClose": "Close"
     },
     "modal": {
       "close": "Close"
@@ -897,10 +906,11 @@
         "auto": "Auto",
         "autoHelp": "Auto: personal sign-ins follow the system setting; shared screens go dark 19:30–07:00.",
         "dark": "Dark",
-        "description": "Choose light or dark on this device, or let the app decide.",
+        "description": "Pin this device to light or dark, or let the app decide automatically.",
         "light": "Light",
         "pickHelp": "This device now always uses the theme above. Pick Auto to restore the automatic rules.",
-        "title": "Display theme"
+        "title": "Display theme",
+        "skinHint": "Looking for the look itself (Sunroom/Blocks/Tint) and your colour? On a phone or tablet open the Me page → \"Your look\"; or edit the member under \"People\"."
       },
       "learning": {
         "title": "Learning (spaced repetition)",
@@ -1520,7 +1530,8 @@
       "today": "Today",
       "week": "Week",
       "errorbook": "Mistakes",
-      "review": "Review"
+      "review": "Review",
+      "history": "History"
     }
   },
   "entry": {
@@ -1919,7 +1930,9 @@
       "streak": "Streak",
       "streakDays_one": "{{count}} day in a row",
       "streakDays_other": "{{count}} days in a row",
-      "title": "This week"
+      "title": "This week",
+      "summaryTitle": "This week",
+      "summaryEmpty": "This week's summary isn't written yet (it lands Sunday night)."
     },
     "review": {
       "title": "Today's Review",
@@ -1999,6 +2012,21 @@
       "entryResources": "{{done}}/{{total}}",
       "entryTip": "Up next: “{{unit}}” ({{done}}/{{total}})",
       "entryContinue": "Open course"
+    },
+    "history": {
+      "title": "My history",
+      "monthLabel": "Month ({{month}})",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "summaryTitle": "This month",
+      "summaryEmpty": "This month's summary isn't written yet — the tasks below tell the story so far.",
+      "loading": "Loading…",
+      "loadFailed": "Could not load, try again",
+      "emptyTitle": "Nothing this month",
+      "emptyText": "Try another month.",
+      "freeTitle": "A free day",
+      "freeText": "Nothing on the list that day.",
+      "foot": "History is read-only · the summary is written automatically on the last day of each month"
     }
   },
   "linkedAccounts": {

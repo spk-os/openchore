@@ -156,9 +156,21 @@ with sync_playwright() as p:
     page3.wait_for_load_state('networkidle')
     page3.wait_for_timeout(2500)
 
+    # 19 号的任务落在当月 19 日那一天——不一定是「今天」，所以不依赖默认
+    # 选中日：把周内七天 chip 都点一遍，任何一天见到月度任务即通过
+    # （脚本跑在 19 号那天时默认选中即可见；跨天后要点对 chip）。
+    seen_monthly = False
+    day_chips = page3.locator('div[role="group"] button', has_text='周')
+    for i in range(day_chips.count()):
+        day_chips.nth(i).click()
+        page3.wait_for_timeout(700)
+        if '月度专项-月考复盘' in page3.locator('#root').inner_text():
+            seen_monthly = True
+            break
     wk = page3.locator('#root').inner_text()
     check('周视图出现月度任务「月度专项-月考复盘」（问题④ 本周可见）',
-          '月度专项-月考复盘' in wk)
+          seen_monthly or '月度专项-月考复盘' in wk,
+          f'seen={seen_monthly}')
     check('孩子端周视图无前端报错（pageerror=0）', len(errors3) == 0, f'{errors3[:1]}')
     ctx3.close()
 

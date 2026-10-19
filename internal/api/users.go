@@ -696,11 +696,87 @@ func (h *UserHandler) GetChores(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 7; i++ {
 			dates = append(dates, monday.AddDate(0, 0, i).Format(model.DateFormat))
 		}
+	case "month":
+		// 问题②④: the whole-history view — every day of the month up to
+		// today, so the kid's history page and the parent's per-kid
+		// history read one month per request. A month still in progress
+		// clamps at today; a future month is an empty range. Local time,
+		// because "today" is a household word here.
+		now := time.Now()
+		monthStart := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, now.Location())
+		monthEnd := monthStart.AddDate(0, 1, -1)
+		if monthEnd.After(now) {
+			monthEnd = now
+		}
+		for d := monthStart; !d.After(monthEnd); d = d.AddDate(0, 0, 1) {
+			dates = append(dates, d.Format(model.DateFormat))
+		}
 	default: // daily
 		dates = []string{dateStr}
 	}
 
 	chores, err := h.store.GetScheduledChoresForUser(r.Context(), id, dates, time.Now())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get chores")
+		return
+	}
+	if chores == nil {
+		chores = []model.ScheduledChore{}
+	}
+	writeJSON(w, http.StatusOK, chores)
+}
+
+// GetChoresSelf serves GET /users/me/chores — the History tab's read of
+// the signed-in person's own month (问题②). Same rows as GetChores with
+// one difference that matters: the caller is the user, so sibling-FCFS
+// rows and paused-profile behaviour all apply to the reader themselves.
+func (h *UserHandler) GetChoresSelf(w http.ResponseWriter, r *http.Request) {
+	viewer := UserFromContext(r.Context())
+	if viewer == nil {
+		writeError(w, http.StatusUnauthorized, "sign in first")
+		return
+	}
+	view := r.URL.Query().Get("view")
+	if view == "" {
+		view = "daily"
+	}
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		dateStr = time.Now().Format(model.DateFormat)
+	}
+	date, err := time.Parse(model.DateFormat, dateStr)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid date format, use YYYY-MM-DD")
+		return
+	}
+	var dates []string
+	switch view {
+	case "weekly":
+		weekday := date.Weekday()
+		offset := int(weekday - time.Monday)
+		if offset < 0 {
+			offset += 7
+		}
+		monday := date.AddDate(0, 0, -offset)
+		for i := 0; i < 7; i++ {
+			dates = append(dates, monday.AddDate(0, 0, i).Format(model.DateFormat))
+		}
+	case "month":
+		// The same whole-month window as GetChores: days 1..today (a
+		// finished month reads back in full), one request per month.
+		now := time.Now()
+		monthStart := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, now.Location())
+		monthEnd := monthStart.AddDate(0, 1, -1)
+		if monthEnd.After(now) {
+			monthEnd = now
+		}
+		for d := monthStart; !d.After(monthEnd); d = d.AddDate(0, 0, 1) {
+			dates = append(dates, d.Format(model.DateFormat))
+		}
+	default:
+		dates = []string{dateStr}
+	}
+	chores, err := h.store.GetScheduledChoresForUser(r.Context(), viewer.ID, dates, time.Now())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get chores")
 		return

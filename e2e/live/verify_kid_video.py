@@ -31,12 +31,29 @@ with sync_playwright() as p:
     page = ctx.new_page()
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
-    page.on('console', lambda m: errors.append(m.text) if m.type == 'error' and '401' not in m.text else None)
+    # 403 是 KidApp 对 admin/settings/base_url 的探测（孩子无权读，PhotoSheet
+    # 有 window.location.origin 兜底，catch 已吞）——它每次加载 KidApp 都会
+    # 出现一次，是预期网络噪音不是页面错误，忽略之。
+    page.on('console', lambda m: errors.append(m.text) if m.type == 'error' and '401' not in m.text and '403' not in m.text and 'base_url' not in m.text else None)
     login(page, '小明', '')
     errors.clear()
     page.wait_for_load_state('networkidle')
     page.wait_for_timeout(2000)
 
+    # view-submission 只对「已完成且带 completion/photo」的任务渲染；今天的
+    # 任务往往全部未完成，所以先到 /week 把整周逐日点开找（2026-10-20 起
+    # 今天的行不再保证有已完成项）。
+    page.goto(BASE + '/week')
+    page.wait_for_load_state('networkidle')
+    page.wait_for_timeout(2000)
+    view_btns = page.locator('[data-test="view-submission"]')
+    if view_btns.count() == 0:
+        chips = page.locator('div[role="group"] button')
+        for i in range(chips.count()):
+            chips.nth(i).click()
+            page.wait_for_timeout(800)
+            if page.locator('[data-test="view-submission"]').count() > 0:
+                break
     view_btns = page.locator('[data-test="view-submission"]')
     view_btns.first.wait_for(state='visible', timeout=15000)
 

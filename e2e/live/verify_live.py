@@ -68,13 +68,26 @@ with sync_playwright() as p:
     ctx.close()
 
     # ============ 场景B：孩子端 小明（问题① 查看提交）============
+    # view-submission 只对「已完成且带 completion/photo」的任务渲染；今天
+    # 的任务往往全部未完成，所以先到 /week 点昨天/前天再验证（2026-10-20
+    # 起今天的行不再保证有已完成项）。
     ctx2 = browser.new_context(viewport={'width': 1280, 'height': 900})
     page2 = ctx2.new_page()
     errors2 = []
     page2.on('pageerror', lambda e: errors2.append(str(e)))
     login(page2, '小明', '')   # 无 PIN，选头像直接进
+    page2.goto(BASE + '/week')
     page2.wait_for_load_state('networkidle')
     page2.wait_for_timeout(2000)
+    # 从最早的一天往今天找：任何有 view-submission 的日子都行
+    for i in range(7):
+        chips = page2.locator('div[role="group"] button', has_text='周')
+        if chips.count() == 0:
+            break
+        chips.first.click()
+        page2.wait_for_timeout(1000)
+        if page2.locator('[data-test="view-submission"]').count() > 0:
+            break
 
     view_btns = page2.locator('[data-test="view-submission"]')
     view_btns.first.wait_for(state='visible', timeout=15000)

@@ -179,8 +179,16 @@ export const api = {
       fetchWithAuth<User>(`/users/${id}/pause`, { method: 'PUT' }),
     unpause: (id: number) =>
       fetchWithAuth<User>(`/users/${id}/unpause`, { method: 'PUT' }),
-    getChores: (id: number, view: 'daily' | 'weekly', date: string) =>
+    getChores: (id: number, view: 'daily' | 'weekly' | 'month', date: string) =>
       fetchWithAuth<ScheduledChore[]>(`/users/${id}/chores?view=${view}&date=${date}`),
+    // 问题②: the signed-in person's own month of history — same rows the
+    // public getChores serves, minus the id bookkeeping.
+    getChoresSelf: (view: 'daily' | 'weekly' | 'month', date: string) =>
+      fetchWithAuth<ScheduledChore[]>(`/users/me/chores?view=${view}&date=${date}`),
+    // 问题①: the kid's own finished week/month summary — the scheduled
+    // writer's cache, read-only (never triggers an AI generation).
+    getMySummary: (id: number, period: 'week' | 'month', date: string) =>
+      fetchWithAuth<{ summary: string }>(`/users/${id}/my-summary?period=${period}&date=${date}`),
   },
   chores: {
     list: () => fetchWithAuth<Chore[]>('/chores'),

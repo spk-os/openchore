@@ -8,6 +8,9 @@ import type { TabId } from './types';
 export const TABS: readonly { id: TabId; icon: IconName }[] = [
   { id: 'today', icon: 'home' },
   { id: 'week', icon: 'cal' },
+  // 问题②: the whole past — one tab per history month beats burying the
+  // past behind a "load more" on Week.
+  { id: 'history', icon: 'clock' },
   { id: 'errorbook', icon: 'book' },
   { id: 'review', icon: 'spark' },
   { id: 'rewards', icon: 'gift' },

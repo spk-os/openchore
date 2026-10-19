@@ -1,7 +1,9 @@
 package api_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -151,6 +153,35 @@ func TestMediaLibraryFilters(t *testing.T) {
 	}
 	if len(all.Classes) != 3 || all.Total != 3 {
 		t.Errorf("expected 3 class stats totaling 3, got %+v (total %d)", all.Classes, all.Total)
+	}
+}
+
+// TestMediaLibraryEmptyFilterEncodesArrays: a filter with nothing under it
+// must answer with empty JSON arrays, not null — Go's nil slices encode as
+// null, and null stats crashed the filter chips client-side (the "点录音
+// 分类白屏" report, three rounds deep).
+func TestMediaLibraryEmptyFilterEncodesArrays(t *testing.T) {
+	e := setupTest(t)
+	_, _, _, _ = mediaFixture(t, e)
+	// The fixture has no pdf (its one pdf is soft-deleted), so the class
+	// filter leaves every dimension empty.
+	resp := e.expectStatus(t, "GET", "/api/admin/media?class=pdf", nil, adminHeaders(), http.StatusOK)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("reading body: %v", err)
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("decoding body: %v", err)
+	}
+	for _, key := range []string{"items", "subjects", "classes"} {
+		v := string(raw[key])
+		if v == "null" {
+			t.Errorf("%s must be [] not null — null crashed the filter chips (audio white screen)", key)
+		}
+		if v != "[]" {
+			t.Errorf("%s should be [], got %s", key, v)
+		}
 	}
 }
 

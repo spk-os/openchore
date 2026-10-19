@@ -17,6 +17,7 @@ import { useKidData } from './useKidData';
 import { TopBar, CAT_ORDER } from './parts';
 import { TodayScreen } from './TodayScreen';
 import { WeekScreen } from './WeekScreen';
+import { HistoryScreen } from './HistoryScreen';
 import { RewardsScreen } from './RewardsScreen';
 import { ErrorBookScreen } from './ErrorBookScreen';
 import { ReviewScreen } from './ReviewScreen';
@@ -29,7 +30,7 @@ import { choreDomId } from './ChoreItem';
 import { catFromCategory } from '../../design';
 import s from './kid.module.css';
 
-const HREFS: Record<TabId, string> = { today: '/', week: '/week', errorbook: '/errorbook', review: '/review', rewards: '/rewards' };
+const HREFS: Record<TabId, string> = { today: '/', week: '/week', history: '/history', errorbook: '/errorbook', review: '/review', rewards: '/rewards' };
 
 const ttsKey = (id: number) => `openchore_tts_${id}`;
 function readTts(id: number, age?: number): boolean {
@@ -55,6 +56,7 @@ export const KidApp: React.FC = () => {
   const now = useMinuteClock();
 
   const tab: TabId = location.pathname.startsWith('/week') ? 'week'
+    : location.pathname.startsWith('/history') ? 'history'
     : location.pathname.startsWith('/errorbook') ? 'errorbook'
     : location.pathname.startsWith('/review') ? 'review'
     : location.pathname.startsWith('/rewards') ? 'rewards' : 'today';
@@ -196,6 +198,8 @@ export const KidApp: React.FC = () => {
         <Routes>
           <Route index element={<TodayScreen {...shared} now={now} />} />
           <Route path="week" element={<WeekScreen {...shared} />} />
+          {/* 问题②: the whole past, one month at a time. */}
+          <Route path="history" element={<HistoryScreen user={user} topBar={topBar} today={data.today} viewOf={viewOf} tts={tts} onPhoto={setPhotoChore} onViewSubmission={setSubmissionChore} onSpeak={speakOrPlay} />} />
           <Route path="errorbook" element={<ErrorBookScreen topBar={topBar} />} />
           <Route path="review" element={<ReviewScreen topBar={topBar} />} />
           <Route path="course/:id" element={<CourseScreen topBar={topBar} />} />

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../design';
+import { api } from '../../api';
 import type { ScheduledChore, User } from '../../types';
 import { localDateStr } from '../../utils';
 import { isDone, type ChoreView } from './choreView';
@@ -76,6 +77,19 @@ export function WeekScreen({ user, data, topBar, viewOf, tts, onToggle, onPhoto,
   const dayChores = all.filter(c => c.date === day);
   const dayLabel = new Date(`${day}T00:00:00`).toLocaleDateString(lang, { weekday: 'long', month: 'long', day: 'numeric' });
 
+  // 问题①: this week's own summary, read back from the scheduled writer's
+  // cache — read-only, never an on-demand generation. "" (not yet written)
+  // renders the "not yet" line so the card never disappears.
+  const [weekSummary, setWeekSummary] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    setWeekSummary(null);
+    api.users.getMySummary(user.id, 'week', data.today)
+      .then(res => { if (live) setWeekSummary(res.summary); })
+      .catch(() => { if (live) setWeekSummary(''); });
+    return () => { live = false; };
+  }, [user.id, data.today]);
+
   return (
     <div className={s.week}>
       {topBar}
@@ -125,6 +139,15 @@ export function WeekScreen({ user, data, topBar, viewOf, tts, onToggle, onPhoto,
             })}
           </p>
         )}
+      </section>
+
+      {/* 问题①: the week's summary — the kid reads the same words the
+          parent's report page shows, not a parent-only artifact. */}
+      <section className={s.histSummary} data-test="week-summary" aria-label={t('kid.week.summaryTitle')}>
+        <h2 className={s.histSummaryTitle}><Icon name="star" fill /> {t('kid.week.summaryTitle')}</h2>
+        {weekSummary === null && <p className={s.ebLoading}>{t('kid.history.loading')}</p>}
+        {weekSummary !== null && weekSummary !== '' && <p className={s.histSummaryText} data-test="week-summary-text">{weekSummary}</p>}
+        {weekSummary === '' && <p className={s.histSummaryEmpty} data-test="week-summary-empty">{t('kid.week.summaryEmpty')}</p>}
       </section>
 
       <h2 className={s.dayTitle}>{dayLabel}</h2>

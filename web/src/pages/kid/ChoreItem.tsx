@@ -131,7 +131,13 @@ export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onViewSub
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {readOnly ? <fieldset disabled className={s.readonly}>{row}</fieldset> : row}
+      {/* 问题①: past-day rows used to sit in a <fieldset disabled>, which
+          silently killed the look-back button on Week/History — the kid
+          could never reopen what they submitted. The fieldset was redundant
+          anyway: a read-only ChoreRow renders its check as a plain span and
+          skips the read-aloud button, so with it gone there is nothing left
+          to fence off and the camera stays clickable. */}
+      {readOnly ? <div className={s.readonly}>{row}</div> : row}
       {chore.description && view.state !== 'done' && (
         <p className={s.caption}>{chore.description}</p>
       )}

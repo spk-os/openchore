@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 	"strconv"
+
+	"github.com/liftedkilt/openchore/internal/store"
 )
 
 // The parent-side media library endpoints (036): one place to browse every
@@ -29,6 +31,16 @@ func (h *ChoreHandler) HandleListMedia(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to summarize media")
 		return
+	}
+	// A filter with no matches leaves the stats as Go nil slices, which
+	// JSON encodes as null — and null crashed the filter chips
+	// ("Cannot read properties of null (reading 'find')", the white
+	// screen on tapping a class with nothing in it). Empty arrays, always.
+	if subjects == nil {
+		subjects = []store.MediaSubjectStat{}
+	}
+	if classes == nil {
+		classes = []store.MediaClassStat{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"items":    items,

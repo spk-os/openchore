@@ -109,10 +109,13 @@ export const MediaTab: React.FC = () => {
         subject, cls, from, to,
         user_id: kid || undefined,
       });
-      setItems(res.items);
-      setSubjects(res.subjects);
-      setClasses(res.classes);
-      setTotal(res.total);
+      // A filter with no matches used to come back with null stats (Go
+      // nil slices encode as null); the chips then crashed on .find and
+      // took the whole dashboard down ("点录音白屏"). Treat null as empty.
+      setItems(res.items ?? []);
+      setSubjects(res.subjects ?? []);
+      setClasses(res.classes ?? []);
+      setTotal(res.total ?? 0);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

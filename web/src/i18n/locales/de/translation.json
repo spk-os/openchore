@@ -185,7 +185,9 @@
       "statWrongRate": "Fehlerquote",
       "statWeakest": "Schwachstelle",
       "statSample": "Aufgaben",
-      "statFixed": "Korrigiert / falsch"
+      "statFixed": "Korrigiert / falsch",
+      "instructionsLabel": "Schwerpunkt dieser Analyse (optional)",
+      "instructionsPlaceholder": "Sag der KI, worauf sie achten soll, z. B. die Rechenfehler in Aufgabe 3"
     },
     "mediaTab": {
       "title": "Mediathek",
@@ -207,7 +209,9 @@
       "loading": "Lädt…",
       "empty": "Noch keine Fotos, Videos oder Aufnahmen",
       "itemAria": "{{name}}, {{chore}}, {{when}}",
-      "choreDeleted": "Aufgabe gelöscht"
+      "choreDeleted": "Aufgabe gelöscht",
+      "emptyFiltered": "Nichts passt zu diesen Filtern — lockere sie etwas",
+      "openRaw": "Originaldatei in neuem Tab öffnen"
     },
     "choresTab": {
       "addChore": "Aufgabe hinzufügen",
@@ -246,7 +250,8 @@
       "ai": {
         "aiLabel": "KI",
         "generateTitle": "Mit KI generieren",
-        "generating": "Wird generiert..."
+        "generating": "Wird generiert...",
+        "planWithAI": "Aufgaben mit KI planen"
       },
       "error": {
         "createFailed": "Aufgabe konnte nicht erstellt werden",
@@ -362,7 +367,9 @@
       "tabCourses": "Kurse",
       "tabProfile": "Profil",
       "tabErrorbook": "Fehler",
-      "tabMeasures": "Maßnahmen"
+      "tabMeasures": "Maßnahmen",
+      "navMore": "{{count}} Tabs versteckt — wischen",
+      "navScrollHint": "Für mehr Tabs wischen"
     },
     "editChore": {
       "labelCategory": "Kategorie",
@@ -531,7 +538,18 @@
       "quickLink": "Bericht ansehen →",
       "dailyTitle": "Heutige Notiz · für Eltern",
       "dailyStats": "Pflicht {{reqDone}}/{{reqTotal}} · Bonus {{bonusDone}}/{{bonusTotal}} · Heute +{{points}} P",
-      "quickKidLink": "Fehlerheft des Kindes"
+      "quickKidLink": "Fehlerheft des Kindes",
+      "historyButton": "Verlauf",
+      "historyTitle": "Frühere Aufgaben",
+      "historyMonthLabel": "Monat",
+      "historyPrev": [
+        "Voriger Monat"
+      ],
+      "historyNext": "Nächster Monat",
+      "historyLoading": "Verlauf lädt…",
+      "historyEmpty": "In diesem Monat sind keine Aufgaben aufgezeichnet.",
+      "historyDayLabel": "{{date}}",
+      "historyClose": "Schließen"
     },
     "modal": {
       "close": "Schließen"
@@ -890,10 +908,11 @@
         "auto": "Auto",
         "autoHelp": "Auto: persönliche Anmeldungen folgen der Systemeinstellung; gemeinsame Bildschirme wechseln 19:30–07:00 auf Dunkel.",
         "dark": "Dunkel",
-        "description": "Auf diesem Gerät Hell oder Dunkel festlegen – oder die App entscheiden lassen.",
+        "description": "Dieses Gerät auf hell oder dunkel festlegen — oder die App automatisch entscheiden lassen.",
         "light": "Hell",
         "pickHelp": "Dieses Gerät verwendet jetzt immer das gewählte Thema. „Auto“ stellt die automatischen Regeln wieder her.",
-        "title": "Anzeigethema"
+        "title": "Anzeigethema",
+        "skinHint": "Du suchst das Aussehen selbst (Sonnenzimmer/Blöcken/Tönung) und deine Farbe? Auf Handy oder Tablet: Ich-Seite → „Dein Aussehen\"; oder das Mitglied unter „Personen\" bearbeiten."
       },
       "learning": {
         "title": "Lernen (verteilte Wiederholung)",
@@ -1513,7 +1532,8 @@
       "today": "Heute",
       "week": "Woche",
       "errorbook": "Fehlerheft",
-      "review": "Wiederholen"
+      "review": "Wiederholen",
+      "history": "Verlauf"
     }
   },
   "entry": {
@@ -1898,7 +1918,9 @@
       "streak": "Serie",
       "streakDays_one": "{{count}} Tag in Folge",
       "streakDays_other": "{{count}} Tage in Folge",
-      "title": "Diese Woche"
+      "title": "Diese Woche",
+      "summaryTitle": "Diese Woche",
+      "summaryEmpty": "Die Wochenzusammenfassung ist noch nicht da (sie kommt Sonntagabend)."
     },
     "review": {
       "title": "Heutige Wiederholung",
@@ -1978,6 +2000,35 @@
       "entryResources": "{{done}}/{{total}}",
       "entryTip": "Als Nächstes: „{{unit}}“ ({{done}}/{{total}})",
       "entryContinue": "Kurs öffnen"
+    },
+    "history": {
+      "title": "Mein Verlauf",
+      "monthLabel": "Monat ({{month}})",
+      "prevMonth": "Voriger Monat",
+      "nextMonth": "Nächster Monat",
+      "summaryTitle": "Dieser Monat",
+      "summaryEmpty": "Die Monatszusammenfassung ist noch nicht da — die Aufgaben unten erzählen es bisher.",
+      "loading": "Lädt…",
+      "loadFailed": "Konnte nicht laden, nochmal versuchen",
+      "emptyTitle": "Nichts in diesem Monat",
+      "emptyText": "Probiere einen anderen Monat.",
+      "freeTitle": "Ein freier Tag",
+      "freeText": "An diesem Tag stand nichts auf der Liste.",
+      "foot": "Der Verlauf ist schreibgeschützt · die Zusammenfassung entsteht automatisch am Monatsende"
+    },
+    "submission": {
+      "aiNote": "KI-Anmerkung",
+      "attsCaption": "Abgegeben wurde",
+      "doneAt": "Fertig um {{time}}",
+      "doneLabel": "Fertig",
+      "emptyText": "Keine Anhänge an dieser Abgabe",
+      "hint": "Antippen vergrößert oder spielt ab; die Eltern sehen dieselbe Datei.",
+      "legacyPhoto": "Abgegebenes Foto",
+      "loadFailed": "Laden fehlgeschlagen, nochmal versuchen",
+      "loading": "Lädt…",
+      "openPdf": "PDF öffnen",
+      "title": "Meine Abgabe",
+      "viewBtn": "Abgabe ansehen"
     }
   },
   "linkedAccounts": {

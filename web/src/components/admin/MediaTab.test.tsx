@@ -220,4 +220,29 @@ describe('MediaTab', () => {
     expect(preview.querySelector('video')).toBeTruthy();
     expect(preview.querySelector('video')!.getAttribute('src')).toBe('/uploads/a2.mp4');
   });
+
+  it('survives null stats from an empty filter (the audio white screen)', async () => {
+    vi.mocked(api.users.list).mockResolvedValue([kid()]);
+    // Tapping a class chip the library has nothing under made the server
+    // answer with null subjects/classes (Go nil slices) — the chips then
+    // crashed on .find and the whole dashboard went blank
+    // ("点录音分类白屏"). The tab must treat null as empty.
+    vi.mocked(api.chores.listMedia).mockResolvedValue({
+      items: null,
+      subjects: null,
+      classes: null,
+      total: 0,
+    } as unknown as MediaLibraryResponse);
+
+    const { container } = render(<MediaTab />);
+    // Rendered without throwing: every class chip shows count 0.
+    const audioChip = await waitFor(() => {
+      const el = container.querySelector('[data-test="media-class-audio"]');
+      expect(el).toBeTruthy();
+      return el as HTMLElement;
+    });
+    expect(audioChip.textContent).toContain('0');
+    expect(container.querySelector('[data-test="media-grid"]')).toBeNull();
+    expect(container.textContent).toContain('No photos, videos or recordings yet');
+  });
 });

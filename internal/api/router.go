@@ -109,6 +109,14 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			// grown-ups read any kid's full note.
 			r.Get("/users/{id}/coach-note", coach.GetNote)
 
+			// 问题②: the signed-in person's own history without the id in
+			// the path — the History tab's month read (id = "me").
+			r.Get("/users/me/chores", users.GetChoresSelf)
+
+			// 问题①: the kid's own finished week/month summary, read-only —
+			// the scheduled writer's cache, never an on-demand generation.
+			r.Get("/users/{id}/my-summary", reports.GetMySummary)
+
 			// Templates page conflict preview: how many open-ended daily
 			// schedules a stop-daily import would pause (admin-only UI, but
 			// the count itself harms nobody — any signed-in member can read

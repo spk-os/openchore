@@ -391,6 +391,54 @@ func (h *ReportsHandler) GetAISummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"summary": summary})
 }
 
+// GetMySummary serves a kid's own period summary (问题①): the finished
+// week's/month's narrative the scheduled writer already kept, read-only.
+// Kids read their own; a grown-up reading another profile is not this
+// endpoint's caller (the admin one is GetAISummary). No AI here on
+// purpose: the kid's screen shows what was written, it never triggers a
+// generation (no surprise token spend from a child's pocket device).
+func (h *ReportsHandler) GetMySummary(w http.ResponseWriter, r *http.Request) {
+	userID, err := urlParamInt64(r, "id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	viewer := UserFromContext(r.Context())
+	if viewer == nil || viewer.ID != userID {
+		writeError(w, http.StatusForbidden, "you can only read your own summary")
+		return
+	}
+
+	period := r.URL.Query().Get("period")
+	if period != "week" && period != "month" {
+		writeError(w, http.StatusBadRequest, "period must be week or month")
+		return
+	}
+	refDate := time.Now()
+	if dateStr := r.URL.Query().Get("date"); dateStr != "" {
+		refDate, err = time.ParseInLocation(model.DateFormat, dateStr, time.Local)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid date format, use YYYY-MM-DD")
+			return
+		}
+	}
+	start, _ := periodRange(period, refDate)
+
+	var summary string
+	if period == "week" {
+		summary, err = h.store.GetWeeklySummary(r.Context(), userID, start.Format(model.DateFormat))
+	} else {
+		summary, err = h.store.GetMonthlySummary(r.Context(), userID, start.Format(model.DateFormat))
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get summary")
+		return
+	}
+	// "" (never generated) and an in-progress period both mean "not yet" —
+	// the kid's card says so instead of an error.
+	writeJSON(w, http.StatusOK, map[string]string{"summary": summary})
+}
+
 // summaryStats gathers what a summary is written from, or nil if the user
 // has no report row for the range.
 func (h *ReportsHandler) summaryStats(ctx context.Context, userID int64, startStr, endStr string) (*llm.WeeklyStats, error) {

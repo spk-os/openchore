@@ -157,7 +157,8 @@
       "today": "今天",
       "week": "本周",
       "errorbook": "错题本",
-      "review": "复习"
+      "review": "复习",
+      "history": "历史"
     }
   },
   "entry": {
@@ -556,7 +557,9 @@
       "streak": "连续天数",
       "streakDays_one": "连续 {{count}} 天",
       "streakDays_other": "连续 {{count}} 天",
-      "title": "本周"
+      "title": "本周",
+      "summaryTitle": "本周总结",
+      "summaryEmpty": "本周总结还没生成（每周日晚自动生成）。"
     },
     "review": {
       "title": "今日复习",
@@ -636,6 +639,21 @@
       "entryResources": "{{done}}/{{total}}",
       "entryTip": "下一步：「{{unit}}」（{{done}}/{{total}}）",
       "entryContinue": "进入课程"
+    },
+    "history": {
+      "title": "我的历史",
+      "monthLabel": "月份（{{month}}）",
+      "prevMonth": "上个月",
+      "nextMonth": "下个月",
+      "summaryTitle": "本月总结",
+      "summaryEmpty": "这个月的总结还没生成，先看看下面的任务吧。",
+      "loading": "正在加载…",
+      "loadFailed": "加载失败，再试一次",
+      "emptyTitle": "这个月没有记录",
+      "emptyText": "换一个月看看。",
+      "freeTitle": "自由的一天",
+      "freeText": "那天没有任务。",
+      "foot": "历史记录只读 · 总结由系统在每月最后一天自动生成"
     }
   },
   "linkedAccounts": {
@@ -1326,7 +1344,16 @@
       "quickLink": "查看报告 →",
       "dailyTitle": "今日点评 · 家长版",
       "dailyStats": "必做 {{reqDone}}/{{reqTotal}} · 加分 {{bonusDone}}/{{bonusTotal}} · 今日 +{{points}} 分",
-      "quickKidLink": "孩子端错题本"
+      "quickKidLink": "孩子端错题本",
+      "historyButton": "看历史",
+      "historyTitle": "历史任务",
+      "historyMonthLabel": "月份",
+      "historyPrev": "上个月",
+      "historyNext": "下个月",
+      "historyLoading": "正在加载历史…",
+      "historyEmpty": "这个月没有任务记录。",
+      "historyDayLabel": "{{date}}",
+      "historyClose": "收起"
     },
     "modal": {
       "close": "关闭"
@@ -1688,7 +1715,8 @@
         "description": "在本设备上固定浅色或深色，也可以交给应用自动决定。",
         "light": "浅色",
         "pickHelp": "本设备现在固定使用上面选择的主题。选「自动」可恢复默认规则。",
-        "title": "显示主题"
+        "title": "显示主题",
+        "skinHint": "想换界面皮肤（太阳房/积木/淡彩）和个人颜色？手机/平板上打开「我的」页选「你的外观」；或在「成员」里编辑成员资料时修改。"
       },
       "learning": {
         "title": "学习系统（间隔复习）",

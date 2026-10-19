@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { RefreshCw, Loader2 } from 'lucide-react';
@@ -134,8 +134,7 @@ const QuickAnalysisCard: React.FC<{
 /** OD daily-report-preview: today's coach note as the parent's first
  *  screen — the date, the note itself and the day's chore shape in one
  *  line (must-do / bonus / points today). */
-const DailyReportPreview: React.FC<{ kid: KidStatus }> = ({ kid }) => {
-  const { t } = useTranslation();
+const DailyReportPreview: React.FC<{ kid: KidStatus }> = ({ kid }) => {  const { t } = useTranslation();
   const b = breakdownFor(kid.chores);
   const note = kid.coachNote;
   const text = note?.parent_text || note?.child_text || '';
@@ -161,6 +160,130 @@ const DailyReportPreview: React.FC<{ kid: KidStatus }> = ({ kid }) => {
         })}
       </p>
     </section>
+  );
+};
+
+/** 问题④: the parent's look back at one kid's whole past. The expanded
+ *  row gains a "看历史" button; tapping it fetches that month's rows
+ *  through the same public read the kid's History tab uses, and renders
+ *  them month-by-month in the card's own visual language — read-only,
+ *  because the past can't be toggled from here. */
+const KidHistoryView: React.FC<{
+  kid: KidStatus;
+  today: string;
+  onClose: () => void;
+}> = ({ kid, today, onClose }) => {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const monthOf = (date: string) => date.slice(0, 7);
+  const shift = (key: string, by: number) => {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, m - 1 + by, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const [month, setMonth] = useState(() => monthOf(today));
+  const [chores, setChores] = useState<ScheduledChore[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    setFailed(false);
+    setChores(null);
+    api.users.getChores(kid.user.id, 'month', `${month}-01`)
+      .then(rows => { if (live) setChores(rows); })
+      .catch(() => { if (live) { setFailed(true); setChores([]); } });
+    return () => { live = false; };
+  }, [kid.user.id, month]);
+
+  const days = useMemo(
+    () => [...new Set((chores ?? []).map(c => c.date))].sort().reverse(),
+    [chores],
+  );
+  const monthLabel = new Date(`${month}-01T00:00:00`)
+    .toLocaleDateString(lang, { year: 'numeric', month: 'long' });
+
+  const statusOf = (c: ScheduledChore) => {
+    if (c.completion_status === 'excused') return t('admin.kidsStatusTab.statusExcused');
+    if (c.completed && c.completion_status === 'pending') return t('admin.kidsStatusTab.statusPending');
+    if (c.completed) return t('admin.kidsStatusTab.statusDone', { points: c.points_value });
+    if (c.expired && c.category !== 'bonus') return t('admin.kidsStatusTab.statusOverdue');
+    return t('admin.kidsStatusTab.statusIdle', { points: c.points_value });
+  };
+
+  return (
+    <div className={styles.historyView} data-test="kid-history-view">
+      <div className={styles.historyBar}>
+        <button
+          type="button"
+          className={ui.btnGhost}
+          onClick={() => setMonth(m => shift(m, -1))}
+          aria-label={t('admin.kidsStatusTab.historyPrev')}
+        >
+          ‹ {t('admin.kidsStatusTab.historyPrev')}
+        </button>
+        <span className={styles.historyMonth}>{monthLabel}</span>
+        <button
+          type="button"
+          className={ui.btnGhost}
+          onClick={() => setMonth(m => shift(m, 1))}
+          disabled={month >= monthOf(today)}
+          aria-label={t('admin.kidsStatusTab.historyNext')}
+        >
+          {t('admin.kidsStatusTab.historyNext')} ›
+        </button>
+        <button type="button" className={styles.historyClose} onClick={onClose}>
+          {t('admin.kidsStatusTab.historyClose')}
+        </button>
+      </div>
+
+      {failed && <p className={ui.msgError} role="alert">{t('admin.kidsStatusTab.loadError')}</p>}
+      {chores === null && <p className={ui.emptyInline}>{t('admin.kidsStatusTab.historyLoading')}</p>}
+      {chores !== null && days.length === 0 && !failed && (
+        <p className={ui.emptyInline}>{t('admin.kidsStatusTab.historyEmpty')}</p>
+      )}
+
+      {chores !== null && days.map(date => {
+        const list = (chores ?? []).filter(c => c.date === date);
+        const done = list.filter(c => c.completed).length;
+        const label = new Date(`${date}T00:00:00`)
+          .toLocaleDateString(lang, { month: 'long', day: 'numeric', weekday: 'short' });
+        return (
+          <div key={date} className={styles.historyDay}>
+            <p className={styles.historyDayLabel} data-test="history-day-label">
+              {t('admin.kidsStatusTab.historyDayLabel', { date: label })} · {done}/{list.length}
+            </p>
+            <ul className={styles.choreList}>
+              {list.map(c => {
+                const isExcused = c.completion_status === 'excused';
+                return (
+                  <li key={`${c.schedule_id}-${c.date}`} className={clsx(styles.chore, c.completed && styles.choreDone)}>
+                    <span className={clsx(
+                      styles.ring,
+                      isExcused && styles.ringExcused,
+                      !isExcused && c.completed && c.completion_status !== 'pending' && styles.ringDone,
+                      !isExcused && c.completed && c.completion_status === 'pending' && styles.ringWaiting,
+                    )} aria-hidden>
+                      {c.completed && <Icon name="check" />}
+                    </span>
+                    <IconWell icon={c.icon} cat={catFromCategory(c.category)} className={styles.choreWell} />
+                    <span className={styles.choreText}>
+                      <span className={styles.choreTitle}>{c.title}</span>
+                      <span className={clsx(
+                        styles.choreStatus,
+                        !c.completed && c.expired && c.category !== 'bonus' && styles.statusUrgent,
+                        c.completed && c.completion_status === 'pending' && styles.statusWaiting,
+                      )}>
+                        {statusOf(c)}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
@@ -347,6 +470,9 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
   // stored analysis — no re-run, just the report as it finished.
   const [quickAnalysis, setQuickAnalysis] = useState<PaperAnalysis | null>(null);
   const [quickKidId, setQuickKidId] = useState<number | null>(null);
+
+  // 问题④: which kid's expanded card is showing the month history.
+  const [historyKidId, setHistoryKidId] = useState<number | null>(null);
 
   if (loading) return <p className={ui.emptyInline}>{t('admin.kidsStatusTab.loading')}</p>;
 
@@ -586,6 +712,22 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
 
               {isExpanded && (
                 <div id={detailsId} className={styles.details}>
+                  {/* 问题④: the whole past, month by month — the parent reads
+                      every chore this kid ever had, not just today's rows. */}
+                  <div className={styles.historyRow}>
+                    <button
+                      type="button"
+                      className={styles.historyButton}
+                      data-test="kid-history-button"
+                      aria-expanded={historyKidId === kid.user.id}
+                      onClick={() => setHistoryKidId(id => (id === kid.user.id ? null : kid.user.id))}
+                    >
+                      <Icon name="clock" /> {t('admin.kidsStatusTab.historyButton')}
+                    </button>
+                  </div>
+                  {historyKidId === kid.user.id && (
+                    <KidHistoryView kid={kid} today={today} onClose={() => setHistoryKidId(null)} />
+                  )}
                   {kid.loadError && (
                     <p className={ui.msgError}>{t('admin.kidsStatusTab.childLoadError')}</p>
                   )}

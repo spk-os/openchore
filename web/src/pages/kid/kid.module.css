@@ -122,6 +122,7 @@
 
 /* ---------- a chore on a person's screen ---------- */
 .item + .item { margin-top: var(--row-gap); }
+.item { position: relative; }
 .itemSwipe { touch-action: pan-y; }
 .itemSwipe > :first-child { transition: transform .18s ease; }
 .readonly { margin: 0; padding: 0; border: 0; min-width: 0; }
@@ -2603,4 +2604,137 @@
 .rowActionView {
   background: var(--surface-sunk);
   color: var(--ink-muted);
+}
+
+/* ---------- 问题②: the whole past (history) ---------- */
+.histScreen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 600px;
+}
+
+/* Month stepper: ‹ 2026年10月 ›, next disabled on the current month. */
+.histMonthBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  box-sizing: border-box;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+}
+
+.histMonth {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-variation-settings: var(--display-axes);
+  letter-spacing: var(--display-tracking);
+  font-size: 19px;
+  line-height: 24px;
+}
+
+.histMonthBtn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--on-chip);
+  cursor: pointer;
+}
+.histMonthBtn:disabled { opacity: 0.4; cursor: default; }
+.histMonthBtn:active:not(:disabled) { transform: scale(0.94); }
+
+/* The month's summary card (问题①): the scheduled writer's own words,
+   read back under the month they describe. */
+.histSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+
+.histSummaryTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.histSummaryText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.histSummaryEmpty {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ink-muted);
+}
+
+/* Day chips of the month that actually have rows: 1..31 with done/total. */
+.histDays {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: var(--space-2);
+}
+
+.histDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border: var(--outline-w) solid transparent;
+  border-radius: var(--oc-radius-md);
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.histDayOn {
+  background: var(--surface-raised);
+  border-color: var(--line);
+  box-shadow: var(--lift);
+  color: var(--ink);
+}
+
+.histDayNum {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.histDayCount {
+  font-size: 11.5px;
+  line-height: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tablet: the history page shares the book's wider frame. */
+@media (min-width: 900px) {
+  .histScreen { max-width: 680px; padding-top: var(--space-2); }
 }

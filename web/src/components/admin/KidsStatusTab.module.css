@@ -667,3 +667,91 @@
   font-weight: 700;
   color: var(--ink-muted);
 }
+
+/* ---------- 问题④: the kid's whole history, in the card ---------- */
+
+/* The "看历史" affordance sits at the top of the expanded details — a quiet
+   ghost pill, distinct from today's row actions. */
+.historyRow {
+  margin: 0 0 var(--space-2);
+}
+
+.historyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.historyButton[aria-expanded="true"] {
+  background: var(--surface-raised);
+  border-color: color-mix(in oklab, var(--ink) 30%, var(--line));
+}
+
+.historyButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* The month browse: stepper on top, every day with rows listed newest
+   first, each chore in the same ring/icon/title/status shape as today. */
+.historyView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--surface-sunk);
+}
+
+.historyBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.historyMonth {
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.historyClose {
+  margin-left: auto;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.historyDay {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.historyDayLabel {
+  margin: var(--space-2) 0 0;
+  font-size: 12.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
