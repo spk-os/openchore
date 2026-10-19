@@ -89,6 +89,8 @@
       "starting": "Analyzing…",
       "needImage": "This completion has no image attachment to analyse",
       "subjectLabel": "Subject",
+      "instructionsLabel": "Focus for this analysis (optional)",
+      "instructionsPlaceholder": "Tell the AI what to prioritize, e.g. focus on the calculation slips in question 3",
       "progressTitle": "Progress",
       "stageQueued": "Queued",
       "stageSegmenting": "Cutting questions",
@@ -1787,6 +1789,20 @@
       "recDenied": "Microphone/camera unavailable. Check permissions and try again.",
       "recUnsupported": "This browser cannot record. Upload a file instead.",
       "cls_audio": "Audio"
+    },
+    "submission": {
+      "title": "My submission",
+      "doneAt": "Completed {{time}}",
+      "doneLabel": "Completed",
+      "attsCaption": "What was handed in",
+      "loading": "Loading…",
+      "loadFailed": "Could not load, try again",
+      "emptyText": "No attachments on this submission",
+      "legacyPhoto": "Submitted photo",
+      "openPdf": "Open PDF",
+      "hint": "Tap an attachment to zoom or play; parents see the same set.",
+      "aiNote": "AI review note",
+      "viewBtn": "View submission"
     },
     "rewards": {
       "cost_one": "{{count}} pt",

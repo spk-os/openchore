@@ -84,7 +84,9 @@ const QuickAnalysisCard: React.FC<{
 }> = ({ kid, onOpen }) => {
   const { t } = useTranslation();
   const a = kid.latestAnalysis!;
-  const wrong = a.summary?.questions.filter(q => q.is_wrong) ?? [];
+  // questions may be null on pre-037 rows (a 0-question parse used to
+  // serialize nil as null) — the crash that took the dashboard down.
+  const wrong = a.summary?.questions?.filter(q => q.is_wrong) ?? [];
   // The strongest error type by count — the quick card's one-line verdict.
   const byType = new Map<string, number>();
   for (const q of wrong) {
@@ -103,7 +105,7 @@ const QuickAnalysisCard: React.FC<{
           {a.subject} · {a.total_questions} → {a.wrong_count}
           {topLabel ? ` · ${topLabel}${top![1] > 1 ? ` ×${top![1]}` : ''}` : ''}
         </p>
-        {a.summary && a.summary.weak_tags.length > 0 && (
+        {a.summary && (a.summary.weak_tags?.length ?? 0) > 0 && (
           <p className={styles.quickSub} data-test="analysis-quick-sub">
             {a.summary.weak_tags.slice(0, 3).map(w => w.name).join(' · ')}
           </p>

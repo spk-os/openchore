@@ -210,6 +210,8 @@ func TestMigration018OrphanedCompletions(t *testing.T) {
 
 // 036 adds chores.subject (free text; the media library groups proof by it).
 // Up then down then up must leave a chore's subject intact through the cycle.
+// Migrate(36) pins the ceiling: a later migration (037+) must not turn
+// Steps(-1) into "roll back the newer one instead".
 func TestMigration036ChoreSubject(t *testing.T) {
 	m, db := migrator(t)
 	if err := m.Migrate(35); err != nil {
@@ -217,8 +219,8 @@ func TestMigration036ChoreSubject(t *testing.T) {
 	}
 	mustExec(t, db, `INSERT INTO users (id, name, role) VALUES (1, 'Alex', 'admin')`)
 	mustExec(t, db, `INSERT INTO chores (id, title, created_by) VALUES (1, '数学口算', 1)`)
-	if err := m.Up(); err != nil {
-		t.Fatalf("up: %v", err)
+	if err := m.Migrate(36); err != nil {
+		t.Fatalf("migrate to 36: %v", err)
 	}
 	mustExec(t, db, `UPDATE chores SET subject = 'math' WHERE id = 1`)
 	var subj string
@@ -240,5 +242,47 @@ func TestMigration036ChoreSubject(t *testing.T) {
 	}
 	if err := db.QueryRow(`SELECT subject FROM chores WHERE id = 1`).Scan(&subj); err != nil || subj != "" {
 		t.Fatalf("subject after down/up: %q, %v", subj, err)
+	}
+}
+
+// 037 adds paper_analyses.instructions (the parent's free-text focus for
+// one parse). Same pinned-ceiling cycle as 036: up, drop, re-add.
+func TestMigration037AnalysisInstructions(t *testing.T) {
+	m, db := migrator(t)
+	if err := m.Migrate(36); err != nil {
+		t.Fatalf("migrate to 36: %v", err)
+	}
+	mustExec(t, db, `INSERT INTO users (id, name, role) VALUES (1, 'Alex', 'admin')`)
+	mustExec(t, db, `INSERT INTO chores (id, title, created_by) VALUES (1, '口算', 1)`)
+	mustExec(t, db, `INSERT INTO chore_schedules (id, chore_id, assigned_to, start_date, specific_date) VALUES (1, 1, 1, '2026-01-01', '2026-01-01')`)
+	mustExec(t, db, `INSERT INTO chore_completions (id, chore_schedule_id, completed_by, completion_date, status) VALUES (1, 1, 1, '2026-01-01', 'approved')`)
+	mustExec(t, db, `INSERT INTO paper_analyses (id, completion_id, user_id, created_by, subject, status) VALUES (1, 1, 1, 1, 'math', 'done')`)
+	if err := m.Migrate(37); err != nil {
+		t.Fatalf("migrate to 37: %v", err)
+	}
+	mustExec(t, db, `UPDATE paper_analyses SET instructions = '重点分析第3题' WHERE id = 1`)
+	var instr string
+	if err := db.QueryRow(`SELECT instructions FROM paper_analyses WHERE id = 1`).Scan(&instr); err != nil || instr != "重点分析第3题" {
+		t.Fatalf("instructions after up: %q, %v", instr, err)
+	}
+	// The column is nullable: the auto path (no parent) stores NULL.
+	mustExec(t, db, `INSERT INTO paper_analyses (completion_id, user_id, created_by, subject, status) VALUES (1, 1, 1, 'math', 'pending')`)
+	var nullCheck sql.NullString
+	if err := db.QueryRow(`SELECT instructions FROM paper_analyses WHERE id = 2`).Scan(&nullCheck); err != nil || nullCheck.Valid {
+		t.Fatalf("expected NULL instructions by default: %v, %v", nullCheck, err)
+	}
+	// Down drops just the column; the analysis row survives.
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("step down: %v", err)
+	}
+	var cnt int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM paper_analyses WHERE id = 1`).Scan(&cnt); err != nil || cnt != 1 {
+		t.Fatalf("analysis survived down: count=%d %v", cnt, err)
+	}
+	if err := m.Steps(1); err != nil {
+		t.Fatalf("step up: %v", err)
+	}
+	if err := db.QueryRow(`SELECT instructions FROM paper_analyses WHERE id = 1`).Scan(&nullCheck); err != nil || nullCheck.Valid {
+		t.Fatalf("expected NULL after down/up: %v, %v", nullCheck, err)
 	}
 }

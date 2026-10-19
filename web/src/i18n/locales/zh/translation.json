@@ -441,6 +441,20 @@
       "recUnsupported": "当前浏览器不支持录音，请改用上传文件",
       "cls_audio": "录音"
     },
+    "submission": {
+      "title": "我的提交",
+      "doneAt": "完成于 {{time}}",
+      "doneLabel": "已完成",
+      "attsCaption": "已提交的内容",
+      "loading": "正在加载…",
+      "loadFailed": "加载失败，请下拉重试",
+      "emptyText": "这次提交没有附件",
+      "legacyPhoto": "提交的照片",
+      "openPdf": "打开 PDF",
+      "hint": "点附件可放大或播放；家长端看到的是同一份。",
+      "aiNote": "AI 审查意见",
+      "viewBtn": "查看提交"
+    },
     "rewards": {
       "cost_one": "{{count}} 分",
       "cost_other": "{{count}} 分",
@@ -863,6 +877,8 @@
       "starting": "分析中…",
       "needImage": "这条打卡没有图片附件，无法分析",
       "subjectLabel": "科目",
+      "instructionsLabel": "分析要求（可选）",
+      "instructionsPlaceholder": "告诉 AI 这次重点看什么，例如：重点分析第3题的计算错误",
       "progressTitle": "解析进度",
       "stageQueued": "排队中",
       "stageSegmenting": "切题中",

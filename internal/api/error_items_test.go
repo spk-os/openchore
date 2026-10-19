@@ -26,6 +26,10 @@ type fakePaperAI struct {
 	judge     string // JSON for judge prompts
 	judgeFail bool   // when set, judging errors (degrade path test)
 	measures  string // JSON for the 034 distill prompt
+	// The prompt bodies of the last two-stage run, for instructions
+	// assertions.
+	lastSegmentPrompt string
+	lastJudgePrompt   string
 }
 
 // newFakePaperAI layers the paper answers over the standard fake.
@@ -82,8 +86,10 @@ func setupPaperTest(t *testing.T) (*testEnv, *fakePaperAI) {
 			content := f.text
 			switch {
 			case isSegment:
+				f.lastSegmentPrompt = string(body)
 				content = f.segment
 			case isJudge:
+				f.lastJudgePrompt = string(body)
 				if f.judgeFail {
 					content = "not json at all"
 				} else {
@@ -136,6 +142,18 @@ func (e *testEnv) startAnalysis(t *testing.T, completionID int64) int64 {
 	t.Helper()
 	resp := e.expectStatus(t, "POST", "/api/admin/analyses",
 		map[string]any{"completion_id": completionID, "subject": "math"},
+		adminHeaders(), http.StatusCreated)
+	var a analysisResp
+	decodeBody(t, resp, &a)
+	return a.ID
+}
+
+// startAnalysisWithInstructions is startAnalysis carrying the parent's
+// free-text focus (问题③'s「用户输入要求」).
+func (e *testEnv) startAnalysisWithInstructions(t *testing.T, completionID int64, instructions string) int64 {
+	t.Helper()
+	resp := e.expectStatus(t, "POST", "/api/admin/analyses",
+		map[string]any{"completion_id": completionID, "subject": "math", "instructions": instructions},
 		adminHeaders(), http.StatusCreated)
 	var a analysisResp
 	decodeBody(t, resp, &a)
@@ -407,8 +425,7 @@ func TestAutoPaperAnalysisOffByDefault(t *testing.T) {
 }
 
 
-// TestErrorItemsSurviveCompletionDelete locks the 035 migration's contract:
-// deleting the chore (which cascades schedules → completions) must keep the
+// TestErrorItemsSurviveCompletionDelete locks the 035 migration's contract:// deleting the chore (which cascades schedules → completions) must keep the
 // kid's extracted error items — the error book is a learning asset that
 // outlives the task that produced it. Regression guard for the silent
 // history loss the CASCADE foreign key used to cause.
@@ -446,4 +463,125 @@ func TestErrorItemsSurviveCompletionDelete(t *testing.T) {
 	if len(after) != len(items) {
 		t.Fatalf("error items must survive the chore delete: had %d, left %d", len(items), len(after))
 	}
+}
+
+// TestPaperAnalysisInstructionsCarryThrough checks 问题③'s「用户输入要求」
+// end to end: the parent's free-text focus rides the request, is echoed
+// back on the polled row, and lands inside BOTH stage prompts the model
+// receives — a parse without instructions keeps the prompt byte-identical
+// (the auto path).
+func TestPaperAnalysisInstructionsCarryThrough(t *testing.T) {
+	env, f := setupPaperTest(t)
+	env.createAdmin(t)
+	kidID, completionID := completePhotoChore(t, env)
+
+	const focus = "重点分析第3题的计算错误"
+	analysisID := env.startAnalysisWithInstructions(t, completionID, focus)
+	env.chores.WaitForAnalyses()
+
+	// The polled row echoes the instructions back.
+	resp := env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/analyses/%d", analysisID), nil, adminHeaders(), http.StatusOK)
+	var row map[string]any
+	decodeBody(t, resp, &row)
+	if row["instructions"] != focus {
+		t.Errorf("expected instructions echoed on the analysis row, got %v", row["instructions"])
+	}
+
+	// Both stage prompts carry the requirement block.
+	f.mu.Lock()
+	seg, judge := f.lastSegmentPrompt, f.lastJudgePrompt
+	f.mu.Unlock()
+	if !strings.Contains(seg, focus) {
+		t.Errorf("segment prompt missing the parent's instructions: %s", truncateForLog(seg))
+	}
+	if !strings.Contains(judge, focus) {
+		t.Errorf("judge prompt missing the parent's instructions: %s", truncateForLog(judge))
+	}
+	_ = kidID
+}
+
+// TestPaperAnalysisWithoutInstructionsKeepsPromptClean pins the auto path:
+// no instructions field → no requirement block in either prompt.
+func TestPaperAnalysisWithoutInstructionsKeepsPromptClean(t *testing.T) {
+	env, f := setupPaperTest(t)
+	env.createAdmin(t)
+	_, completionID := completePhotoChore(t, env)
+
+	analysisID := env.startAnalysis(t, completionID)
+	env.chores.WaitForAnalyses()
+	_ = analysisID
+
+	f.mu.Lock()
+	seg, judge := f.lastSegmentPrompt, f.lastJudgePrompt
+	f.mu.Unlock()
+	if strings.Contains(seg, "家长的补充要求") {
+		t.Errorf("segment prompt must stay clean without instructions")
+	}
+	if strings.Contains(judge, "家长的补充要求") {
+		t.Errorf("judge prompt must stay clean without instructions")
+	}
+}
+
+// TestPaperAnalysisInstructionsRejectedTooLong pins the 500-rune cap: an
+// essay-sized requirement is a 400, not a bloated multimodal prompt.
+func TestPaperAnalysisInstructionsRejectedTooLong(t *testing.T) {
+	env, _ := setupPaperTest(t)
+	env.createAdmin(t)
+	_, completionID := completePhotoChore(t, env)
+
+	long := strings.Repeat("重", 501)
+	env.expectStatus(t, "POST", "/api/admin/analyses",
+		map[string]any{"completion_id": completionID, "subject": "math", "instructions": long},
+		adminHeaders(), http.StatusBadRequest)
+}
+
+// TestPaperAnalysisZeroQuestionsSummaryNotNull is the regression guard for
+// the dashboard-crash root cause (问题③「打不开了」): a photo that parses to
+// ZERO questions must still produce a summary whose questions/notes arrays
+// serialize as [] (not null) — the report page maps/filters them directly.
+func TestPaperAnalysisZeroQuestionsSummaryNotNull(t *testing.T) {
+	env, f := setupPaperTest(t)
+	env.createAdmin(t)
+	_, completionID := completePhotoChore(t, env)
+
+	f.mu.Lock()
+	f.segment = `{"questions":[]}` // a photo that isn't an exam page
+	f.mu.Unlock()
+
+	analysisID := env.startAnalysis(t, completionID)
+	env.chores.WaitForAnalyses()
+	resp := env.expectStatus(t, "GET", fmt.Sprintf("/api/admin/analyses/%d", analysisID), nil, adminHeaders(), http.StatusOK)
+	var row struct {
+		Status  string          `json:"status"`
+		Summary json.RawMessage `json:"summary"`
+	}
+	decodeBody(t, resp, &row)
+	if row.Status != model.AnalysisDone {
+		t.Fatalf("a 0-question parse is done, not failed: %s", row.Status)
+	}
+	if !json.Valid(row.Summary) {
+		t.Fatalf("summary must be valid JSON, got %s", row.Summary)
+	}
+	var sum map[string]json.RawMessage
+	if err := json.Unmarshal(row.Summary, &sum); err != nil {
+		t.Fatalf("unmarshal summary: %v", err)
+	}
+	// The exact contract the frontend relies on: [] not null.
+	if string(sum["questions"]) == "null" || string(sum["questions"]) == "" {
+		t.Fatalf("questions must serialize as [], got %s", sum["questions"])
+	}
+	if string(sum["notes"]) == "null" {
+		t.Fatalf("notes must serialize as [], got %s", sum["notes"])
+	}
+	if !strings.Contains(string(row.Summary), "未识别到题目") {
+		t.Errorf("expected the 0-question note in the summary, got %s", row.Summary)
+	}
+}
+
+// truncateForLog keeps assertion failures readable.
+func truncateForLog(s string) string {
+	if len(s) > 300 {
+		return s[:300] + "..."
+	}
+	return s
 }

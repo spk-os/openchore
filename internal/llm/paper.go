@@ -108,15 +108,27 @@ func imageDataURL(path string) (string, error) {
 	return "data:" + http.DetectContentType(data) + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }
 
+// instructionBlock renders the parent's free-text focus for this parse
+// into the prompt line both stages carry. Empty instructions (the auto
+// path) render nothing — the prompt stays byte-identical to before, so
+// prompt-marker routing in tests keeps working.
+func instructionBlock(instructions string) string {
+	instructions = strings.TrimSpace(instructions)
+	if instructions == "" {
+		return ""
+	}
+	return "\nThe parent's extra requirement for this analysis (家长的补充要求 — follow it when segmenting/judging, e.g. which question to prioritize):\n" + instructions + "\n"
+}
+
 // SegmentPaper cuts one photographed page into its questions. Empty result
 // is legitimate (the photo may not be an exam page); an error means the
 // model could not be asked at all (after the built-in retry).
-func (c *Client) SegmentPaper(ctx context.Context, subject, imagePath string) ([]PaperQuestion, error) {
+func (c *Client) SegmentPaper(ctx context.Context, subject, imagePath, instructions string) ([]PaperQuestion, error) {
 	dataURL, err := imageDataURL(imagePath)
 	if err != nil {
 		return nil, err
 	}
-	prompt := fmt.Sprintf(`You are looking at one photographed page of a student's exam or homework paper (subject: %s). Segment the page into individual questions (题目).
+	prompt := fmt.Sprintf(`You are looking at one photographed page of a student's exam or homework paper (subject: %s).%sSegment the page into individual questions (题目).
 
 Rules:
 - IGNORE page furniture: headers, footers, page numbers, watermarks, school/exam titles, dates, class and student name fields. They are never questions. (Umi-OCR's header/footer removal, applied at the prompt level.)
@@ -126,7 +138,7 @@ Rules:
 - bbox: [x, y, width, height] of the question's area on the page, each value normalized 0.0-1.0 relative to the image dimensions.
 - Only emit real, numbered questions. If the photo is not an exam/homework page, or shows no numbered questions, emit "questions": [].
 
-Reply with only JSON matching the schema.`, subject)
+Reply with only JSON matching the schema.`, subject, instructionBlock(instructions))
 
 	parts := []Part{
 		{Type: "text", Text: prompt},
@@ -184,12 +196,12 @@ func parseSegmentPaper(raw string) ([]PaperQuestion, error) {
 // JudgeQuestion diagnoses one already-segmented question. The page image
 // rides along so the model can read the student's handwriting around that
 // question number; the prompt names the question to focus on.
-func (c *Client) JudgeQuestion(ctx context.Context, subject, imagePath, number, questionText string) (*QuestionJudgement, error) {
+func (c *Client) JudgeQuestion(ctx context.Context, subject, imagePath, number, questionText, instructions string) (*QuestionJudgement, error) {
 	dataURL, err := imageDataURL(imagePath)
 	if err != nil {
 		return nil, err
 	}
-	prompt := fmt.Sprintf(`You are diagnosing ONE question on a photographed exam/homework page (subject: %s). The page shows the student's graded work: handwritten answers, cross-outs and marks (✗, red pen corrections) may be present.
+	prompt := fmt.Sprintf(`You are diagnosing ONE question on a photographed exam/homework page (subject: %s).%sThe page shows the student's graded work: handwritten answers, cross-outs and marks (✗, red pen corrections) may be present.
 
 The question to judge: #%s
 %s
@@ -206,7 +218,7 @@ Decide:
 - difficulty: "easy", "medium" or "hard" for a student at this paper's level.
 - confidence: 0.0-1.0 — how sure you are of this whole judgement. Low when the photo is blurry, cropped or the writing is illegible.
 
-Reply with only JSON matching the schema.`, subject, number, questionText)
+Reply with only JSON matching the schema.`, subject, instructionBlock(instructions), number, questionText)
 
 	parts := []Part{
 		{Type: "text", Text: prompt},

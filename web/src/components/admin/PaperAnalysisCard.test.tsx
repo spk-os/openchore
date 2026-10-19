@@ -102,9 +102,11 @@ describe('PaperAnalysisModal', () => {
 
     const subject = screen.getByLabelText(/Subject/);
     fireEvent.change(subject, { target: { value: 'physics' } });
+    // 问题③: the parent's free-text focus rides the start request.
+    fireEvent.change(q('[data-test="pa-instructions"]'), { target: { value: 'focus on question 3' } });
     fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
 
-    await waitFor(() => expect(api.admin.startPaperAnalysis).toHaveBeenCalledWith(42, 'physics'));
+    await waitFor(() => expect(api.admin.startPaperAnalysis).toHaveBeenCalledWith(42, 'physics', 'focus on question 3'));
     // The progress rail replaces the launch form while running.
     await waitFor(() => expect(q('[data-test="pa-progress"]')).toBeTruthy());
     expect(q('[data-test="pa-steps"]')).toBeTruthy();
@@ -228,5 +230,38 @@ describe('PaperAnalysisModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
     await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
     expect(screen.getByText(/vision model unavailable/)).toBeTruthy();
+  });
+});
+
+// 问题③「打不开了」regression: a pre-037 summary stored questions: null (a
+// 0-question parse of a non-exam photo). The report must render the empty
+// state, not crash the whole dashboard.
+describe('PaperAnalysisModal null-summary tolerance', () => {
+  it('renders a done report whose questions/notes are null', async () => {
+    vi.mocked(api.admin.getPaperAnalysis).mockResolvedValue(doneAnalysis({
+      total_questions: 0,
+      wrong_count: 0,
+      summary: {
+        questions: null,
+        error_type_counts: {},
+        weak_tags: [],
+        notes: null,
+      },
+    }));
+    vi.mocked(api.errorItems.list).mockResolvedValue([]);
+    render(<PaperAnalysisModal
+      completionId={42}
+      initialAnalysis={doneAnalysis({
+        total_questions: 0,
+        wrong_count: 0,
+        summary: { questions: null, error_type_counts: {}, weak_tags: [], notes: null },
+      })}
+      onClose={vi.fn()}
+      onToast={vi.fn()}
+    />);
+    // The report head renders with zero counts instead of throwing.
+    await waitFor(() => expect(q('[data-test="pa-report"]')).toBeTruthy());
+    expect(q('[data-test="pa-report-head"]').textContent).toContain('0');
+    expect(q('[data-test="pa-error-dist"]')).toBeNull();
   });
 });

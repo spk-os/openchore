@@ -697,6 +697,7 @@ type PaperAnalysis struct {
 	UserID         int64     `json:"user_id"`
 	CreatedBy      int64     `json:"created_by"`
 	Subject        string    `json:"subject"`
+	Instructions   string    `json:"instructions,omitempty"`
 	Status         string    `json:"status"`
 	Stage          string    `json:"stage"`
 	Progress       int       `json:"progress"`

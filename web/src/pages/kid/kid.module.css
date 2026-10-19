@@ -2546,3 +2546,61 @@
   flex: none;
 }
 .recCancel:disabled { opacity: .5; cursor: default; }
+
+/* ---------- 问题①: the kid's own submission record (SubmissionSheet) ---------- */
+/* The AI reviewer's note, shown on the kid's copy of their submission. */
+.subAiNote {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 12px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--line);
+}
+.subAiTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.subAiNote p {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+/* No attachments handed in: a quiet empty well, not an error. */
+.subEmpty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  color: var(--ink-muted);
+}
+.subEmpty p { margin: 0; font-size: 13.5px; }
+
+/* The inline player (video/audio/pdf) under the grid once tapped. */
+.subPlayer {
+  margin: var(--space-3) 0 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.subPlayer video,
+.subPlayer audio,
+.subPlayer object {
+  width: 100%;
+  border-radius: 12px;
+}
+.subPlayer object { min-height: 320px; background: var(--surface-sunk); }
+.subPlayerName {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+/* 问题①: distinguish the look-back (view what I handed in) from the
+   camera's "add proof" — the rowAction circle, tinted as a quiet affordance. */
+.rowActionView {
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+}

@@ -18,15 +18,15 @@ import (
 var ErrAnalysisNotFound = errors.New("paper analysis not found")
 var ErrErrorItemNotFound = errors.New("error item not found")
 
-const analysisColumns = `id, completion_id, user_id, created_by, subject, status, stage, progress, total_questions, wrong_count, error, summary, created_at, updated_at`
+const analysisColumns = `id, completion_id, user_id, created_by, subject, instructions, status, stage, progress, total_questions, wrong_count, error, summary, created_at, updated_at`
 
 const errorItemColumns = `id, user_id, completion_id, analysis_id, subject, original_image_url, ocr_text, question_text, answer_text, wrong_answer_text, analysis, mistake_analysis, mistake_status, error_type, difficulty, ai_confidence, paper_level, grade_semester, source, mastery_level, next_review_at, created_at, updated_at`
 
 func scanAnalysis(row interface{ Scan(...any) error }) (*model.PaperAnalysis, error) {
 	a := &model.PaperAnalysis{}
-	var errMsg, summary sql.NullString
+	var errMsg, summary, instructions sql.NullString
 	if err := row.Scan(&a.ID, &a.CompletionID, &a.UserID, &a.CreatedBy, &a.Subject,
-		&a.Status, &a.Stage, &a.Progress, &a.TotalQuestions, &a.WrongCount,
+		&instructions, &a.Status, &a.Stage, &a.Progress, &a.TotalQuestions, &a.WrongCount,
 		&errMsg, &summary, &a.CreatedAt, &a.UpdatedAt); err != nil {
 		return nil, err
 	}
@@ -35,6 +35,9 @@ func scanAnalysis(row interface{ Scan(...any) error }) (*model.PaperAnalysis, er
 	}
 	if summary.Valid {
 		a.Summary = summary.String
+	}
+	if instructions.Valid {
+		a.Instructions = instructions.String
 	}
 	return a, nil
 }
@@ -101,11 +104,13 @@ func scanErrorItem(row interface{ Scan(...any) error }) (*model.ErrorItem, error
 	return i, nil
 }
 
-// CreatePaperAnalysis starts an async analysis record.
+// CreatePaperAnalysis starts an async analysis record. instructions is the
+// parent's free-text focus for this parse — empty stores NULL (the auto
+// path has no parent in the loop).
 func (s *Store) CreatePaperAnalysis(ctx context.Context, a *model.PaperAnalysis) error {
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO paper_analyses (completion_id, user_id, created_by, subject) VALUES (?, ?, ?, ?)`,
-		a.CompletionID, a.UserID, a.CreatedBy, a.Subject)
+		`INSERT INTO paper_analyses (completion_id, user_id, created_by, subject, instructions) VALUES (?, ?, ?, ?, ?)`,
+		a.CompletionID, a.UserID, a.CreatedBy, a.Subject, nullString(a.Instructions))
 	if err != nil {
 		return err
 	}

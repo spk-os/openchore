@@ -22,6 +22,7 @@ import { ErrorBookScreen } from './ErrorBookScreen';
 import { ReviewScreen } from './ReviewScreen';
 import { CourseScreen } from './CourseScreen';
 import { PhotoSheet } from './PhotoSheet';
+import { SubmissionSheet } from './SubmissionSheet';
 import { MeSheet } from './MeSheet';
 import { CelebrationLayer } from './CelebrationLayer';
 import { choreDomId } from './ChoreItem';
@@ -64,6 +65,8 @@ export const KidApp: React.FC = () => {
   const [pinOpen, setPinOpen] = useState(false);
   const [linkedOpen, setLinkedOpen] = useState(false);
   const [photoChore, setPhotoChore] = useState<ScheduledChore | null>(null);
+  // 问题①: the chore whose own submission the kid is looking back at.
+  const [submissionChore, setSubmissionChore] = useState<ScheduledChore | null>(null);
   const [celebrating, setCelebrating] = useState<Celebrating | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
 
@@ -185,7 +188,7 @@ export const KidApp: React.FC = () => {
       onManage={isAdmin ? toManage : undefined}
     />
   );
-  const shared = { user, data, topBar, viewOf, tts, onToggle, onPhoto: setPhotoChore, onSpeak: speakOrPlay };
+  const shared = { user, data, topBar, viewOf, tts, onToggle, onPhoto: setPhotoChore, onViewSubmission: setSubmissionChore, onSpeak: speakOrPlay };
 
   return (
     <SkinScope skin={skin} color={color} className={s.root}>
@@ -265,6 +268,10 @@ export const KidApp: React.FC = () => {
           onClose={() => setPhotoChore(null)}
           onComplete={onPhotoDone}
         />
+      )}
+
+      {submissionChore && (
+        <SubmissionSheet chore={submissionChore} onClose={() => setSubmissionChore(null)} />
       )}
 
       {celebrating && (

@@ -563,3 +563,21 @@
 }
 
 .linkRow:hover { text-decoration: underline; }
+
+/* 问题③: the parent's free-text focus. Same visual kit as the subject
+   select, but a textarea (align-items stays center; the label span keeps
+   its line). */
+.subjectRow textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background-color: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 400;
+  font-family: inherit;
+  resize: vertical;
+}

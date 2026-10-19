@@ -14,6 +14,8 @@ interface ChoreItemProps {
   tts?: boolean;
   onToggle?: () => void;
   onPhoto?: () => void;
+  /** Open the kid's own submission record (问题①). */
+  onViewSubmission?: () => void;
   /** Speak text (or play a recorded clip). */
   onSpeak?: (text: string, audioUrl?: string) => void;
 }
@@ -27,7 +29,7 @@ export const choreDomId = (c: ScheduledChore) => `chore-${c.schedule_id}-${c.dat
  * One chore on a person's screen: the design's ChoreRow, plus what the old
  * card also carried — the description, a camera for adding photo proof, and swipe right to finish / left to undo.
  */
-export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onSpeak }: ChoreItemProps) {
+export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onViewSubmission, onSpeak }: ChoreItemProps) {
   const { t } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ x: number; y: number; active: boolean; dragging: boolean }>({ x: 0, y: 0, active: false, dragging: false });
@@ -35,6 +37,10 @@ export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onSpeak }
   const interactive = view.canToggle && view.state !== 'locked' && !!onToggle;
   const readOnly = !view.canToggle && view.state !== 'locked';
   const done = view.state === 'done' || view.state === 'waiting';
+  // 问题①: a finished chore with something handed in (attachments via the
+  // completion, or at least the legacy photo) gets the look-back button —
+  // the kid can reopen what they submitted.
+  const canViewSubmission = onViewSubmission != null && done && !!(chore.completion_id || chore.photo_url);
 
   const readAloud = () => {
     // The recorded clip reads the same title and description.
@@ -94,11 +100,25 @@ export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onSpeak }
       onToggle={interactive ? onToggle : undefined}
       checkLabel={readOnly ? (done ? t('kid.chore.readonlyDone') : t('kid.chore.readonlyTodo')) : view.checkLabel}
       busy={busy}
-      actions={view.needsPhotoProof && onPhoto ? (
-        <button type="button" className={s.rowAction} onClick={onPhoto} aria-label={t('kid.chore.uploadPhotoProof')}>
-          <Icon name="camera" />
-        </button>
-      ) : undefined}
+      actions={<>
+        {canViewSubmission && (
+          <button
+            type="button"
+            className={`${s.rowAction} ${s.rowActionView}`}
+            onClick={onViewSubmission}
+            aria-label={t('kid.submission.viewBtn')}
+            title={t('kid.submission.viewBtn')}
+            data-test="view-submission"
+          >
+            <Icon name="camera" />
+          </button>
+        )}
+        {view.needsPhotoProof && onPhoto ? (
+          <button type="button" className={s.rowAction} onClick={onPhoto} aria-label={t('kid.chore.uploadPhotoProof')}>
+            <Icon name="camera" />
+          </button>
+        ) : null}
+      </>}
     />
   );
 

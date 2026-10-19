@@ -863,6 +863,8 @@ export interface PaperAnalysis {
   user_id: number;
   created_by: number;
   subject: string;
+  /** The parent's free-text focus for this parse (「重点分析第3题」). */
+  instructions?: string;
   status: 'pending' | 'running' | 'done' | 'failed';
   stage: 'queued' | 'segmenting' | 'judging' | 'done';
   progress: number;
@@ -890,12 +892,14 @@ export interface AnalysisQuestion {
   error_item_id?: number;
 }
 
-/** The diagnosis report stored on a finished analysis. */
+/** The diagnosis report stored on a finished analysis. questions/notes are
+ *  [] even for a 0-question parse, but older rows stored null — readers
+ *  must tolerate both (?? []). */
 export interface PaperAnalysisSummary {
-  questions: AnalysisQuestion[];
+  questions: AnalysisQuestion[] | null;
   error_type_counts: Record<string, number>;
   weak_tags: WeakTagStat[];
-  notes?: string[];
+  notes?: string[] | null;
 }
 
 /** One knowledge point's error tally (the weak-points ranking). */

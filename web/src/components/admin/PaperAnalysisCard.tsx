@@ -265,7 +265,7 @@ const ReportView: React.FC<{
 
       <h4 className={s.blockTitle}>{t('admin.analysis.weakTitle')}</h4>
       <p className={s.blockHint}>{t('admin.analysis.weakHint')}</p>
-      {summary.weak_tags.length > 0 ? (
+      {(summary.weak_tags?.length ?? 0) > 0 ? (
         <ul className={s.weakList} data-test="pa-weak-kc">
           {summary.weak_tags.map(w => (
             <li key={w.tag_id}>
@@ -280,7 +280,9 @@ const ReportView: React.FC<{
 
       <h4 className={s.blockTitle}>{t('admin.analysis.questionsTitle')}</h4>
       <div className={s.qList}>
-        {summary.questions.map((q, i) => (
+        {/* questions is null on pre-037 0-question rows (nil slice → JSON
+            null — the crash that made the report unopenable). */}
+        {(summary.questions ?? []).map((q, i) => (
           <div
             key={`${q.number}-${i}`}
             className={`${s.qRow} ${q.is_wrong ? s.qWrong : ''}`}
@@ -518,6 +520,9 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
   const { t } = useTranslation();
   const [analysis, setAnalysis] = useState<PaperAnalysis | null>(initialAnalysis ?? null);
   const [subject, setSubject] = useState<string>('math');
+  // The parent's free-text focus for this parse (问题③): rides the start
+  // request and lands in both stage prompts server-side.
+  const [instructions, setInstructions] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const timerRef = useRef<number | null>(null);
@@ -539,13 +544,13 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
     setBusy(true);
     setError('');
     try {
-      const next = await api.admin.startPaperAnalysis(completionId, subject);
+      const next = await api.admin.startPaperAnalysis(completionId, subject, instructions.trim() || undefined);
       setAnalysis(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
     setBusy(false);
-  }, [completionId, subject]);
+  }, [completionId, subject, instructions]);
 
   // The manual-fix queue: unknown items of this completion's kid.
   const [unknownItems, setUnknownItems] = useState<ErrorItem[] | null>(null);
@@ -591,6 +596,20 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
                   <option key={sub} value={sub}>{t(`admin.analysis.subject_${sub}`)}</option>
                 ))}
               </select>
+            </label>
+            {/* 问题③: the parent's focus for THIS parse (「重点分析第3题」),
+                sent with the start request and injected into both stage
+                prompts server-side. */}
+            <label className={s.subjectRow}>
+              <span>{t('admin.analysis.instructionsLabel')}</span>
+              <textarea
+                rows={2}
+                maxLength={500}
+                value={instructions}
+                onChange={e => setInstructions(e.target.value)}
+                placeholder={t('admin.analysis.instructionsPlaceholder')}
+                data-test="pa-instructions"
+              />
             </label>
             {error && <p className={ui.msgError} role="alert">{error}</p>}
             <button type="button" className={ui.btnPrimary} data-test="pa-launch-btn" onClick={start} disabled={busy}>

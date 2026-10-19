@@ -49,11 +49,20 @@ func judgementConfidence(j *llm.QuestionJudgement) float64 {
 	return j.Confidence
 }
 
-// startAnalysisRequest kicks off the whole-paper parse.
+// startAnalysisRequest kicks off the whole-paper parse. Instructions is
+// the parent's free-text focus for this parse (「重点分析第3题」) — empty
+// on the auto path, carried into both stage prompts and echoed back in
+// the summary when set.
 type startAnalysisRequest struct {
 	CompletionID int64  `json:"completion_id"`
 	Subject      string `json:"subject"`
+	Instructions string `json:"instructions"`
 }
+
+// maxAnalysisInstructions caps the parent's free-text instructions — the
+// prompt is multimodal and the requirement rides in every stage call, so
+// an unbounded essay would bloat every request.
+const maxAnalysisInstructions = 500
 
 // StartPaperAnalysis validates the completion, creates the async job row,
 // and launches the two-stage parse in the background. The response is the
@@ -81,6 +90,11 @@ func (h *ChoreHandler) StartPaperAnalysis(w http.ResponseWriter, r *http.Request
 	if req.Subject == "" {
 		req.Subject = "math"
 	}
+	req.Instructions = strings.TrimSpace(req.Instructions)
+	if n := len([]rune(req.Instructions)); n > maxAnalysisInstructions {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("instructions must be at most %d characters", maxAnalysisInstructions))
+		return
+	}
 	ai := h.aiSvc.AI()
 	if ai == nil {
 		writeError(w, http.StatusServiceUnavailable, "AI is not configured")
@@ -101,6 +115,7 @@ func (h *ChoreHandler) StartPaperAnalysis(w http.ResponseWriter, r *http.Request
 		UserID:       completion.CompletedBy,
 		CreatedBy:    parent.ID,
 		Subject:      req.Subject,
+		Instructions: req.Instructions,
 		Status:       model.AnalysisPending,
 		Stage:        model.StageQueued,
 	}
@@ -272,8 +287,12 @@ func (h *ChoreHandler) runPaperAnalysis(ctx context.Context, analysisID int64) {
 
 	start := time.Now()
 	totalPages := len(pages)
-	var questions []analysisQuestion
-	var notes []string
+	// make, not var: a nil slice marshals to JSON null and the report page
+	// calls .map/.filter on it — a 0-question parse (a photo that isn't an
+	// exam page) used to crash the whole dashboard open (the L3 nil-slice
+	// lesson, this time on questions/notes).
+	questions := make([]analysisQuestion, 0)
+	notes := make([]string, 0)
 	seen := make(map[string]bool)
 
 	// Stage one + two per page: cut the page, then judge each cut
@@ -283,7 +302,7 @@ func (h *ChoreHandler) runPaperAnalysis(ctx context.Context, analysisID int64) {
 		_ = h.store.UpdatePaperAnalysisProgress(ctx, analysisID, model.StageSegmenting,
 			progressFor(pageIdx, 0, totalPages, 0, 1), 0, 0)
 
-		cut, err := ai.SegmentPaper(ctx, analysis.Subject, pagePath)
+		cut, err := ai.SegmentPaper(ctx, analysis.Subject, pagePath, analysis.Instructions)
 		if err != nil {
 			// A page that won't segment is noted, not fatal: the rest
 			// of the paper still parses.
@@ -300,7 +319,7 @@ func (h *ChoreHandler) runPaperAnalysis(ctx context.Context, analysisID int64) {
 			_ = h.store.UpdatePaperAnalysisProgress(ctx, analysisID, model.StageJudging,
 				progressFor(pageIdx, qi, totalPages, len(cut), 1), len(questions), countWrong(questions))
 
-			j, err := ai.JudgeQuestion(ctx, analysis.Subject, pagePath, q.Number, q.Text)
+			j, err := ai.JudgeQuestion(ctx, analysis.Subject, pagePath, q.Number, q.Text, analysis.Instructions)
 			if err != nil {
 				// The spec's degrade path: a failed judgement is not a
 				// lost question. Record it into the manual "unknown"
@@ -577,6 +596,9 @@ func paperAnalysisJSON(analysis *model.PaperAnalysis) map[string]any {
 		"error":           analysis.Error,
 		"created_at":      analysis.CreatedAt,
 		"updated_at":      analysis.UpdatedAt,
+	}
+	if analysis.Instructions != "" {
+		out["instructions"] = analysis.Instructions
 	}
 	if analysis.Status == model.AnalysisDone && analysis.Summary != "" {
 		var summary analysisSummary

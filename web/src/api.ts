@@ -455,11 +455,12 @@ export const api = {
         body: JSON.stringify(req),
       }),
     // L1 whole-paper parse: start the async job, poll it, then act on the
-    // extracted wrong questions.
-    startPaperAnalysis: (completionId: number, subject?: string) =>
+    // extracted wrong questions. instructions is the parent's free-text
+    // focus for this parse (「重点分析第3题」).
+    startPaperAnalysis: (completionId: number, subject?: string, instructions?: string) =>
       fetchWithAuth<PaperAnalysis>('/admin/analyses', {
         method: 'POST',
-        body: JSON.stringify({ completion_id: completionId, subject }),
+        body: JSON.stringify({ completion_id: completionId, subject, instructions }),
       }),
     getPaperAnalysis: (id: number) => fetchWithAuth<PaperAnalysis>(`/admin/analyses/${id}`),
     // The kid's finished analyses (newest first): the dashboard quick-report
