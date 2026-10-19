@@ -153,6 +153,19 @@ export const AdminDashboard: React.FC = () => {
               <BarChart3 aria-hidden />
               <span>{t('admin.dashboard.reports')}</span>
             </button>
+            {/* 设置在 nav 第 14 位，手机上溢出到屏幕外看不见（问题⑤ 二次
+                反馈：渐隐提示不够）。header 齿轮把它固定成一键直达，
+                nav 里原位保留（e2e 依赖 `nav button` last 是 settings）。 */}
+            <button
+              type="button"
+              className={styles.settingsBtn}
+              data-test="header-settings"
+              onClick={() => setTab('settings')}
+              aria-label={t('admin.dashboard.tabSettings')}
+              title={t('admin.dashboard.tabSettings')}
+            >
+              <Settings aria-hidden />
+            </button>
           </div>
         </div>
         <nav
