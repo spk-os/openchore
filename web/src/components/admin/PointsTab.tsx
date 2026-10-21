@@ -44,7 +44,7 @@ export const PointsTab: React.FC = () => {
   };
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-points-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.pointsTab.heading')}</h2>

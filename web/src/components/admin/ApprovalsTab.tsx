@@ -30,7 +30,7 @@ export const ApprovalsTab: React.FC<{ onCountChange: (count: number) => void }> 
   if (loading) return <p className={ui.emptyInline}>{t('admin.approvalsTab.loading')}</p>;
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-approvals-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.approvalsTab.title')}</h2>

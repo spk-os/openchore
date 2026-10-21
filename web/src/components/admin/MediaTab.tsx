@@ -136,7 +136,7 @@ export const MediaTab: React.FC = () => {
   const chip = (active: boolean) => `${styles.chip} ${active ? styles.chipOn : ''}`;
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-media-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.mediaTab.title')}</h2>

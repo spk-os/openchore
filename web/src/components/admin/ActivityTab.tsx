@@ -88,7 +88,7 @@ export const ActivityTab: React.FC = () => {
   if (loading) return <p className={ui.emptyInline}>{t('admin.activityTab.loading')}</p>;
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-activity-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.activityTab.title')}</h2>

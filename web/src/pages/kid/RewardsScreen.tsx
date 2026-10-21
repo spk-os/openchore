@@ -39,7 +39,7 @@ export function RewardsScreen({ user, data, topBar, onRedeemed }: RewardsProps) 
   };
 
   return (
-    <div className={s.rewards}>
+    <div className={s.rewards} data-test="kid-rewards-page">
       <div className={s.rewardsSide}>
         {topBar}
         <h1 className={s.screenTitle}>{t('kid.rewards.title')}</h1>

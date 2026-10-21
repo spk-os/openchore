@@ -267,7 +267,7 @@ export const ProfileTab: React.FC = () => {
   const hero = profile?.hero;
 
   return (
-    <div className={styles.ppPage} data-test="profile-tab">
+    <div className={styles.ppPage} data-test="admin-profile-page">
       <div className={ui.pageHead}>
         <div>
           <h1 className={ui.pageTitle}>{t('admin.profileTab.heading')}</h1>

@@ -297,7 +297,7 @@ export const CoursesTab: React.FC = () => {
   const currentUnit = tree?.units.find(u => u.id === unitId) ?? null;
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} data-test="admin-courses-page">
       {/* Page head + lifecycle buttons. */}
       <div className={styles.ph} data-test="courses-ph">
         <div>

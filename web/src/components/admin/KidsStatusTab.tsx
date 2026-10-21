@@ -479,7 +479,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
   const dateLabel = new Date().toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-home-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.kidsStatusTab.heading')}</h2>

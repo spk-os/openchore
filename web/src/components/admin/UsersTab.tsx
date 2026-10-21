@@ -273,7 +273,7 @@ export const UsersTab: React.FC = () => {
   };
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-users-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.usersTab.sectionTitle')}</h2>

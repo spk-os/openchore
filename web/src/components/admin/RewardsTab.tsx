@@ -299,7 +299,7 @@ export const RewardsTab: React.FC = () => {
   };
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-rewards-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.rewardsTab.rewardsStoreTitle')}</h2>

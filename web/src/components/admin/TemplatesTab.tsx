@@ -232,7 +232,7 @@ export const TemplatesTab: React.FC = () => {
   };
 
   return (
-    <div className={ui.page}>
+    <div className={ui.page} data-test="admin-templates-page">
       <div className={ui.pageHead}>
         <div>
           <h2 className={ui.pageTitle}>{t('admin.templatesTab.heading')}</h2>
