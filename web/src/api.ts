@@ -457,7 +457,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(req),
       }),
-    copilotApply: (req: { assigned_to: number; source: 'copilot' | 'flyer'; tasks: CopilotApplyTask[] }) =>
+    copilotApply: (req: { assigned_to: number; source: 'copilot' | 'flyer' | 'planner'; tasks: CopilotApplyTask[] }) =>
       fetchWithAuth<CopilotApplyResult>('/admin/copilot/apply', {
         method: 'POST',
         body: JSON.stringify(req),

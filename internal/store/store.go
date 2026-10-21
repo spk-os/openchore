@@ -3856,6 +3856,7 @@ type KidSummaryRow struct {
 	TotalCompleted int
 	PointsEarned   int
 	CurrentStreak  int
+	LateCompletions int // approved past due_by (重点关注)
 }
 
 // ReportKidSummaries returns per-kid completion and points stats for the date range.
@@ -3868,7 +3869,8 @@ func (s *Store) ReportKidSummaries(ctx context.Context, startDate, endDate strin
 			COALESCE(completed.cnt, 0) AS total_completed,
 			COALESCE(missed.cnt, 0) AS total_missed,
 			COALESCE(earned.total, 0) AS points_earned,
-			COALESCE(us.current_streak, 0) AS current_streak
+			COALESCE(us.current_streak, 0) AS current_streak,
+			COALESCE(late.cnt, 0) AS late_completions
 		FROM users u
 		LEFT JOIN (
 			SELECT cc.completed_by, COUNT(*) AS cnt
@@ -3894,11 +3896,23 @@ func (s *Store) ReportKidSummaries(ctx context.Context, startDate, endDate strin
 			AND DATE(pt.created_at) >= ? AND DATE(pt.created_at) <= ?
 			GROUP BY pt.user_id
 		) earned ON earned.user_id = u.id
+		LEFT JOIN (
+			SELECT cc.completed_by, COUNT(*) AS cnt
+			FROM chore_completions cc
+			JOIN chore_schedules cs ON cs.id = cc.chore_schedule_id
+			WHERE cc.completion_date >= ? AND cc.completion_date <= ?
+			AND cc.status = 'approved'
+			AND cc.uncompleted_at IS NULL
+			AND cs.due_by IS NOT NULL
+			AND cs.due_by != ''
+			AND substr(cc.completed_at, 12, 5) > cs.due_by
+			GROUP BY cc.completed_by
+		) late ON late.completed_by = u.id
 		LEFT JOIN user_streaks us ON us.user_id = u.id
 		WHERE ` + participantFilter + `
 		ORDER BY u.name`
 
-	rows, err := s.db.QueryContext(ctx, query, startDate, endDate, startDate, endDate, startDate, endDate)
+	rows, err := s.db.QueryContext(ctx, query, startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
@@ -3908,7 +3922,7 @@ func (s *Store) ReportKidSummaries(ctx context.Context, startDate, endDate strin
 	for rows.Next() {
 		var r KidSummaryRow
 		var totalMissed int
-		if err := rows.Scan(&r.UserID, &r.Name, &r.AvatarURL, &r.TotalCompleted, &totalMissed, &r.PointsEarned, &r.CurrentStreak); err != nil {
+		if err := rows.Scan(&r.UserID, &r.Name, &r.AvatarURL, &r.TotalCompleted, &totalMissed, &r.PointsEarned, &r.CurrentStreak, &r.LateCompletions); err != nil {
 			return nil, err
 		}
 		r.TotalAssigned = r.TotalCompleted + totalMissed
@@ -3922,6 +3936,73 @@ type MissedChoreRow struct {
 	ChoreName string
 	MissCount int
 	Kids      string // comma-separated
+}
+
+// LateCompletionRow is one kid's count of approved completions that landed
+// past the schedule's due-by time in the range (讯飞「重点关注」: the done
+// count alone would hide a kid who always finishes two hours late).
+type LateCompletionRow struct {
+	UserID int64
+	Count  int
+}
+
+// ReportLateCompletions counts approved, still-live completions whose
+// completed_at time is past the chore's due_by ("HH:MM" both sides —
+// completed_at's wall-clock part compares as a string, modernc DATE()
+// tricks stay out of it). Completions with no due_by set don't count.
+func (s *Store) ReportLateCompletions(ctx context.Context, startDate, endDate string) ([]LateCompletionRow, error) {
+	query := `
+		SELECT cc.completed_by, COUNT(*) AS late
+		FROM chore_completions cc
+		JOIN chore_schedules cs ON cs.id = cc.chore_schedule_id
+		WHERE cc.completion_date >= ? AND cc.completion_date <= ?
+		AND cc.status = 'approved'
+		AND cc.uncompleted_at IS NULL
+		AND cs.due_by IS NOT NULL
+		AND cs.due_by != ''
+		AND substr(cc.completed_at, 12, 5) > cs.due_by
+		GROUP BY cc.completed_by`
+	rows, err := s.db.QueryContext(ctx, query, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []LateCompletionRow
+	for rows.Next() {
+		var r LateCompletionRow
+		if err := rows.Scan(&r.UserID, &r.Count); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}
+
+// PlannerFollowupRow is how the kid's adopted planner chores went over a
+// range: adopted count plus approved count, so the next plan can be marked
+// "维持/调整" against them (作业帮 dynamic-adjust step).
+type PlannerFollowupRow struct {
+	Adopted   int
+	Completed int
+}
+
+// PlannerChoreFollowup counts the kid's planner-source chores (any status —
+// an adopted card that never got a completion row shows up as not-done)
+// and how many of them were approved in the range.
+func (s *Store) PlannerChoreFollowup(ctx context.Context, userID int64, startDate, endDate string) (PlannerFollowupRow, error) {
+	var out PlannerFollowupRow
+	err := s.db.QueryRowContext(ctx, `
+		SELECT
+			(SELECT COUNT(*) FROM chores c JOIN chore_schedules cs ON cs.chore_id = c.id
+			 WHERE c.source = 'planner' AND cs.assigned_to = ?) AS adopted,
+			(SELECT COUNT(*) FROM chore_completions cc
+			 JOIN chore_schedules cs ON cs.id = cc.chore_schedule_id
+			 JOIN chores c ON c.id = cs.chore_id
+			 WHERE c.source = 'planner' AND cc.completed_by = ?
+			 AND cc.completion_date >= ? AND cc.completion_date <= ?
+			 AND cc.status = 'approved' AND cc.uncompleted_at IS NULL) AS completed`,
+		userID, userID, startDate, endDate).Scan(&out.Adopted, &out.Completed)
+	return out, err
 }
 
 // ReportMostMissed returns chores with the most misses in the date range.

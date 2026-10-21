@@ -54,12 +54,15 @@ const (
 // Where a chore came from. Template chores are imported from the built-in
 // packs (admin templates page), so the UI can badge them; flyer chores come
 // from the Copilot's photo extraction (school notices and the like); the
-// copilot source covers its free-form one-liner drafts.
+// copilot source covers its free-form one-liner drafts; planner chores are
+// the L3 learner-plan cards the parent adopted (作业帮 loop: the plan's
+// adopted tasks, so next week's plan can compare against how they went).
 const (
 	SourceManual   = "manual"
 	SourceTemplate = "template"
 	SourceFlyer    = "flyer"
 	SourceCopilot  = "copilot"
+	SourcePlanner  = "planner"
 )
 
 // Assignment types

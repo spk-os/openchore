@@ -478,6 +478,51 @@ func TestWriteWeeklySummaries(t *testing.T) {
 	}
 }
 
+// TestWeeklySummaryPromptCarriesSignals pins the P0-1/P1-3 prompt contract:
+// the late-completion attention line, the evidence requirement and the
+// closing communication tip must reach the model; a clean week keeps the
+// encouraging tone (no attention line).
+func TestWeeklySummaryPromptCarriesSignals(t *testing.T) {
+	env, f := setupAITest(t, false)
+	env.createAdmin(t)
+	kidID := env.createChild(t, "Kid")
+
+	// One approved completion: the week exists, so the summary generates.
+	thisMonday, _ := time.ParseInLocation(model.DateFormat, mondayOf(time.Now()), time.Local)
+	lastWed := thisMonday.AddDate(0, 0, -5).Format(model.DateFormat)
+	resp := env.expectStatus(t, "POST", "/api/chores", map[string]any{"title": "Dishes", "category": "core"}, adminHeaders(), http.StatusCreated)
+	var chore map[string]any
+	decodeBody(t, resp, &chore)
+	resp = env.expectStatus(t, "POST", fmt.Sprintf("/api/chores/%d/schedules", int(chore["id"].(float64))),
+		map[string]any{"assigned_to": kidID, "specific_date": lastWed}, adminHeaders(), http.StatusCreated)
+	var sched map[string]any
+	decodeBody(t, resp, &sched)
+	env.expectStatus(t, "POST", fmt.Sprintf("/api/schedules/%d/complete", int(sched["id"].(float64))),
+		map[string]any{"completion_date": lastWed}, childHeaders(kidID), http.StatusCreated).Body.Close()
+
+	url := fmt.Sprintf("/api/admin/reports/ai-summary?user_id=%d&period=week&date=%s", kidID, lastWed)
+	env.expectStatus(t, "GET", url, nil, adminHeaders(), http.StatusOK).Body.Close()
+
+	prompts := f.prompts()
+	if len(prompts) == 0 {
+		t.Fatal("expected a weekly summary prompt")
+	}
+	p := prompts[len(prompts)-1]
+	if !strings.Contains(p, "本周沟通建议") {
+		t.Errorf("prompt missing the communication tip requirement")
+	}
+	if !strings.Contains(p, "inline evidence") {
+		t.Errorf("prompt missing the evidence requirement")
+	}
+	// No late completion in this fixture: the attention line stays out.
+	if strings.Contains(p, "Attention signal") {
+		t.Errorf("unexpected attention line in a clean week: %q", p)
+	}
+	if f.calls() != 1 {
+		t.Fatalf("expected one AI call, got %d", f.calls())
+	}
+}
+
 func mondayOf(d time.Time) string {
 	offset := (int(d.Weekday()) + 6) % 7
 	return d.AddDate(0, 0, -offset).Format(model.DateFormat)

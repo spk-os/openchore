@@ -18,6 +18,8 @@ func (c *Client) DraftDescription(ctx context.Context, title, category string) (
 // error book, the review streak and the weak knowledge points, so the
 // parent's weekly report finally covers the学习 side too — zeros mean
 // "no learning data this week", and the prompt omits those lines.
+// LateCompletions is the 讯飞「重点关注」 signal: approved tasks finished
+// past their due-by time.
 type WeeklyStats struct {
 	KidName        string
 	CompletedCount int
@@ -27,6 +29,9 @@ type WeeklyStats struct {
 	CurrentStreak  int
 	CompletionRate float64
 	MissedChores   []string
+	// The attention signal: approved but past due_by. Zero = no signal,
+	// and the prompt keeps the encouraging tone.
+	LateCompletions int
 	// Learning dimensions (zeros = none this week; the prompt skips them).
 	ErrorNewCount       int      // wrong questions collected this week
 	ErrorCorrectedCount int      // error-book items the kid worked
@@ -36,7 +41,10 @@ type WeeklyStats struct {
 	WeakPoints           []string // weakest knowledge points, worst first
 }
 
-// WeeklySummary writes an encouraging 2-3 sentence summary for a parent.
+// WeeklySummary writes an encouraging summary for a parent — the 学而思
+// four-field skeleton (done/total, points, streak, misses) plus the 讯飞
+// layers: one attention line when a signal exists, and a closing
+// communication tip so the parent knows what to say to the kid.
 func (c *Client) WeeklySummary(ctx context.Context, s WeeklyStats) (string, error) {
 	missed := "none"
 	if len(s.MissedChores) > 0 {
@@ -53,8 +61,16 @@ func (c *Client) WeeklySummary(ctx context.Context, s WeeklyStats) (string, erro
 		}
 		learning += ` When learning numbers exist, weave one observation about them into the summary (practical: e.g. schedule a short re-do of the weak points next week).`
 	}
-	return c.ask(ctx, fmt.Sprintf(`Write a brief, encouraging 2-3 sentence summary of this child's chores and learning this week for their parent. Kid: %s. Completed %d of %d (%.0f%%), %d missed, earned %d points, current streak %d days. Most missed: %s.%s Be specific and suggest one small, practical next step. Reply with only the summary.`,
-		s.KidName, s.CompletedCount, s.TotalAssigned, s.CompletionRate, s.MissedCount, s.PointsEarned, s.CurrentStreak, missed, learning))
+	// The 重点关注 line: numbers first, the parent decides what to make
+	// of them. No signal, no line — the report stays encouraging.
+	attention := ""
+	if s.LateCompletions > 0 {
+		attention = fmt.Sprintf(` Attention signal: %d of the completed tasks were finished past their due-by time this week. Mention this in at most one neutral sentence (when it happened and a practical fix, e.g. an earlier start), never as a scolding.`,
+			s.LateCompletions)
+	}
+	return c.ask(ctx, fmt.Sprintf(`Write a brief, encouraging 3-5 sentence summary of this child's chores and learning this week for their parent. Kid: %s. Completed %d of %d (%.0f%%), %d missed, earned %d points, current streak %d days. Most missed: %s.%s%s
+Back each claim with this week's numbers as inline evidence (e.g. "corrected 4 of the 6 wrong questions"), and end with one short "本周沟通建议" tip for the parent — one concrete thing to say to the kid tomorrow (praise a specific improvement by name, or one gentle nudge), drawn only from these numbers. Be specific and suggest one small, practical next step. Reply with only the summary.`,
+		s.KidName, s.CompletedCount, s.TotalAssigned, s.CompletionRate, s.MissedCount, s.PointsEarned, s.CurrentStreak, missed, learning, attention))
 }
 
 // DailyNoteStats holds what a day's coaching note is written from. The

@@ -60,6 +60,9 @@
 .personStats { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); margin: 2px 0 0; font-size: var(--type-meta-size); line-height: var(--type-meta-line); font-weight: 500; color: var(--ink-muted); }
 .streak { display: inline-flex; align-items: center; gap: 3px; }
 .streak svg { width: 14px; height: 14px; color: var(--star); fill: var(--star); stroke-width: 1.5; }
+/* 重点关注: the attention line under the stats when tasks went out late. */
+.attention { display: inline-flex; align-items: center; gap: 4px; margin: 4px 0 0; font-size: var(--type-meta-size); line-height: var(--type-meta-line); font-weight: 600; color: var(--waiting); }
+.attention svg { width: 13px; height: 13px; flex: none; }
 .rate { flex: none; font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: -0.03em; font-size: 30px; line-height: 32px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .personBar { display: block; height: 8px; border-radius: var(--oc-radius-pill); background: var(--surface-sunk); overflow: hidden; }
 .personBar i { display: block; height: 100%; border-radius: var(--oc-radius-pill); background: var(--you, var(--ink)); }

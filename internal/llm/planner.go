@@ -41,6 +41,10 @@ type PlannerContext struct {
 	// RecentEventSummary counts recent learning behavior, e.g.
 	// "近 7 天：完成任务 6 次 · 订正 4 次 · 复习 9 次".
 	RecentEventSummary string
+	// LastPlanFollowup is how the previously adopted planner chores
+	// went (作业帮 dynamic-adjust step), e.g.
+	// "上周 AI 计划采纳 3 项，完成 2 项". Empty = no prior plan.
+	LastPlanFollowup string
 	// Intent is the parent's free-form planning intent ("" = let the
 	// planner propose from the profile alone).
 	Intent string
@@ -246,6 +250,10 @@ Hard rules:
 	}
 	if pc.RecentEventSummary != "" {
 		fmt.Fprintf(&b, "Recent activity: %s\n", pc.RecentEventSummary)
+	}
+	if pc.LastPlanFollowup != "" {
+		fmt.Fprintf(&b, "Last week's AI plan follow-up: %s\n", pc.LastPlanFollowup)
+		fmt.Fprintf(&b, "Compare against it: keep the tasks that went well (mark them 维持 in the rationale), adjust or drop the ones that were missed, and say which is which.\n")
 	}
 	if len(pc.WeakKCs) > 0 {
 		b.WriteString("KC mastery (weakest first):\n")

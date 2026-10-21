@@ -2096,6 +2096,7 @@
     "failedToGenerateSummary": "Failed to generate summary.",
     "failedToLoadReports": "Failed to load reports",
     "generating": "Writing a summary…",
+    "lateCompletions": "⚠ {{count}} finished past the due time",
     "loadingReports": "Loading reports…",
     "missedTimes_one": "{{count}}×",
     "missedTimes_other": "{{count}}×",

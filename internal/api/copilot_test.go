@@ -416,6 +416,43 @@ func TestApplyCopilotDraftDatedOneOff(t *testing.T) {
 	}
 }
 
+// TestApplyPlannerDraft pins the L3 apply path: an adopted learner-plan
+// card lands with source="planner", so the follow-up query (and the UI
+// badge) can tell the AI plan's tasks from the copilot's one-off drafts.
+func TestApplyPlannerDraft(t *testing.T) {
+	env := setupTest(t)
+	env.createAdmin(t)
+	kid := env.createChild(t, "小言")
+
+	resp := env.expectStatus(t, "POST", "/api/admin/copilot/apply",
+		applyBody(kid, "planner"), adminHeaders(), http.StatusCreated)
+	var out struct {
+		Applied int `json:"applied"`
+	}
+	decodeBody(t, resp, &out)
+	if out.Applied != 1 {
+		t.Fatalf("expected 1 applied chore, got %d", out.Applied)
+	}
+
+	var source string
+	if err := env.db.QueryRow(`SELECT source FROM chores`).Scan(&source); err != nil {
+		t.Fatalf("load chore: %v", err)
+	}
+	if source != "planner" {
+		t.Fatalf("expected source=planner, got %q", source)
+	}
+
+	// The follow-up query sees it: one adopted planner chore (daily = 7
+	// schedules, but they hang off one chore row), none done yet.
+	fu, err := env.store.PlannerChoreFollowup(t.Context(), int64(kid), "2026-01-01", "2099-01-01")
+	if err != nil {
+		t.Fatalf("followup: %v", err)
+	}
+	if fu.Adopted != 7 || fu.Completed != 0 {
+		t.Fatalf("expected followup 7/0, got %d/%d", fu.Adopted, fu.Completed)
+	}
+}
+
 // TestApplyCopilotDraftValidates pins the up-front checks and the
 // atomicity: a bad card aborts the whole apply, leaving nothing behind.
 func TestApplyCopilotDraftValidates(t *testing.T) {

@@ -2098,6 +2098,7 @@
     "failedToGenerateSummary": "Zusammenfassung konnte nicht generiert werden.",
     "failedToLoadReports": "Berichte konnten nicht geladen werden",
     "generating": "Zusammenfassung wird geschrieben…",
+    "lateCompletions": "⚠ {{count}} nach der Frist erledigt",
     "loadingReports": "Berichte werden geladen…",
     "missedTimes_one": "{{count}}×",
     "missedTimes_other": "{{count}}×",

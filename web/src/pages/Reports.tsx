@@ -27,6 +27,8 @@ interface KidSummary {
   completion_rate: number;
   points_earned: number;
   current_streak: number;
+  /** Approved tasks finished past their due-by time (重点关注). */
+  late_completions: number;
 }
 
 interface MissedChore {
@@ -280,6 +282,11 @@ function ReportBody({ data, colors, aiSummaries, summaryLoading, onSummary }: Re
                       <span>{t('reports.pointsEarned', { count: kid.points_earned })}</span>
                       <span className={styles.streak}><Icon name="flame" />{t('reports.streakDays', { count: kid.current_streak })}</span>
                     </p>
+                    {kid.late_completions > 0 && (
+                      <p className={styles.attention} data-test={`rep-late-${kid.user_id}`}>
+                        <Icon name="spark" /> {t('reports.lateCompletions', { count: kid.late_completions })}
+                      </p>
+                    )}
                   </div>
                   <div className={styles.rate}>
                     {pct(kid.completion_rate)}

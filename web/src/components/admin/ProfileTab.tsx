@@ -219,7 +219,7 @@ export const ProfileTab: React.FC = () => {
     try {
       await api.admin.copilotApply({
         assigned_to: kidId,
-        source: 'copilot',
+        source: 'planner',
         tasks: [{
           title: c.title,
           description: c.description,

@@ -201,6 +201,13 @@ func (h *ChoreHandler) plannerContext(r *http.Request, userID int64, intent stri
 			}
 		}
 	}
+
+	// 作业帮 dynamic-adjust step: how the last adopted AI plan went, so
+	// this week's proposal can carry the 维持/调整 markers. Best-effort —
+	// a kid with no prior plan plans from the profile alone.
+	if fu, err := h.store.PlannerChoreFollowup(r.Context(), userID, weekAgo.Format(model.DateFormat), time.Now().Format(model.DateFormat)); err == nil && fu.Adopted > 0 {
+		pc.LastPlanFollowup = fmt.Sprintf("近 7 天 AI 计划任务采纳 %d 项，完成 %d 项", fu.Adopted, fu.Completed)
+	}
 	return pc, nil
 }
 
@@ -366,8 +373,8 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 	if source == "" {
 		source = model.SourceCopilot
 	}
-	if source != model.SourceCopilot && source != model.SourceFlyer {
-		writeError(w, http.StatusBadRequest, "source must be copilot or flyer")
+	if source != model.SourceCopilot && source != model.SourceFlyer && source != model.SourcePlanner {
+		writeError(w, http.StatusBadRequest, "source must be copilot, flyer, or planner")
 		return
 	}
 	if _, err := h.store.GetUser(r.Context(), req.AssignedTo); err != nil {

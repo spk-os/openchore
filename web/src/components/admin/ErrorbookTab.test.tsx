@@ -142,4 +142,29 @@ describe('ErrorbookTab', () => {
       expect(el).toBeTruthy();
     });
   });
+
+  it('filters by error cause (the 讯飞 third axis)', async () => {
+    vi.mocked(api.users.list).mockResolvedValue([kid()]);
+    vi.mocked(api.errorItems.list).mockResolvedValue([
+      item({ id: 31, error_type: 'concept' }),
+      item({ id: 32, error_type: 'calculation' }),
+    ]);
+
+    const { container } = render(<ErrorbookTab />);
+    await waitFor(() => {
+      expect(container.querySelector('[data-test="pe-item-31"]')).toBeTruthy();
+    });
+
+    fireEvent.click(q(container, '[data-test="pe-filter-etype-concept"]'));
+    await waitFor(() => {
+      expect(container.querySelector('[data-test="pe-item-32"]')).toBeNull();
+    });
+    expect(q(container, '[data-test="pe-item-31"]')).toBeTruthy();
+
+    // Back to all via the "all" chip.
+    fireEvent.click(q(container, '[data-test="pe-filter-etype-all"]'));
+    await waitFor(() => {
+      expect(container.querySelector('[data-test="pe-item-32"]')).toBeTruthy();
+    });
+  });
 });

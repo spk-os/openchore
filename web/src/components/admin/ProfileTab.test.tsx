@@ -195,7 +195,7 @@ describe('ProfileTab', () => {
     await waitFor(() => expect(api.admin.copilotApply).toHaveBeenCalled());
     const apply = vi.mocked(api.admin.copilotApply).mock.calls[0][0];
     expect(apply.assigned_to).toBe(1);
-    expect(apply.source).toBe('copilot');
+    expect(apply.source).toBe('planner');
     expect(apply.tasks[0].title).toBe('判别式专项 5 题');
     expect(apply.tasks[0].expiry).toBe('block');
     // The card flips to adopted.

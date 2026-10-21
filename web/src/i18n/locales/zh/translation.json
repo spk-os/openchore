@@ -716,6 +716,7 @@
     "failedToGenerateSummary": "生成总结失败。",
     "failedToLoadReports": "报告加载失败",
     "generating": "正在撰写总结…",
+    "lateCompletions": "⚠ {{count}} 项超过截止时间完成",
     "loadingReports": "报告加载中…",
     "missedTimes_one": "{{count}} 次",
     "missedTimes_other": "{{count}} 次",

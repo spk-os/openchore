@@ -45,15 +45,16 @@ type ReportsResponse struct {
 }
 
 type KidSummary struct {
-	UserID         int64   `json:"user_id"`
-	Name           string  `json:"name"`
-	AvatarURL      string  `json:"avatar_url"`
-	TotalAssigned  int     `json:"total_assigned"`
-	TotalCompleted int     `json:"total_completed"`
-	TotalMissed    int     `json:"total_missed"`
-	CompletionRate float64 `json:"completion_rate"`
-	PointsEarned   int     `json:"points_earned"`
-	CurrentStreak  int     `json:"current_streak"`
+	UserID          int64   `json:"user_id"`
+	Name            string  `json:"name"`
+	AvatarURL       string  `json:"avatar_url"`
+	TotalAssigned   int     `json:"total_assigned"`
+	TotalCompleted  int     `json:"total_completed"`
+	TotalMissed     int     `json:"total_missed"`
+	CompletionRate  float64 `json:"completion_rate"`
+	PointsEarned    int     `json:"points_earned"`
+	CurrentStreak   int     `json:"current_streak"`
+	LateCompletions int     `json:"late_completions"`
 }
 
 type MissedChore struct {
@@ -137,15 +138,16 @@ func (h *ReportsHandler) GetReports(w http.ResponseWriter, r *http.Request) {
 			rate = float64(k.TotalCompleted) / float64(k.TotalAssigned) * 100
 		}
 		kids = append(kids, KidSummary{
-			UserID:         k.UserID,
-			Name:           k.Name,
-			AvatarURL:      k.AvatarURL,
-			TotalAssigned:  k.TotalAssigned,
-			TotalCompleted: k.TotalCompleted,
-			TotalMissed:    missed,
-			CompletionRate: rate,
-			PointsEarned:   k.PointsEarned,
-			CurrentStreak:  k.CurrentStreak,
+			UserID:          k.UserID,
+			Name:            k.Name,
+			AvatarURL:       k.AvatarURL,
+			TotalAssigned:   k.TotalAssigned,
+			TotalCompleted:  k.TotalCompleted,
+			TotalMissed:     missed,
+			CompletionRate:  rate,
+			PointsEarned:    k.PointsEarned,
+			CurrentStreak:   k.CurrentStreak,
+			LateCompletions: k.LateCompletions,
 		})
 	}
 
@@ -489,6 +491,7 @@ func (h *ReportsHandler) summaryStats(ctx context.Context, userID int64, startSt
 		CurrentStreak:       kid.CurrentStreak,
 		CompletionRate:      rate,
 		MissedChores:        missedChores,
+		LateCompletions:     kid.LateCompletions,
 		ErrorNewCount:       newErr,
 		ErrorCorrectedCount: corrected,
 		ErrorOpenCount:      open,

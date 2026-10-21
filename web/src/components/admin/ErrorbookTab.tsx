@@ -144,6 +144,7 @@ export const ErrorbookTab: React.FC = () => {
   const [failed, setFailed] = useState(false);
   const [subject, setSubject] = useState('');
   const [mastery, setMastery] = useState<'' | 0 | 1 | 2>('');
+  const [errorType, setErrorType] = useState('');
   const [toast, setToast] = useState('');
 
   const kids = useMemo(() => users.filter(u => u.role === 'child'), [users]);
@@ -177,7 +178,8 @@ export const ErrorbookTab: React.FC = () => {
 
   const shown = useMemo(() => (items ?? []).filter(it =>
     (!subject || it.subject === subject) &&
-    (mastery === '' || it.mastery_level === mastery)), [items, subject, mastery]);
+    (mastery === '' || it.mastery_level === mastery) &&
+    (!errorType || it.error_type === errorType)), [items, subject, mastery, errorType]);
 
   const stats = useMemo(() => {
     const all = items ?? [];
@@ -200,6 +202,16 @@ export const ErrorbookTab: React.FC = () => {
     { key: 2, label: t('admin.errorbookTab.filterMastered'), test: 'pe-filter-mastered' },
   ];
 
+  // The 讯飞 three-layer filter's third axis: error cause. Filter by
+  // "方法有误/概念未掌握" before an exam; the four types the analyses tag.
+  const errorTypeFilters: { key: string; label: string; test: string }[] = [
+    { key: '', label: t('admin.errorbookTab.filterAll'), test: 'pe-filter-etype-all' },
+    { key: 'calculation', label: t('admin.analysis.errorTypeCalculation'), test: 'pe-filter-etype-calculation' },
+    { key: 'concept', label: t('admin.analysis.errorTypeConcept'), test: 'pe-filter-etype-concept' },
+    { key: 'reading', label: t('admin.analysis.errorTypeReading'), test: 'pe-filter-etype-reading' },
+    { key: 'method', label: t('admin.analysis.errorTypeMethod'), test: 'pe-filter-etype-method' },
+  ];
+
   return (
     <div className={ui.page} data-test="admin-errorbook-page">
       <div className={ui.pageHead}>
@@ -212,7 +224,7 @@ export const ErrorbookTab: React.FC = () => {
             <select
               className={ui.input}
               value={kidId ?? ''}
-              onChange={e => { setKidId(Number(e.target.value)); setSubject(''); setMastery(''); }}
+              onChange={e => { setKidId(Number(e.target.value)); setSubject(''); setMastery(''); setErrorType(''); }}
               aria-label={t('admin.errorbookTab.pickKid')}
               data-test="pe-kid-select"
             >
@@ -270,6 +282,20 @@ export const ErrorbookTab: React.FC = () => {
                   className={clsx(ui.chip, mastery === f.key && ui.chipOn)}
                   aria-pressed={mastery === f.key}
                   onClick={() => setMastery(f.key)}
+                  data-test={f.test}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div className={ui.chips} role="group">
+              {errorTypeFilters.map(f => (
+                <button
+                  key={f.test}
+                  type="button"
+                  className={clsx(ui.chip, errorType === f.key && ui.chipOn)}
+                  aria-pressed={errorType === f.key}
+                  onClick={() => setErrorType(f.key)}
                   data-test={f.test}
                 >
                   {f.label}
