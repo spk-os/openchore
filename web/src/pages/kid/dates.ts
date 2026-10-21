@@ -28,3 +28,15 @@ export function shiftMonth(key: string, by: number): string {
   const d = new Date(y, m - 1 + by, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
+
+/** Monday-first weekday index (0..6) of the first day of "YYYY-MM". */
+export function monthLead(key: string): number {
+  const d = new Date(`${key}-01T00:00:00`);
+  return (d.getDay() + 6) % 7; // Monday = 0
+}
+
+/** How many days the month "YYYY-MM" has. */
+export function monthLength(key: string): number {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}

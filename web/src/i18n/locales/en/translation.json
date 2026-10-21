@@ -554,6 +554,8 @@
       "historyLoading": "Loading history…",
       "historyEmpty": "No chores recorded this month.",
       "historyDayLabel": "{{date}}",
+      "historyDayAria": "Day {{day}}: {{done}}/{{total}} done",
+      "historyDayEmpty": "Day {{day}}: nothing scheduled",
       "historyClose": "Close"
     },
     "modal": {
@@ -2034,7 +2036,9 @@
       "freeText": "Nothing on the list that day.",
       "foot": "History is read-only · the summary is written automatically on the last day of each month",
       "expand": "Month view",
-      "collapse": "Hide month view"
+      "collapse": "Hide month view",
+      "dayEmpty": "Day {{day}}: nothing scheduled",
+      "dayLabel": "Day {{day}}: {{done}}/{{total}} done"
     }
   },
   "linkedAccounts": {

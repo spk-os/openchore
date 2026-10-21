@@ -654,7 +654,9 @@
       "freeText": "那天没有任务。",
       "foot": "历史记录只读 · 总结由系统在每月最后一天自动生成",
       "expand": "月视图",
-      "collapse": "收起月视图"
+      "collapse": "收起月视图",
+      "dayEmpty": "{{day}}日：没有任务",
+      "dayLabel": "{{day}}日：{{done}}/{{total}} 完成"
     }
   },
   "linkedAccounts": {
@@ -1362,6 +1364,8 @@
       "historyLoading": "正在加载历史…",
       "historyEmpty": "这个月没有任务记录。",
       "historyDayLabel": "{{date}}",
+      "historyDayAria": "{{day}}日：{{done}}/{{total}} 完成",
+      "historyDayEmpty": "{{day}}日：没有任务",
       "historyClose": "收起"
     },
     "modal": {

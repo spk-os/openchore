@@ -204,6 +204,7 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
               >
                 <Icon name="cal" />
                 <span>{monthOpen ? t('kid.history.collapse') : t('kid.history.expand')}</span>
+                <Icon name="chev" className={monthOpen ? s.monthToggleChevUp : s.monthToggleChev} />
               </button>
             </div>
             {streak?.next_reward && (

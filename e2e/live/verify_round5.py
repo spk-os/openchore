@@ -61,18 +61,41 @@ with sync_playwright() as p:
     # 有任务记录的月份才出现日网格；当前月必有（若整月无任务则 empty 文案）
     days = page.locator('[data-test="hist-days"]')
     if days.count() > 0:
-        day_btns = days.locator('button')
-        check('历史页日 chip 网格可点（done/total 计数）', day_btns.count() >= 1, f'days={day_btns.count()}')
-        day_btns.first.click()
-        page.wait_for_timeout(1000)
-        check('点日 chip 后该日任务列表渲染', page.locator('#root').inner_text().strip() != '')
+        # 新月历：无任务日 disabled 不可点，只点 enabled 日
+        day_btns = days.locator('button:not([disabled])')
+        check('历史页月历网格渲染（有 enabled 日）', day_btns.count() >= 1,
+              f'enabled={day_btns.count()} all={days.locator("button").count()}')
+        if day_btns.count() > 0:
+            day_btns.first.click()
+            page.wait_for_timeout(1000)
+            check('点月历日后主页任务列表回填（不白屏）',
+                  page.locator('#root').inner_text().strip() != '',
+                  f'pageerror={errors[:1]}')
     else:
         check('历史页本月无任务时显示空态（不白屏）', page.locator('body').inner_text().strip() != '')
-    # 月视图内月份步进（kid-history-page 内的 histMonthBar）
-    prev_m = page.locator('[data-test="kid-history-page"] button', has_text='上个月')
-    if prev_m.count() == 0:
-        # 中文 aria-label 是「上个月」，按钮内是 back 图标——按 aria-label 找
-        prev_m = page.locator('[data-test="kid-history-page"] button[aria-label]')
+    # 月份就地下拉：点月份 label 展开月份清单，选一个月后清单收起、月历仍在
+    label_btn = page.locator('[data-test="kid-history-page"] button[aria-haspopup="listbox"]')
+    if label_btn.count() == 0:
+        # 点选日会收起月视图（pickDay 联动 setMonthOpen(false)），重新展开再验下拉
+        page.locator('button', has_text='月视图').first.click()
+        page.wait_for_timeout(1500)
+        label_btn = page.locator('[data-test="kid-history-page"] button[aria-haspopup="listbox"]')
+    if label_btn.count() > 0:
+        label_btn.first.click()
+        page.wait_for_timeout(600)
+        mlist = page.locator('[data-test="hist-month-list"]')
+        check('点月份 label 就地展开月份清单（hist-month-list）', mlist.count() > 0)
+        if mlist.count() > 0:
+            mlist.locator('button').last.click()  # 最早月（12 项清单最后一项）
+            page.wait_for_timeout(1500)
+            check('选月后月份清单收起、月历仍渲染',
+                  page.locator('[data-test="hist-month-list"]').count() == 0
+                  and page.locator('[data-test="kid-history-page"]').count() > 0)
+    else:
+        check('月份 label（aria-haspopup listbox）存在', False, 'label button 未找到')
+    # 月视图内月份步进（‹ aria-label=上个月）
+    prev_m = page.locator('[data-test="kid-history-page"] button[aria-label="上个月"]')
+    check('历史页月份步进钮存在（aria-label=上个月）', prev_m.count() >= 1, f'count={prev_m.count()}')
     check('历史页无前端报错（pageerror=0）', len(errors) == 0, f'{errors[:2]}')
 
     # 问题①：周总结卡（三合一后收在主页今日进度卡内）
@@ -98,7 +121,7 @@ with sync_playwright() as p:
     page2.wait_for_load_state('networkidle')
     page2.wait_for_timeout(2500)
 
-    # 问题④：展开孩子卡 → 「看历史」→ 月历史视图
+    # 问题④：展开孩子卡 → 「看历史」→ 月历视图（点选日 → 当日清单）
     card = page2.locator('div[data-person]').filter(has_text='小明').first
     card.click()
     page2.wait_for_timeout(1200)
@@ -108,19 +131,23 @@ with sync_playwright() as p:
     hb.click()
     page2.wait_for_timeout(2000)
     hv = page2.locator('[data-test="kid-history-view"]')
-    check('点「看历史」展开月历史视图', hv.count() > 0, f'pageerror={errors2[:1]}')
-    daylabels = page2.locator('[data-test="history-day-label"]')
-    if daylabels.count() > 0:
-        check('历史视图按日列出该孩子任务（带 done/total）', daylabels.count() >= 1,
-              f'days={daylabels.count()}')
-        # 上个月步进可用（按钮文本是 "‹ 上个月"，角色名匹配去空格差异用子串）
-        prev_btn = page2.locator('[data-test="kid-history-view"] button', has_text='上个月').first
+    check('点「看历史」展开月历视图', hv.count() > 0, f'pageerror={errors2[:1]}')
+    admin_days = page2.locator('[data-test="kid-history-view"] [data-test="hist-days"] button:not([disabled])')
+    if admin_days.count() > 0:
+        admin_days.first.click()
+        page2.wait_for_timeout(1200)
+        daylabels = page2.locator('[data-test="history-day-label"]')
+        check('点月历日显示该日任务清单（history-day-label + done/total）',
+              daylabels.count() >= 1, f'labels={daylabels.count()}')
+        # 上个月步进可用（aria-label=上个月）
+        prev_btn = page2.locator('[data-test="kid-history-view"] button[aria-label="上个月"]').first
+        check('家长端月历月份步进钮存在', prev_btn.count() > 0)
         prev_btn.click()
         page2.wait_for_timeout(1500)
         check('月份步进「上个月」可切换（视图仍渲染）',
               page2.locator('[data-test="kid-history-view"]').count() > 0)
     else:
-        check('该月无任务时历史视图显示空态（不白屏）',
+        check('该月无任务时月历视图显示空态（不白屏）',
               page2.locator('body').inner_text().strip() != '')
     check('家长端历史视图无前端报错（pageerror=0）', len(errors2) == 0, f'{errors2[:2]}')
 

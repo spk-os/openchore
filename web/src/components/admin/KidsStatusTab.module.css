@@ -722,11 +722,30 @@
   gap: var(--space-2);
 }
 
+.historyStep {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--ink);
+  cursor: pointer;
+}
+.historyStep:disabled { opacity: 0.4; cursor: default; }
+.historyStep svg { width: 16px; height: 16px; }
+
 .historyMonth {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
+.historyMonthChev { width: 13px; height: 13px; color: var(--ink-muted); }
 
 .historyClose {
   margin-left: auto;
@@ -742,7 +761,77 @@
   cursor: pointer;
 }
 
+/* 月历：与孩子端月视图同款七列网格，日期在圆圈里。 */
+.historyCal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.historyDow {
+  padding-bottom: 3px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+
+.historyDayBlank { min-height: 52px; }
+
 .historyDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 52px;
+  padding: 3px 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-row);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.historyDay:disabled { cursor: default; }
+.historyDay[aria-pressed="true"] {
+  border-color: var(--line);
+  background: var(--surface-raised);
+}
+
+.historyRing {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+.historyRing[data-today] { border-color: var(--accent, var(--line)); }
+.historyDay:disabled .historyRing { border-color: var(--surface-sunk); }
+.historyRing[data-full] {
+  border-color: var(--ok, var(--line));
+  background: var(--ok, var(--surface-raised));
+}
+.historyRing[data-full] .historyNum { color: var(--on-ok, #fff); }
+
+.historyNum {
+  font-size: 13px;
+  line-height: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.historyDay:disabled .historyNum { color: var(--ink-muted); }
+
+.historyCount {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.historyDayBlock {
   display: flex;
   flex-direction: column;
   gap: 2px;

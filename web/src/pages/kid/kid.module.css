@@ -413,6 +413,9 @@
 }
 .monthToggle svg { width: 17px; height: 17px; }
 .monthToggle:active { transform: scale(0.96); }
+/* 展开状态指示箭头：收起朝下、展开朝上（todo清单的下拉箭头语义）。 */
+.monthToggleChev { width: 14px !important; height: 14px !important; }
+.monthToggleChevUp { width: 14px !important; height: 14px !important; transform: rotate(-90deg); }
 
 /* 月视图展开区嵌进主页时，不再占独立页的满宽。 */
 .histScreen { margin-bottom: var(--space-4); }
@@ -2672,27 +2675,82 @@
   max-width: 600px;
 }
 
-/* Month stepper: ‹ 2026年10月 ›, next disabled on the current month. */
-.histMonthBar {
+/* Month picker: ‹ 2026年10月 ▾ › — one quiet row, the label itself is a
+   button (chev hint), the arrows step one month at a time. */
+.histMonthPick {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  box-sizing: border-box;
-  border: var(--outline-w) solid var(--line);
-  border-radius: var(--oc-radius-lg);
-  background: var(--surface-raised);
 }
 
-.histMonth {
+.histMonthLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
   font-family: var(--font-display);
   font-weight: var(--display-weight);
   font-variation-settings: var(--display-axes);
   letter-spacing: var(--display-tracking);
   font-size: 19px;
   line-height: 24px;
+  cursor: pointer;
 }
+
+.histMonthChev { width: 15px; height: 15px; color: var(--ink-muted); }
+.histMonthChevUp { width: 15px; height: 15px; color: var(--ink-muted); transform: rotate(-90deg); }
+
+/* 就地下拉：月份清单贴着 label 原位展开（todo清单的月份选择），绝对定位
+   不挤动月历网格，白底描边圆角小浮层。 */
+.histMonthWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.histMonthList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+
+.histMonthOpt,
+.histMonthOptOn {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--oc-radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.histMonthOptOn { background: var(--surface-sunk); font-weight: 700; }
 
 .histMonthBtn {
   width: 44px;
@@ -2751,19 +2809,35 @@
   color: var(--ink-muted);
 }
 
-/* Day chips of the month that actually have rows: 1..31 with done/total. */
+/* The month's own calendar grid: same 7-column rhythm as the week strip,
+   the date sits inside a circle (周视图同款), done/total under it. Days
+   without rows stay put but are inert (no data to pick). */
 .histDays {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
-  gap: var(--space-2);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
 }
+
+.histDow {
+  padding-bottom: 3px;
+  text-align: center;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.02em;
+  text-transform: var(--label-case);
+  color: var(--ink-muted);
+}
+
+.histDayBlank { min-height: 54px; }
 
 .histDay {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: var(--space-2) 0;
+  gap: 3px;
+  min-height: 54px;
+  padding: 4px 0;
   border: var(--outline-w) solid transparent;
   border-radius: var(--oc-radius-md);
   background: transparent;
@@ -2771,25 +2845,44 @@
   font: inherit;
   cursor: pointer;
 }
-.histDayOn {
-  background: var(--surface-raised);
-  border-color: var(--line);
-  box-shadow: var(--lift);
-  color: var(--ink);
+.histDay:disabled { cursor: default; }
+.histDay:active:not(:disabled) { transform: scale(0.94); }
+
+/* 日期圆圈：无任务=空心细圈；有任务=描边圈，全完成=实心（周历条 full 同款）。 */
+.histDayRing {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  transition: background var(--dur-1, 0.14s) ease, border-color var(--dur-1, 0.14s) ease;
 }
+.histDayRing[data-today] { border-color: var(--highlight); }
+.histDay:disabled .histDayRing { border-color: var(--surface-sunk); }
+.histDayRing[data-full] {
+  border-color: var(--done);
+  background: var(--done);
+}
+.histDayRing[data-full] .histDayNum { color: var(--on-done); }
 
 .histDayNum {
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: 750;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
+.histDay:disabled .histDayNum { color: var(--ink-muted); }
 
 .histDayCount {
-  font-size: 11.5px;
-  line-height: 14px;
+  font-size: 10.5px;
+  line-height: 13px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
 }
 
 /* Tablet: the history page shares the book's wider frame. */

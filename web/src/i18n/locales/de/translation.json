@@ -556,6 +556,8 @@
       "historyLoading": "Verlauf lädt…",
       "historyEmpty": "In diesem Monat sind keine Aufgaben aufgezeichnet.",
       "historyDayLabel": "{{date}}",
+      "historyDayAria": "Tag {{day}}: {{done}}/{{total}} erledigt",
+      "historyDayEmpty": "Tag {{day}}: nichts geplant",
       "historyClose": "Schließen"
     },
     "modal": {
@@ -2022,7 +2024,9 @@
       "freeText": "An diesem Tag stand nichts auf der Liste.",
       "foot": "Der Verlauf ist schreibgeschützt · die Zusammenfassung entsteht automatisch am Monatsende",
       "expand": "Monatsansicht",
-      "collapse": "Monatsansicht schließen"
+      "collapse": "Monatsansicht schließen",
+      "dayEmpty": "Tag {{day}}: nichts geplant",
+      "dayLabel": "Tag {{day}}: {{done}}/{{total}} erledigt"
     },
     "submission": {
       "aiNote": "KI-Anmerkung",
