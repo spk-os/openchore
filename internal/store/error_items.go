@@ -20,7 +20,7 @@ var ErrErrorItemNotFound = errors.New("error item not found")
 
 const analysisColumns = `id, completion_id, user_id, created_by, subject, instructions, status, stage, progress, total_questions, wrong_count, error, summary, created_at, updated_at`
 
-const errorItemColumns = `id, user_id, completion_id, analysis_id, subject, original_image_url, ocr_text, question_text, answer_text, wrong_answer_text, analysis, mistake_analysis, mistake_status, error_type, difficulty, ai_confidence, paper_level, grade_semester, source, mastery_level, next_review_at, created_at, updated_at`
+const errorItemColumns = `id, user_id, completion_id, analysis_id, chore_schedule_id, chore_title, errored_date, subject, original_image_url, ocr_text, question_text, answer_text, wrong_answer_text, analysis, mistake_analysis, mistake_status, error_type, difficulty, ai_confidence, paper_level, grade_semester, source, mastery_level, next_review_at, created_at, updated_at`
 
 func scanAnalysis(row interface{ Scan(...any) error }) (*model.PaperAnalysis, error) {
 	a := &model.PaperAnalysis{}
@@ -44,12 +44,14 @@ func scanAnalysis(row interface{ Scan(...any) error }) (*model.PaperAnalysis, er
 
 func scanErrorItem(row interface{ Scan(...any) error }) (*model.ErrorItem, error) {
 	i := &model.ErrorItem{}
-	var completionID, analysisID sql.NullInt64
+	var completionID, analysisID, scheduleID sql.NullInt64
+	var choreTitle, erroredDate sql.NullString
 	var ocrText, questionText, answerText, wrongAnswer, analysis, mistakeAnalysis sql.NullString
 	var errorType, difficulty, paperLevel, gradeSemester, source sql.NullString
 	var aiConfidence sql.NullFloat64
 	var nextReview sql.NullTime
-	if err := row.Scan(&i.ID, &i.UserID, &completionID, &analysisID, &i.Subject,
+	if err := row.Scan(&i.ID, &i.UserID, &completionID, &analysisID, &scheduleID, &choreTitle, &erroredDate,
+		&i.Subject,
 		&i.OriginalImageURL, &ocrText, &questionText, &answerText, &wrongAnswer,
 		&analysis, &mistakeAnalysis, &i.MistakeStatus, &errorType, &difficulty,
 		&aiConfidence, &paperLevel, &gradeSemester, &source,
@@ -61,6 +63,15 @@ func scanErrorItem(row interface{ Scan(...any) error }) (*model.ErrorItem, error
 	}
 	if analysisID.Valid {
 		i.AnalysisID = &analysisID.Int64
+	}
+	if scheduleID.Valid {
+		i.ChoreScheduleID = &scheduleID.Int64
+	}
+	if choreTitle.Valid {
+		i.ChoreTitle = choreTitle.String
+	}
+	if erroredDate.Valid {
+		i.ErroredDate = erroredDate.String
 	}
 	if ocrText.Valid {
 		i.OCRText = ocrText.String
@@ -190,11 +201,12 @@ func (s *Store) FinishPaperAnalysis(ctx context.Context, id int64, status, summa
 // CreateErrorItem inserts one extracted wrong question.
 func (s *Store) CreateErrorItem(ctx context.Context, i *model.ErrorItem) error {
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO error_items (user_id, completion_id, analysis_id, subject, original_image_url, ocr_text,
+		`INSERT INTO error_items (user_id, completion_id, analysis_id, chore_schedule_id, chore_title, errored_date, subject, original_image_url, ocr_text,
 			question_text, answer_text, wrong_answer_text, analysis, mistake_analysis, mistake_status,
 			error_type, difficulty, ai_confidence, paper_level, grade_semester, source, mastery_level, next_review_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		i.UserID, nullInt64(i.CompletionID), nullInt64(i.AnalysisID), i.Subject, i.OriginalImageURL, i.OCRText,
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		i.UserID, nullInt64(i.CompletionID), nullInt64(i.AnalysisID), nullInt64(i.ChoreScheduleID),
+		nullString(i.ChoreTitle), nullString(i.ErroredDate), i.Subject, i.OriginalImageURL, i.OCRText,
 		i.QuestionText, i.AnswerText, i.WrongAnswerText, i.Analysis, i.MistakeAnalysis, i.MistakeStatus,
 		nullString(i.ErrorType), nullString(i.Difficulty), i.AIConfidence,
 		nullString(i.PaperLevel), nullString(i.GradeSemester), nullString(i.Source),

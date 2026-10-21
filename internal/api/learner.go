@@ -384,7 +384,11 @@ func scaffoldStepAt(attempts int) (stage int, prompt string) {
 // stays server-controlled (the prompt only varies the wording); an empty
 // or overlong reply falls back to the built-in line so the ladder is
 // always answerable.
-func aiScaffoldHint(ctx context.Context, ai *llm.Client, item *model.ErrorItem, kidName string, stage int, fallback string) string {
+//
+// 任务④：prompt_scaffold 设置可改写这条指令（{{kid}}/{{question}}/
+// {{wrong}}/{{analysis}}/{{error_type}}/{{stage}}/{{brief}} 占位符），
+// 空值用内置默认。
+func aiScaffoldHint(ctx context.Context, s *store.Store, ai *llm.Client, item *model.ErrorItem, kidName string, stage int, fallback string) string {
 	if ai == nil {
 		return fallback
 	}
@@ -401,9 +405,18 @@ func aiScaffoldHint(ctx context.Context, ai *llm.Client, item *model.ErrorItem, 
 	if q == "" {
 		q = item.OCRText
 	}
-	prompt := fmt.Sprintf(`A kid is retrying a wrong question on their error book. Kid: %s. Question: %s. Their wrong answer: %s. Recorded mistake analysis: %s. Error type: %s.
+	prompt := renderPrompt(ctx, s, "prompt_scaffold", fmt.Sprintf(`A kid is retrying a wrong question on their error book. Kid: %s. Question: %s. Their wrong answer: %s. Recorded mistake analysis: %s. Error type: %s.
 This is scaffold stage %d of 4. Write the hint in the family's language (default Chinese), %s Be encouraging, never scold, never say the answer is wrong. Reply with only the hint text.`,
-		kidName, q, item.WrongAnswerText, item.MistakeAnalysis, item.ErrorType, stage, stageBrief)
+		kidName, q, item.WrongAnswerText, item.MistakeAnalysis, item.ErrorType, stage, stageBrief),
+		map[string]string{
+			"kid":        kidName,
+			"question":   q,
+			"wrong":      item.WrongAnswerText,
+			"analysis":   item.MistakeAnalysis,
+			"error_type": item.ErrorType,
+			"stage":      strconv.Itoa(stage),
+			"brief":      stageBrief,
+		})
 	// The caller's ctx carries its own timeout; a hung model falls back
 	// to the built-in line so the ladder is always answerable.
 	hint, err := ai.Chat(ctx, []llm.Message{{Role: "user", Content: prompt}}, nil)
@@ -453,7 +466,7 @@ func (h *LearnerHandler) HandleKidScaffold(w http.ResponseWriter, r *http.Reques
 		if kid, err := h.store.GetUser(ctx, user.ID); err == nil && kid != nil {
 			timeout, cancel := context.WithTimeout(ctx, 20*time.Second)
 			defer cancel()
-			prompt = aiScaffoldHint(timeout, ai, item, kid.Name, stage, prompt)
+			prompt = aiScaffoldHint(timeout, h.store, ai, item, kid.Name, stage, prompt)
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{

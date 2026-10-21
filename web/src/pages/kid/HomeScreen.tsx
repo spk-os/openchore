@@ -1,8 +1,10 @@
 // 主页 = 今天 + 本周 + 历史 三合一（OD spk-openchore kid-home.html 的契约）。
 // Today 的全部（进度弧 / 入口卡 / 任务组 / 教练备注）保持原位；「本周」的
-// 周历条与 streak 收进今日进度卡的底部一行，「历史」的月份步进 / 月总结 /
-// 日历网格变成「月视图」展开区。选中「今天」的任务可交互；过去日只读
-// （choreView 的 canToggle 只对 isToday 放开，天然安全）。
+// 周历条与 streak 收进今日进度卡的底部一行；「历史」的月历在周历条的
+// 原位置就地展开（点「月视图」→ 整月日历替换周条，点日期 → 周条回来、
+// 任务列表换成所选日——布局不变，只换内容，opencore.png 参考图交互）。
+// 选中「今天」的任务可交互；过去日只读（choreView 的 canToggle 只对
+// isToday 放开，天然安全）。
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -94,7 +96,9 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
     return (data.chores ?? []).filter(c => c.date === selected);
   }, [inWeek, allWeek, data.chores, selected]);
 
-  /** A month-grid day lands on the home list (and closes the overlay). */
+  /** A month-grid day lands on the home list (and folds the calendar
+   *  back into the week strip — the layout stays, only the content
+   *  swaps to the picked day). */
   const pickDay = useCallback((date: string) => {
     setSelected(date);
     setMonthOpen(false);
@@ -158,34 +162,41 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
                 {pending > 0 && <span>{t('kid.today.pending', { count: pending })}</span>}
               </p>
             )}
-            <div className={s.strip} role="group" aria-label={t('kid.week.days')}>
-              {week.map(date => {
-                const d = new Date(`${date}T00:00:00`);
-                const list = allWeek.filter(c => c.date === date);
-                const done = list.filter(isDone).length;
-                const total = list.length;
-                const isToday = date === data.today;
-                const kind: DayKind = total === 0 ? 'none'
-                  : done === total ? 'full'
-                  : date > data.today ? 'future' : 'partial';
-                const long = d.toLocaleDateString(lang, { weekday: 'long', day: 'numeric' });
-                return (
-                  <button
-                    key={date}
-                    type="button"
-                    className={clsx(s.day, isToday && s.dayToday, date === selected && s.daySelected)}
-                    aria-pressed={date === selected}
-                    aria-current={isToday ? 'date' : undefined}
-                    aria-label={total ? t('kid.week.dayLabel', { day: long, done, total }) : t('kid.week.dayEmpty', { day: long })}
-                    onClick={() => setSelected(date)}
-                  >
-                    <span className={s.dayName} aria-hidden>{d.toLocaleDateString(lang, { weekday: 'short' })}</span>
-                    <DayMark kind={kind} pct={total ? (done / total) * 100 : 0} />
-                    <span className={s.dayNum} aria-hidden>{d.getDate()}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {/* 参考图交互：点「月视图」→ 整月日历在周历条的原位置展开
+                （替换 .strip），点日期后月历收起、周条回来，任务列表
+                换成所选日——布局不变，只换内容。 */}
+            {monthOpen ? (
+              <MonthView user={user} today={data.today} onPickDay={pickDay} />
+            ) : (
+              <div className={s.strip} role="group" aria-label={t('kid.week.days')}>
+                {week.map(date => {
+                  const d = new Date(`${date}T00:00:00`);
+                  const list = allWeek.filter(c => c.date === date);
+                  const done = list.filter(isDone).length;
+                  const total = list.length;
+                  const isToday = date === data.today;
+                  const kind: DayKind = total === 0 ? 'none'
+                    : done === total ? 'full'
+                    : date > data.today ? 'future' : 'partial';
+                  const long = d.toLocaleDateString(lang, { weekday: 'long', day: 'numeric' });
+                  return (
+                    <button
+                      key={date}
+                      type="button"
+                      className={clsx(s.day, isToday && s.dayToday, date === selected && s.daySelected)}
+                      aria-pressed={date === selected}
+                      aria-current={isToday ? 'date' : undefined}
+                      aria-label={total ? t('kid.week.dayLabel', { day: long, done, total }) : t('kid.week.dayEmpty', { day: long })}
+                      onClick={() => setSelected(date)}
+                    >
+                      <span className={s.dayName} aria-hidden>{d.toLocaleDateString(lang, { weekday: 'short' })}</span>
+                      <DayMark kind={kind} pct={total ? (done / total) * 100 : 0} />
+                      <span className={s.dayNum} aria-hidden>{d.getDate()}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {/* 本周小结行：🔥 streak · 周总结卡 · 月视图开关。 */}
             <div className={s.homeWeekRow}>
               <section className={s.streakInline} aria-label={t('kid.week.streak')}>
@@ -291,12 +302,6 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
           />
         )}
       </section>
-
-      {/* 月视图展开区：点今日进度卡的「月视图」展开，收进原「历史」页的
-          月份步进 / 月总结 / 日历网格；点网格日子回填任务列表。 */}
-      {monthOpen && (
-        <MonthView user={user} today={data.today} onPickDay={pickDay} />
-      )}
 
       {/* Goals: under the list on a phone, under the hero on a tablet. */}
       {commitments.length > 0 && (

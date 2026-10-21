@@ -556,6 +556,7 @@
       "historyDayLabel": "{{date}}",
       "historyDayAria": "Day {{day}}: {{done}}/{{total}} done",
       "historyDayEmpty": "Day {{day}}: nothing scheduled",
+      "historyDayEmptyList": "Nothing scheduled on this day.",
       "historyClose": "Close"
     },
     "modal": {
@@ -954,6 +955,33 @@
         "profileDesc": "Aggregates errors, courses and review data into a profile; every AI suggestion cites its basis (source_refs) and takes effect only after the parent approves. No chat logs are used.",
         "profileLink": "Configure profile →",
         "profileFlag": "Profile & AI planning switch"
+      },
+      "agent": {
+        "title": "Agent dispatch (spk-agent)",
+        "description": "Text AI tasks (learning plans, weekly/monthly summaries, measure distill & strengthen) are dispatched to a real agent on spk-agent; failures fall back to the direct AI connection. Photo review and paper grading stay on the direct multimodal model.",
+        "help": "Enter your spk-agent service address (SPK-OS's single agent dispatch entry). Leave empty to disable — all AI tasks use the direct connection above.",
+        "baseUrlLabel": "spk-agent address",
+        "baseUrlPlaceholder": "http://192.168.96.1:8097",
+        "agentRefLabel": "Agent name",
+        "agentRefHelp": "The omnigent agent name (default spk-tester; letters/digits/dash/underscore only, no dots).",
+        "modelLabel": "Model (optional)",
+        "modelPlaceholder": "Leave empty for the agent's default model",
+        "modelHelp": "Overrides the model ID the agent session uses; empty = the agent's own default.",
+        "tokenLabel": "Auth token (optional)",
+        "tokenPlaceholder": "SPK_AGENT_AUTH_TOKEN; leave empty without auth",
+        "tokenSavedPlaceholder": "Saved (leave empty to keep)",
+        "tokenHelp": "spk-agent's SPK_AGENT_AUTH_TOKEN; leave empty for a household spk-agent without auth.",
+        "clearToken": "Clear the saved token",
+        "saveButton": "Save agent config",
+        "savingButton": "Saving…",
+        "saveSuccess": "Agent config saved",
+        "saveError": "Save failed: {{detail}}",
+        "testButton": "Test connection",
+        "testingButton": "Testing…",
+        "testSuccess": "spk-agent is reachable",
+        "testStatusError": "spk-agent returned {{status}}",
+        "testNetworkError": "Cannot reach spk-agent, check the address",
+        "fromEnv": "Pinned by the AGENT_BASE_URL environment variable; read-only here."
       }
     },
     "skins": {
@@ -1336,7 +1364,8 @@
       "weekScopeTitle": "This week",
       "weekScopeItems": "{{count}} wrong this week",
       "weekScopeFixed": "{{count}} fixed",
-      "weekScopeManual": "{{count}} need review"
+      "weekScopeManual": "{{count}} need review",
+      "itemTrace": "{{subject}} · wrong on {{date}} · from “{{title}}”"
     },
     "measuresTab": {
       "heading": "Learning measures",
@@ -1378,7 +1407,10 @@
       "createPriority": "Priority",
       "create": "Create",
       "creating": "Creating…",
-      "createFailed": "Couldn't create, try again"
+      "createFailed": "Couldn't create, try again",
+      "whyManual": "Written by the parent on {{date}} — tracks the learning plan you set",
+      "whyStrengthen": "AI-strengthened on {{date}} — rewritten against the latest error data",
+      "whyAnalysis": "Distilled from analysis report #{{id}} on {{date}} — based on its weak points and error mix"
     }
   },
   "common": {
@@ -1688,7 +1720,9 @@
       "entryOpen": "Open →",
       "entryEmptyTodo": "{{count}} in the book · ✨ AI explanation ready",
       "choreSource": "From: {{source}}",
-      "masteryBarLabel": "Mastery {{percent}}%"
+      "masteryBarLabel": "Mastery {{percent}}%",
+      "erroredOn": "Got it wrong on {{date}}",
+      "fromChore": "From “{{title}}”"
     },
     "goal": {
       "addPlaceholder": "Add points (up to {{max}})",
@@ -1726,6 +1760,15 @@
       "toGo_one": "{{count}} to go",
       "toGo_other": "{{count}} to go",
       "you": "You"
+    },
+    "points": {
+      "title": "Points ledger",
+      "help": "Every point explained: chores add, redemptions subtract, goals hold, bonus drops surprise. If a change looks odd, bring this page to a grown-up.",
+      "balanceSub": "points to spend",
+      "savedSub": "{{count}} to spend · savings held in goals not included",
+      "empty": "No point changes yet. Finish your first task and the first entry lands here.",
+      "openAria_one": "Open the points ledger ({{count}} point)",
+      "openAria_other": "Open the points ledger ({{count}} points)"
     },
     "pet": {
       "title": "My buddy",

@@ -147,12 +147,31 @@ var copilotSchema = &Schema{
 // (吃饭穿衣洗漱) are explicitly forbidden — the ChoreMonster golden rule,
 // AI-era edition.
 func (c *Client) DraftFromText(ctx context.Context, ctxInfo CopilotContext, request string) (*CopilotDraft, error) {
-	prompt := buildCopilotPrompt(ctxInfo, request, false)
+	return c.DraftFromTextPrompt(ctx, buildCopilotPrompt(ctxInfo, request, false))
+}
+
+// DraftFromTextPrompt is DraftFromText with a caller-supplied prompt (任务④:
+// the api layer renders the prompt_copilot setting first; the default path
+// above keeps the built-in template).
+func (c *Client) DraftFromTextPrompt(ctx context.Context, prompt string) (*CopilotDraft, error) {
 	raw, err := c.Chat(ctx, []Message{{Role: "user", Content: prompt}}, copilotSchema)
 	if err != nil {
 		return nil, err
 	}
 	return parseCopilotDraft(raw)
+}
+
+// CopilotPromptBody renders the default text-mode copilot prompt — the
+// fallback template of the prompt_copilot setting (任务④). The api layer
+// substitutes {{placeholders}} on top of what this returns.
+func CopilotPromptBody(ctxInfo CopilotContext, request string) string {
+	return buildCopilotPrompt(ctxInfo, request, false)
+}
+
+// CopilotPromptFromPhoto renders the default flyer-mode instruction — the
+// fallback template of prompt_copilot's photo branch (任务④).
+func CopilotPromptFromPhoto(ctxInfo CopilotContext) string {
+	return buildCopilotPrompt(ctxInfo, "", true)
 }
 
 // DraftFromFlyer extracts the same draft from a photographed school notice

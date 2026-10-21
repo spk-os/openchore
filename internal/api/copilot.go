@@ -92,7 +92,12 @@ func (h *ChoreHandler) DraftWithCopilot(w http.ResponseWriter, r *http.Request) 
 		}
 		draft, err = ai.DraftFromFlyer(r.Context(), *ctxInfo, photoPath)
 	} else {
-		draft, err = ai.DraftFromText(r.Context(), *ctxInfo, strings.TrimSpace(req.Request))
+		// 任务④：prompt_copilot 设置可改写 Copilot 的起草指令（{{kid}}/
+		// {{chores}}/{{ladder}}/{{request}} 占位符），空值用内置默认。
+		prompt := renderPrompt(r.Context(), h.store, "prompt_copilot",
+			llm.CopilotPromptBody(*ctxInfo, strings.TrimSpace(req.Request)),
+			copilotPromptValues(ctxInfo, strings.TrimSpace(req.Request)))
+		draft, err = ai.DraftFromTextPrompt(r.Context(), prompt)
 	}
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "AI drafting failed: "+err.Error())
@@ -120,6 +125,17 @@ type copilotDraftResponse struct {
 	Mode     string `json:"mode"`
 	PhotoURL string `json:"photo_url,omitempty"`
 	By       int64  `json:"by"`
+}
+
+// copilotPromptValues is the prompt_copilot template's placeholder set
+// (任务④): everything a parent rewriting the draft instruction can slot in.
+func copilotPromptValues(ctxInfo *llm.CopilotContext, request string) map[string]string {
+	return map[string]string{
+		"kid":     ctxInfo.KidName,
+		"chores":  strings.Join(ctxInfo.ExistingChores, "、"),
+		"ladder":  strings.Join(ctxInfo.RewardLadder, "、"),
+		"request": request,
+	}
 }
 
 // copilotContext gathers what the prompt needs: the kid's name, their
@@ -239,18 +255,18 @@ func (h *ChoreHandler) DraftLearnerPlanHTTP(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	ai := h.aiSvc.AI()
-	if ai == nil {
-		writeError(w, http.StatusServiceUnavailable, "AI is not configured")
-		return
-	}
 	pc, err := h.plannerContext(r, req.AssignedTo, req.Request)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to gather learner context")
 		return
 	}
-	draft, err := ai.DraftLearnerPlan(r.Context(), *pc)
+	// 任务③：spk-agent 优先（真 agent 规划），直连 LLM 回退。
+	draft, err := h.draftLearnerPlan(r.Context(), *pc)
 	if err != nil {
+		if err == errAIOff {
+			writeError(w, http.StatusServiceUnavailable, "AI is not configured")
+			return
+		}
 		writeError(w, http.StatusBadGateway, "AI planning failed: "+err.Error())
 		return
 	}

@@ -724,6 +724,9 @@ type ErrorItem struct {
 	UserID           int64          `json:"user_id"`
 	CompletionID     *int64         `json:"completion_id,omitempty"`
 	AnalysisID       *int64         `json:"analysis_id,omitempty"`
+	ChoreScheduleID  *int64         `json:"chore_schedule_id,omitempty"`
+	ChoreTitle       string         `json:"chore_title,omitempty"`
+	ErroredDate      string         `json:"errored_date,omitempty"`
 	Subject          string         `json:"subject"`
 	OriginalImageURL string         `json:"original_image_url"`
 	OCRText          string         `json:"ocr_text,omitempty"`

@@ -1,5 +1,6 @@
 // Small pieces shared by the Today, Week and Rewards screens.
 import React from 'react';
+import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Avatar, CategoryHeader, Icon, PointsChip, catFromCategory, isPersonColor, type Cat, type IconName } from '../../design';
 import type { ScheduledChore, User } from '../../types';
@@ -10,12 +11,14 @@ import s from './kid.module.css';
 export const CAT_ORDER: readonly Cat[] = ['essential', 'daily', 'bonus'];
 
 /** The row at the top of every personal screen: me (opens settings), Manage, balance. */
-export function TopBar({ user, balance, onMe, onManage }: {
+export function TopBar({ user, balance, onMe, onManage, onPoints }: {
   user: User;
   balance: number;
   onMe: () => void;
   /** Grown-ups only: jump to the admin screens. */
   onManage?: () => void;
+  /** 任务④: open the kid's own points ledger (every change, explained). */
+  onPoints?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const weekday = new Date().toLocaleDateString(i18n.language, { weekday: 'long' });
@@ -32,7 +35,21 @@ export function TopBar({ user, balance, onMe, onManage }: {
             <span>{t('kid.me.manage')}</span>
           </button>
         )}
-        <PointsChip points={balance} />
+        {/* 任务④：积分胶囊本身就是积分明细的入口——点开看每一分的来历。 */}
+        {onPoints ? (
+          <button
+            type="button"
+            className={clsx('oc-points', s.pointsBtn)}
+            onClick={onPoints}
+            data-test="points-ledger-open"
+          >
+            <Icon name="star" />
+            {balance}
+            <span className={s.srOnlyText}>{t('kid.points.openAria', { count: balance })}</span>
+          </button>
+        ) : (
+          <PointsChip points={balance} />
+        )}
       </div>
     </div>
   );

@@ -163,16 +163,15 @@ const DailyReportPreview: React.FC<{ kid: KidStatus }> = ({ kid }) => {  const {
   );
 };
 
-/** 问题④: the parent's look back at one kid's whole past. The expanded
- *  row gains a "看历史" button; tapping it fetches that month's rows
- *  through the same public read the kid's History tab uses, and renders
- *  them as a month calendar (the kid's MonthView shape) plus the day's
- *  chore list — read-only, because the past can't be toggled from here. */
-const KidHistoryView: React.FC<{
+/** 问题④ v2（用户纠正后）：孩子详情不再是「看历史」月历弹层，而是与
+ *  学生端基本一致的日视图——周历条（点日切换）+「月视图」开关（整月
+ *  日历在周条原位展开，opencore.png 参考图交互）+ 所选日的任务清单。
+ *  与学生端同构：周内数据一次月请求缓存（首开拉一次该月全部行），
+ *  点月历日收起月历、清单换成该日。 */
+const KidDayView: React.FC<{
   kid: KidStatus;
   today: string;
-  onClose: () => void;
-}> = ({ kid, today, onClose }) => {
+}> = ({ kid, today }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const monthOf = (date: string) => date.slice(0, 7);
@@ -181,10 +180,22 @@ const KidHistoryView: React.FC<{
     const d = new Date(y, m - 1 + by, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   };
+  const weekDates = (day: string) => {
+    const d = new Date(`${day}T00:00:00`);
+    d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+    return Array.from({ length: 7 }, (_, i) => {
+      const x = new Date(d);
+      x.setDate(d.getDate() + i);
+      return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    });
+  };
+  const week = useMemo(() => weekDates(today), [today]);
+  const [selected, setSelected] = useState(today);
+  const [monthOpen, setMonthOpen] = useState(false);
+  // 所选月的全部行：周条与月历共用（与学生端「一次月请求」同构）。
   const [month, setMonth] = useState(() => monthOf(today));
   const [chores, setChores] = useState<ScheduledChore[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [picked, setPicked] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -196,7 +207,6 @@ const KidHistoryView: React.FC<{
     return () => { live = false; };
   }, [kid.user.id, month]);
 
-  // 每天的行数，供月历圆圈里穿 done/total。
   const byDate = useMemo(() => {
     const m = new Map<string, ScheduledChore[]>();
     for (const c of chores ?? []) {
@@ -206,6 +216,12 @@ const KidHistoryView: React.FC<{
     }
     return m;
   }, [chores]);
+
+  // 点月历日：收起月历、清单换成该日（与学生端 pickDay 一致）。
+  const pickDay = useCallback((date: string) => {
+    setSelected(date);
+    setMonthOpen(false);
+  }, []);
 
   const monthLabel = new Date(`${month}-01T00:00:00`)
     .toLocaleDateString(lang, { year: 'numeric', month: 'long' });
@@ -227,10 +243,7 @@ const KidHistoryView: React.FC<{
       ...Array.from({ length: n }, (_, i) => ({ day: i + 1 })),
     ];
   }, [month]);
-  const pickedList = picked ? byDate.get(picked) ?? [] : [];
-  const pickedLabel = picked
-    ? new Date(`${picked}T00:00:00`).toLocaleDateString(lang, { month: 'long', day: 'numeric', weekday: 'short' })
-    : null;
+  const dayList = byDate.get(selected) ?? [];
 
   const statusOf = (c: ScheduledChore) => {
     if (c.completion_status === 'excused') return t('admin.kidsStatusTab.statusExcused');
@@ -240,120 +253,168 @@ const KidHistoryView: React.FC<{
     return t('admin.kidsStatusTab.statusIdle', { points: c.points_value });
   };
 
+  const renderChores = (list: ScheduledChore[]) => (
+    <ul className={styles.choreList}>
+      {list.map(c => {
+        const isExcused = c.completion_status === 'excused';
+        const isOverdue = !c.completed && c.expired && c.category !== 'bonus';
+        const isPending = c.completion_status === 'pending';
+        return (
+          <li key={`${c.schedule_id}-${c.date}`} className={clsx(styles.chore, c.completed && styles.choreDone)}>
+            <span className={clsx(
+              styles.ring,
+              isExcused && styles.ringExcused,
+              !isExcused && c.completed && !isPending && styles.ringDone,
+              !isExcused && c.completed && isPending && styles.ringWaiting,
+            )} aria-hidden>
+              {c.completed && <Icon name="check" />}
+            </span>
+            <IconWell icon={c.icon} cat={catFromCategory(c.category)} className={styles.choreWell} />
+            <span className={styles.choreText}>
+              <span className={styles.choreTitle}>{c.title}</span>
+              <span className={clsx(
+                styles.choreStatus,
+                isOverdue && styles.statusUrgent,
+                isPending && styles.statusWaiting,
+              )}>
+                {statusOf(c)}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
-    <div className={styles.historyView} data-test="kid-history-view">
-      {/* 月份切换：与孩子端月视图同款——一行「‹ 月份 ▾ ›」，步进就地下拉。 */}
-      <div className={styles.historyBar}>
-        <button
-          type="button"
-          className={styles.historyStep}
-          onClick={() => setMonth(m => shift(m, -1))}
-          aria-label={t('admin.kidsStatusTab.historyPrev')}
-        >
-          <Icon name="back" />
-        </button>
-        <span className={styles.historyMonth}>
-          {monthLabel}
-          <Icon name="chev" className={styles.historyMonthChev} />
+    <div className={styles.dayView} data-test="kid-day-view">
+      {/* 周历条 / 月历：与学生端同款——「月视图」开关在原位展开整月日历。 */}
+      {monthOpen ? (
+        <div className={styles.historyView} data-test="kid-history-view">
+          <div className={styles.historyBar}>
+            <button
+              type="button"
+              className={styles.historyStep}
+              onClick={() => setMonth(m => shift(m, -1))}
+              aria-label={t('admin.kidsStatusTab.historyPrev')}
+            >
+              <Icon name="back" />
+            </button>
+            <span className={styles.historyMonth}>
+              {monthLabel}
+              <Icon name="chev" className={styles.historyMonthChev} />
+            </span>
+            <button
+              type="button"
+              className={styles.historyStep}
+              onClick={() => setMonth(m => shift(m, 1))}
+              disabled={month >= monthOf(today)}
+              aria-label={t('admin.kidsStatusTab.historyNext')}
+            >
+              <Icon name="chev" />
+            </button>
+            <button
+              type="button"
+              className={styles.historyClose}
+              onClick={() => setMonthOpen(false)}
+            >
+              {t('admin.kidsStatusTab.historyClose')}
+            </button>
+          </div>
+          {chores === null && <p className={ui.emptyInline}>{t('admin.kidsStatusTab.historyLoading')}</p>}
+          {chores !== null && (
+            <div className={styles.historyCal} data-test="hist-days" role="grid" aria-label={monthLabel}>
+              {weekdays.map(w => (
+                <span key={w} className={styles.historyDow} aria-hidden>{w}</span>
+              ))}
+              {cells.map(c =>
+                'blank' in c ? (
+                  <span key={`b${c.blank}`} className={styles.historyDayBlank} aria-hidden />
+                ) : (
+                  (() => {
+                    const date = `${month}-${String(c.day).padStart(2, '0')}`;
+                    const list = byDate.get(date) ?? [];
+                    const done = list.filter(x => x.completed).length;
+                    return (
+                      <button
+                        key={date}
+                        type="button"
+                        className={styles.historyDay}
+                        disabled={list.length === 0}
+                        aria-pressed={selected === date}
+                        aria-label={list.length
+                          ? t('admin.kidsStatusTab.historyDayAria', { day: c.day, done, total: list.length })
+                          : t('admin.kidsStatusTab.historyDayEmpty', { day: c.day })}
+                        onClick={() => pickDay(date)}
+                      >
+                        <span
+                          className={styles.historyRing}
+                          data-today={date === today || undefined}
+                          data-full={list.length > 0 && done >= list.length || undefined}
+                        >
+                          <span className={styles.historyNum}>{c.day}</span>
+                        </span>
+                        <span className={styles.historyCount}>{list.length ? `${done}/${list.length}` : ''}</span>
+                      </button>
+                    );
+                  })()
+                ),
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={styles.weekStrip} role="group" aria-label={t('kid.week.days')}>
+          {week.map(date => {
+            const d = new Date(`${date}T00:00:00`);
+            const list = byDate.get(date) ?? [];
+            const done = list.filter(x => x.completed).length;
+            return (
+              <button
+                key={date}
+                type="button"
+                className={clsx(styles.weekDay, date === today && styles.weekDayToday, date === selected && styles.weekDaySelected)}
+                aria-pressed={date === selected}
+                aria-current={date === today ? 'date' : undefined}
+                onClick={() => setSelected(date)}
+              >
+                <span className={styles.weekDayName} aria-hidden>{d.toLocaleDateString(lang, { weekday: 'short' })}</span>
+                <span
+                  className={styles.weekDayRing}
+                  data-today={date === today || undefined}
+                  data-full={list.length > 0 && done >= list.length || undefined}
+                  data-partial={list.length > 0 && done < list.length || undefined}
+                >
+                  <span className={styles.weekDayNum}>{d.getDate()}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 月视图开关 + 所选日标签一行（与学生端 homeWeekRow 同构）。 */}
+      <div className={styles.dayViewBar}>
+        <span className={styles.dayViewLabel} data-test="history-day-label">
+          {new Date(`${selected}T00:00:00`).toLocaleDateString(lang, { month: 'long', day: 'numeric', weekday: 'short' })}
+          {dayList.length > 0 && ` · ${dayList.filter(c => c.completed).length}/${dayList.length}`}
         </span>
         <button
           type="button"
-          className={styles.historyStep}
-          onClick={() => setMonth(m => shift(m, 1))}
-          disabled={month >= monthOf(today)}
-          aria-label={t('admin.kidsStatusTab.historyNext')}
+          className={styles.monthToggle}
+          aria-expanded={monthOpen}
+          onClick={() => setMonthOpen(v => !v)}
         >
-          <Icon name="chev" />
-        </button>
-        <button type="button" className={styles.historyClose} onClick={onClose}>
-          {t('admin.kidsStatusTab.historyClose')}
+          <Icon name="cal" />
+          <span>{monthOpen ? t('kid.history.collapse') : t('kid.history.expand')}</span>
         </button>
       </div>
 
       {failed && <p className={ui.msgError} role="alert">{t('admin.kidsStatusTab.loadError')}</p>}
-      {chores === null && <p className={ui.emptyInline}>{t('admin.kidsStatusTab.historyLoading')}</p>}
-      {chores !== null && byDate.size === 0 && !failed && (
-        <p className={ui.emptyInline}>{t('admin.kidsStatusTab.historyEmpty')}</p>
+      {chores !== null && dayList.length === 0 && !failed && (
+        <p className={ui.emptyInline}>{t('admin.kidsStatusTab.historyDayEmptyList')}</p>
       )}
-
-      {/* 月历：与孩子端月视图同款七列网格，日期在圆圈里，点选查看当日清单。 */}
-      {chores !== null && (
-        <div className={styles.historyCal} data-test="hist-days" role="grid" aria-label={monthLabel}>
-          {weekdays.map(w => (
-            <span key={w} className={styles.historyDow} aria-hidden>{w}</span>
-          ))}
-          {cells.map(c =>
-            'blank' in c ? (
-              <span key={`b${c.blank}`} className={styles.historyDayBlank} aria-hidden />
-            ) : (
-              (() => {
-                const date = `${month}-${String(c.day).padStart(2, '0')}`;
-                const list = byDate.get(date) ?? [];
-                const done = list.filter(x => x.completed).length;
-                return (
-                  <button
-                    key={date}
-                    type="button"
-                    className={styles.historyDay}
-                    disabled={list.length === 0}
-                    aria-pressed={picked === date}
-                    aria-label={list.length
-                      ? t('admin.kidsStatusTab.historyDayAria', { day: c.day, done, total: list.length })
-                      : t('admin.kidsStatusTab.historyDayEmpty', { day: c.day })}
-                    onClick={() => setPicked(p => (p === date ? null : date))}
-                  >
-                    <span
-                      className={styles.historyRing}
-                      data-today={date === today || undefined}
-                      data-full={list.length > 0 && done >= list.length || undefined}
-                    >
-                      <span className={styles.historyNum}>{c.day}</span>
-                    </span>
-                    <span className={styles.historyCount}>{list.length ? `${done}/${list.length}` : ''}</span>
-                  </button>
-                );
-              })()
-            ),
-          )}
-        </div>
-      )}
-
-      {/* 点选日的任务清单：与孩子端月视图点日回填同款交互。 */}
-      {picked && pickedList.length > 0 && (
-        <div className={styles.historyDayBlock}>
-          <p className={styles.historyDayLabel} data-test="history-day-label">
-            {t('admin.kidsStatusTab.historyDayLabel', { date: pickedLabel })} · {pickedList.filter(c => c.completed).length}/{pickedList.length}
-          </p>
-          <ul className={styles.choreList}>
-            {pickedList.map(c => {
-              const isExcused = c.completion_status === 'excused';
-              return (
-                <li key={`${c.schedule_id}-${c.date}`} className={clsx(styles.chore, c.completed && styles.choreDone)}>
-                  <span className={clsx(
-                    styles.ring,
-                    isExcused && styles.ringExcused,
-                    !isExcused && c.completed && c.completion_status !== 'pending' && styles.ringDone,
-                    !isExcused && c.completed && c.completion_status === 'pending' && styles.ringWaiting,
-                  )} aria-hidden>
-                    {c.completed && <Icon name="check" />}
-                  </span>
-                  <IconWell icon={c.icon} cat={catFromCategory(c.category)} className={styles.choreWell} />
-                  <span className={styles.choreText}>
-                    <span className={styles.choreTitle}>{c.title}</span>
-                    <span className={clsx(
-                      styles.choreStatus,
-                      !c.completed && c.expired && c.category !== 'bonus' && styles.statusUrgent,
-                      c.completed && c.completion_status === 'pending' && styles.statusWaiting,
-                    )}>
-                      {statusOf(c)}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      {chores !== null && dayList.length > 0 && renderChores(dayList)}
     </div>
   );
 };
@@ -541,9 +602,6 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
   // stored analysis — no re-run, just the report as it finished.
   const [quickAnalysis, setQuickAnalysis] = useState<PaperAnalysis | null>(null);
   const [quickKidId, setQuickKidId] = useState<number | null>(null);
-
-  // 问题④: which kid's expanded card is showing the month history.
-  const [historyKidId, setHistoryKidId] = useState<number | null>(null);
 
   if (loading) return <p className={ui.emptyInline}>{t('admin.kidsStatusTab.loading')}</p>;
 
@@ -783,22 +841,10 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
 
               {isExpanded && (
                 <div id={detailsId} className={styles.details}>
-                  {/* 问题④: the whole past, month by month — the parent reads
-                      every chore this kid ever had, not just today's rows. */}
-                  <div className={styles.historyRow}>
-                    <button
-                      type="button"
-                      className={styles.historyButton}
-                      data-test="kid-history-button"
-                      aria-expanded={historyKidId === kid.user.id}
-                      onClick={() => setHistoryKidId(id => (id === kid.user.id ? null : kid.user.id))}
-                    >
-                      <Icon name="clock" /> {t('admin.kidsStatusTab.historyButton')}
-                    </button>
-                  </div>
-                  {historyKidId === kid.user.id && (
-                    <KidHistoryView kid={kid} today={today} onClose={() => setHistoryKidId(null)} />
-                  )}
+                  {/* 问题④ v2: the expanded card opens on the kid's own day
+                      view — same shape as the kid's home (week strip + 月视图
+                      toggle + the picked day), not a "看历史" side link. */}
+                  <KidDayView kid={kid} today={today} />
                   {kid.loadError && (
                     <p className={ui.msgError}>{t('admin.kidsStatusTab.childLoadError')}</p>
                   )}

@@ -37,6 +37,19 @@ var writableSettings = map[string]bool{
 	"media_model":    true,
 	"media_base_url": true,
 	"media_api_key":  true,
+	// 任务③ spk-agent 接入：agent 连接与各任务的 prompt 模板（界面可配）。
+	"agent_base_url": true,
+	"agent_token":    true,
+	"agent_model":    true,
+	"agent_ref":      true,
+	// 任务④ 可解释性：文本 AI 任务的 prompt 模板（{{placeholders}} 由
+	// 后端替换；空值用内置默认）。
+	"prompt_planner":   true,
+	"prompt_summary":   true,
+	"prompt_measures":  true,
+	"prompt_copilot":   true,
+	"prompt_scaffold":  true,
+	"prompt_strengthen": true,
 }
 
 type AdminHandler struct {
@@ -54,6 +67,7 @@ var secretSettings = map[string]bool{
 	sessionSecretSetting:  true,
 	settingAIAPIKey:       true,
 	settingTTSAPIKey:      true,
+	settingAgentToken:     true,
 }
 
 func (h *AdminHandler) GetSetting(w http.ResponseWriter, r *http.Request) {

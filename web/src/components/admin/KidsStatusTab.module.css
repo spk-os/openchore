@@ -844,3 +844,122 @@
   letter-spacing: 0.02em;
   color: var(--ink-muted);
 }
+
+/* ---------- 问题④ v2: the kid's day view — same shape as the kid's home
+   (week strip + month toggle + the picked day's list), not a "看历史"
+   side door anymore. ---------- */
+
+/* The day view container: a quiet inset so it reads as one block above
+   the coach note and today's categories. */
+.dayView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--surface-sunk);
+}
+
+/* The seven-day strip: the student-end week bar, read-only here. */
+.weekStrip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 0 var(--space-2);
+}
+
+.weekDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 56px;
+  padding: 4px 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-row);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.weekDay[aria-pressed="true"] {
+  border-color: var(--line);
+  background: var(--surface-raised);
+}
+
+.weekDayName {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+
+.weekDayRing {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+
+.weekDayRing[data-today] { border-color: var(--accent, var(--line)); }
+.weekDayRing[data-full] {
+  border-color: var(--ok, var(--line));
+  background: var(--ok, var(--surface-raised));
+}
+.weekDayRing[data-full] .weekDayNum { color: var(--on-ok, #fff); }
+.weekDayRing[data-partial] { border-style: dashed; }
+
+.weekDayNum {
+  font-size: 13px;
+  line-height: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The selected-day label + the 月视图 toggle on one row (the student
+   homeWeekRow shape, quiet on the admin card). */
+.dayViewBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+}
+
+.dayViewLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+
+.monthToggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.monthToggle[aria-expanded="true"] {
+  background: var(--surface-raised);
+  border-color: color-mix(in oklab, var(--ink) 30%, var(--line));
+}
+
+.monthToggle svg { width: 15px; height: 15px; }

@@ -454,6 +454,24 @@ export interface AIConnection {
 export interface AIConfig {
   ai: AIConnection;
   tts: AIConnection;
+  agent?: AgentConnection;
+}
+
+/** 任务③ spk-agent 连接（文本 AI 任务走真 agent）。token 只写不读。 */
+export interface AgentConnection {
+  base_url: string;
+  model: string;
+  agent_ref: string;
+  token_set: boolean;
+  from_env: boolean;
+}
+
+/** The agent section of an AI config update. Omit token to keep the saved one; '' clears it. */
+export interface AgentConnectionUpdate {
+  base_url: string;
+  model: string;
+  agent_ref: string;
+  token?: string;
 }
 
 /** One section of an AI config update. Omit api_key to keep the saved one; '' clears it. */
@@ -835,6 +853,9 @@ export interface ErrorItem {
   user_id: number;
   completion_id?: number;
   analysis_id?: number;
+  chore_schedule_id?: number;
+  chore_title?: string;
+  errored_date?: string;
   subject: string;
   original_image_url: string;
   ocr_text?: string;

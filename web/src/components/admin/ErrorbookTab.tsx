@@ -40,9 +40,15 @@ const ItemRow: React.FC<{
   onToast: (msg: string) => void;
 }> = ({ item, onDeleted, onToast }) => {
   const { t } = useTranslation();
+  const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [hasTask, setHasTask] = useState(false);
+
+  // 任务②：错题行头也带日期——不展开就能看出「哪天错的」。
+  const dateLabel = item.errored_date
+    ? new Date(`${item.errored_date}T00:00:00`).toLocaleDateString(i18n.language, { month: 'numeric', day: 'numeric' })
+    : '';
 
   const del = async () => {
     if (busy) return;
@@ -79,6 +85,7 @@ const ItemRow: React.FC<{
           {errorTypeLabel(t, item.error_type)}
         </span>
         <span className={s.itemStem}>{item.question_text || item.ocr_text || '—'}</span>
+        {dateLabel && <span className={s.itemDate} data-test={`pe-item-${item.id}-date`}>{dateLabel}</span>}
         <span className={clsx(s.itemMastery, s['itemMastery' + masteryKey(item.mastery_level)])}>
           {t(`admin.errorbookTab.mastery${masteryKey(item.mastery_level).charAt(0).toUpperCase()}${masteryKey(item.mastery_level).slice(1)}`)}
         </span>
@@ -86,10 +93,20 @@ const ItemRow: React.FC<{
       </button>
       {open && (
         <div className={s.itemBody}>
-          {item.source && (
+          {/* 任务②：错题的「来历」——哪天的卷、哪个任务/拍卷来的，让家长
+              一眼看出这道题为什么在这里（可追溯三列：errored_date /
+              chore_title / source）。 */}
+          {item.errored_date && item.chore_title && (
+            <p className={s.itemMeta}>{t('admin.errorbookTab.itemTrace', {
+              subject: subjectLabel(t, item.subject),
+              date: item.errored_date,
+              title: item.chore_title,
+            })}</p>
+          )}
+          {!item.errored_date && item.source && (
             <p className={s.itemMeta}>{t('admin.errorbookTab.itemTitle', { subject: subjectLabel(t, item.subject), source: item.source })}</p>
           )}
-          {!item.source && (
+          {!item.errored_date && !item.source && (
             <p className={s.itemMeta}>{t('admin.errorbookTab.itemNoSource', { subject: subjectLabel(t, item.subject) })}</p>
           )}
           {item.wrong_answer_text && (

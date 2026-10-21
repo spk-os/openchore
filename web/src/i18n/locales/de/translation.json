@@ -558,6 +558,7 @@
       "historyDayLabel": "{{date}}",
       "historyDayAria": "Tag {{day}}: {{done}}/{{total}} erledigt",
       "historyDayEmpty": "Tag {{day}}: nichts geplant",
+      "historyDayEmptyList": "An diesem Tag ist nichts geplant.",
       "historyClose": "Schließen"
     },
     "modal": {
@@ -956,6 +957,33 @@
         "profileDesc": "Fehler, Kurse und Wiederholungen fließen ins Profil; jede KI-Empfehlung nennt ihre Quelle (source_refs) und gilt erst nach Freigabe der Eltern. Chats werden nicht verwendet.",
         "profileLink": "Profil einrichten →",
         "profileFlag": "Schalter Profil & KI-Planung"
+      },
+      "agent": {
+        "title": "Agent-Dispatch (spk-agent)",
+        "description": "Text-KI-Aufgaben (Lernplanung, Wochen-/Monatsberichte, Maßnahmen) werden an einen echten Agenten auf spk-agent übergeben; bei Fehlern greift die direkte KI-Verbindung. Foto-Prüfung und Korrekturlesen bleiben auf dem direkten multimodalen Modell.",
+        "help": "Adresse des spk-agent-Dienstes eintragen (SPK-OSs zentrale Agent-Dispatch-Stelle). Leer = deaktiviert, alle KI-Aufgaben nutzen die direkte Verbindung oben.",
+        "baseUrlLabel": "spk-agent-Adresse",
+        "baseUrlPlaceholder": "http://192.168.96.1:8097",
+        "agentRefLabel": "Agent-Name",
+        "agentRefHelp": "Der omnigent-Agent-Name (Standard spk-tester; nur Buchstaben/Zahlen/Bindestrich/Unterstrich, keine Punkte).",
+        "modelLabel": "Modell (optional)",
+        "modelPlaceholder": "Leer = Standardmodell des Agenten",
+        "modelHelp": "Überschreibt die Modell-ID der Agent-Sitzung; leer = eigener Standard des Agenten.",
+        "tokenLabel": "Auth-Token (optional)",
+        "tokenPlaceholder": "SPK_AGENT_AUTH_TOKEN; ohne Auth leer lassen",
+        "tokenSavedPlaceholder": "Gespeichert (leer lassen = behalten)",
+        "tokenHelp": "Der SPK_AGENT_AUTH_TOKEN des spk-agent; bei einem Haushalts-spk-agent ohne Auth leer lassen.",
+        "clearToken": "Gespeicherten Token löschen",
+        "saveButton": "Agent-Konfiguration speichern",
+        "savingButton": "Speichern…",
+        "saveSuccess": "Agent-Konfiguration gespeichert",
+        "saveError": "Speichern fehlgeschlagen: {{detail}}",
+        "testButton": "Verbindung testen",
+        "testingButton": "Testen…",
+        "testSuccess": "spk-agent ist erreichbar",
+        "testStatusError": "spk-agent antwortete {{status}}",
+        "testNetworkError": "spk-agent nicht erreichbar, Adresse prüfen",
+        "fromEnv": "Durch die Umgebungsvariable AGENT_BASE_URL festgelegt; hier schreibgeschützt."
       }
     },
     "skins": {
@@ -1338,7 +1366,8 @@
       "weekScopeTitle": "Diese Woche",
       "weekScopeItems": "{{count}} Fehler diese Woche",
       "weekScopeFixed": "{{count}} korrigiert",
-      "weekScopeManual": "{{count}} zu prüfen"
+      "weekScopeManual": "{{count}} zu prüfen",
+      "itemTrace": "{{subject}} · falsch am {{date}} · aus „{{title}}“"
     },
     "measuresTab": {
       "heading": "Lernmaßnahmen",
@@ -1380,7 +1409,10 @@
       "createPriority": "Priorität",
       "create": "Anlegen",
       "creating": "Lege an…",
-      "createFailed": "Anlegen fehlgeschlagen"
+      "createFailed": "Anlegen fehlgeschlagen",
+      "whyManual": "Am {{date}} von Eltern notiert — verfolgt den Lernplan",
+      "whyStrengthen": "Am {{date}} KI-verstärkt — mit den neuesten Fehlerdaten umgeschrieben",
+      "whyAnalysis": "Am {{date}} aus Analysebericht #{{id}} destilliert — aus Schwachpunkten und Fehlerverteilung"
     }
   },
   "common": {
@@ -1690,7 +1722,9 @@
       "entryOpen": "Öffnen →",
       "entryEmptyTodo": "{{count}} im Heft · ✨ AI-Erklärung bereit",
       "choreSource": "Aus: {{source}}",
-      "masteryBarLabel": "Beherrschung {{percent}}%"
+      "masteryBarLabel": "Beherrschung {{percent}}%",
+      "erroredOn": "Falsch am {{date}}",
+      "fromChore": "Aus „{{title}}“"
     },
     "goal": {
       "addPlaceholder": "Punkte dazu (bis {{max}})",
@@ -1728,6 +1762,15 @@
       "toGo_one": "Noch {{count}}",
       "toGo_other": "Noch {{count}}",
       "you": "Du"
+    },
+    "points": {
+      "title": "Punktekonto",
+      "help": "Jeder Punkt erklärt: Aufgaben geben Punkte, Belohnungen kosten, Ziele sparen, Überraschungen schenken. Sieht eine Änderung seltsam aus, zeig diese Seite einem Erwachsenen.",
+      "balanceSub": "auszugebende Punkte",
+      "savedSub": "{{count}} auszugeben · Sparbeiträge in Zielen nicht mitgezählt",
+      "empty": "Noch keine Punktebewegungen. Nach der ersten Aufgabe steht hier der erste Eintrag.",
+      "openAria_one": "Punktekonto öffnen ({{count}} Punkt)",
+      "openAria_other": "Punktekonto öffnen ({{count}} Punkte)"
     },
     "pet": {
       "title": "Mein Begleiter",

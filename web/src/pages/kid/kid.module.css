@@ -93,7 +93,8 @@
 .redeem:focus-visible, .saveToward:focus-visible, .smallBtn:focus-visible, .rowAction:focus-visible,
 .day:focus-visible, .swatch:focus-visible, .doorBtn:focus-visible,
 .backBtn:focus-visible, .pickerItem:focus-visible, .primaryAction:focus-visible,
-.secondaryAction:focus-visible, .skipAction:focus-visible, .goalNudge:focus-visible, .select:focus-visible, .input:focus-visible {
+.secondaryAction:focus-visible, .skipAction:focus-visible, .goalNudge:focus-visible, .select:focus-visible, .input:focus-visible,
+.pointsBtn:focus-visible {
   outline: 2.5px solid var(--ink);
   outline-offset: 2px;
 }
@@ -716,6 +717,69 @@
 .historyName { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .historyCost, .historyDate { color: var(--ink-muted); font-size: var(--type-meta-size); font-weight: 600; font-variant-numeric: tabular-nums; }
 .historyDate { min-width: 52px; text-align: right; }
+
+/* ---------- 积分明细（任务④，PointsSheet）---------- */
+/* 顶栏积分胶囊变成按钮：沿用 oc-points 的外观，补上交互态。 */
+.pointsBtn {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.srOnlyText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.txBalance { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+.txBalanceNum {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-variation-settings: var(--display-axes);
+  letter-spacing: var(--type-numeral-tracking);
+  font-size: var(--type-numeral-size);
+  line-height: var(--type-numeral-line);
+  font-variant-numeric: tabular-nums;
+}
+.txBalanceStar { width: 40px; height: 40px; color: var(--star); stroke-width: 1.5; }
+.txBalanceSub { font-size: 14px; font-weight: 600; color: var(--ink-muted); }
+.txHelp { margin: var(--space-2) 0 var(--space-3); font-size: 13px; line-height: 1.5; color: var(--ink-muted); }
+.txEmpty { margin: var(--space-4) 0; font-size: 15px; color: var(--ink-muted); }
+.txList { list-style: none; margin: 0; padding: 0; }
+.txItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+.txIcon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border-radius: var(--r-well);
+  border: var(--outline-w) solid var(--line);
+  background: var(--surface-sunk);
+}
+.txMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.txReason { font-weight: 700; overflow-wrap: anywhere; }
+.txNote { font-size: 13px; color: var(--ink-muted); overflow-wrap: anywhere; }
+.txDate { font-size: 12px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.txAmount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.txAmountNeg { color: var(--urgent); }
 
 /* ---------- the celebration ---------- */
 .celebrate {
@@ -1361,6 +1425,13 @@
   background: color-mix(in srgb, var(--waiting) 20%, transparent);
   font-size: 12px;
   font-weight: 750;
+}
+
+/* 任务②：错题「来历」行——哪天、哪个任务错的（错题卡 meta 里的灰字）。 */
+.ebTrace {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
 }
 
 /* The mastery badge: green ✅ / amber 🔁 / neutral 🆕. */

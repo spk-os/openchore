@@ -9,6 +9,7 @@ import { ExportConfigSection } from './ExportConfigSection';
 import { APITokensSection } from './APITokensSection';
 import { PhotoReviewTester } from './PhotoReviewTester';
 import { AIConnectionSection } from './AIConnectionSection';
+import { AgentSection } from './AgentSection';
 import { LearningSection } from './LearningSection';
 import { SignInSection } from './SignInSection';
 import { FormMessage, type Msg } from './FormMessage';
@@ -397,6 +398,10 @@ export const SettingsTab: React.FC = () => {
           </form>
 
           <AIConnectionSection />
+
+          {/* 任务③：spk-agent 接入（真 agent 做规划/总结/措施），
+              与直连 AI 连接并排配置。 */}
+          <AgentSection />
 
           {/* The kid's buddy (P4-13): off by default, so it's a separate
               card, not part of the AI block (it works without AI). */}

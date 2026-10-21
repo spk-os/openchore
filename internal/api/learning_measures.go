@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -220,8 +221,7 @@ func (h *ChoreHandler) SetLearningMeasureStatus(w http.ResponseWriter, r *http.R
 // facts are gathered here (weak tags + error mix + the week's wrong
 // count) so the prompt carries evidence, not vibes.
 func (h *ChoreHandler) StrengthenMeasure(w http.ResponseWriter, r *http.Request) {
-	ai := h.aiSvc.AI()
-	if ai == nil {
+	if h.aiSvc.AI() == nil && h.aiSvc.Agent() == nil {
 		writeError(w, http.StatusServiceUnavailable, "AI is not configured")
 		return
 	}
@@ -239,7 +239,8 @@ func (h *ChoreHandler) StrengthenMeasure(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, "failed to gather measure facts")
 		return
 	}
-	title, detail, err := ai.StrengthenMeasure(r.Context(), kid.Name, m.Title, m.Detail, facts)
+	// 任务③：spk-agent 优先（真 agent 重写措施），直连 LLM 回退。
+	title, detail, err := h.strengthenMeasure(r.Context(), kid.Name, m.Title, m.Detail, facts, fmt.Sprintf("strengthen:%d", m.ID))
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "AI strengthen failed: "+err.Error())
 		return
@@ -304,8 +305,7 @@ func (h *ChoreHandler) measureFacts(ctx context.Context, m *model.LearningMeasur
 // subject are listed first and the AI is asked not to duplicate, but the
 // parent can delete any duplicates.
 func (h *ChoreHandler) DistillMeasures(w http.ResponseWriter, r *http.Request) {
-	ai := h.aiSvc.AI()
-	if ai == nil {
+	if h.aiSvc.AI() == nil && h.aiSvc.Agent() == nil {
 		writeError(w, http.StatusServiceUnavailable, "AI is not configured")
 		return
 	}
@@ -328,7 +328,7 @@ func (h *ChoreHandler) DistillMeasures(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parent := UserFromContext(r.Context())
-	created, err := h.distillMeasuresForAnalysis(r.Context(), ai, analysis, parent.ID)
+	created, err := h.distillMeasuresForAnalysis(r.Context(), analysis, parent.ID)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "AI distill failed: "+err.Error())
 		return
@@ -339,7 +339,7 @@ func (h *ChoreHandler) DistillMeasures(w http.ResponseWriter, r *http.Request) {
 // distillMeasuresForAnalysis is the shared distill body (also called
 // from the auto-analysis path so a student-submitted paper lands its
 // measures without the parent clicking anything).
-func (h *ChoreHandler) distillMeasuresForAnalysis(ctx context.Context, ai *llm.Client, analysis *model.PaperAnalysis, parentID int64) ([]model.LearningMeasure, error) {
+func (h *ChoreHandler) distillMeasuresForAnalysis(ctx context.Context, analysis *model.PaperAnalysis, parentID int64) ([]model.LearningMeasure, error) {
 	kid, err := h.store.GetUser(ctx, analysis.UserID)
 	if err != nil || kid == nil {
 		return nil, errors.New("analysis kid not found")
@@ -376,13 +376,14 @@ func (h *ChoreHandler) distillMeasuresForAnalysis(ctx context.Context, ai *llm.C
 	}
 	sort.Slice(weakInputs, func(i, j int) bool { return weakInputs[i].WrongCount > weakInputs[j].WrongCount })
 
-	drafts, err := ai.DraftMeasures(ctx, llm.MeasureContext{
+	// 任务③：spk-agent 优先（真 agent 蒸馏措施），直连 LLM 回退。
+	drafts, err := h.draftMeasures(ctx, llm.MeasureContext{
 		KidName:  kid.Name,
 		Subject:  analysis.Subject,
 		WeakTags: weakInputs,
 		ErrorMix: distInputs,
 		ParentNotes: parentNotes,
-	})
+	}, fmt.Sprintf("measures:%d", analysis.ID))
 	if err != nil {
 		return nil, err
 	}

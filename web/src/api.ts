@@ -1,4 +1,4 @@
-import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, LearningMeasure, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse, StudentConfig, LearnerProfile, KidAIFeedback, KidScaffoldHint, PlannerPlanResponse, MediaLibraryResponse } from './types';
+import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AgentConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, DailyCoachNote, ChoreTemplate, TemplateTune, TemplateImportRequest, TemplateImportResult, CopilotDraftResponse, CopilotApplyTask, CopilotApplyResult, Pet, PetResponse, BoostLink, BoostSnapshot, CompletionAttachment, TaskTemplate, TaskTemplateWithUsage, TaskTemplateInstance, ErrorItem, PaperAnalysis, ErrorBookReport, LearningMeasure, ReviewItem, ReviewToday, FSRSParams, ReviewStats, Course, CourseTree, CourseUnit, UnitResource, AdminCourseTree, CourseOutcome, OutcomeView, OutcomeAssessment, ProgressReport, ProgressResponse, StudentConfig, LearnerProfile, KidAIFeedback, KidScaffoldHint, PlannerPlanResponse, MediaLibraryResponse } from './types';
 
 const API_BASE = '/api';
 
@@ -389,7 +389,7 @@ export const api = {
     }),
     aiStatus: () => fetchWithAuth<AIStatus>('/admin/ai/status'),
     aiConfig: () => fetchWithAuth<AIConfig>('/admin/ai/config'),
-    updateAIConfig: (data: { ai?: AIConnectionUpdate; tts?: AIConnectionUpdate }) =>
+    updateAIConfig: (data: { ai?: AIConnectionUpdate; tts?: AIConnectionUpdate; agent?: AgentConnectionUpdate }) =>
       fetchWithAuth<AIConfig>('/admin/ai/config', { method: 'PUT', body: JSON.stringify(data) }),
     authConfig: () => fetchWithAuth<AdminAuthConfig>('/admin/auth/config'),
     updateSessionLengths: (data: { kiosk_session_hours: number | null; personal_session_hours: number | null }) =>

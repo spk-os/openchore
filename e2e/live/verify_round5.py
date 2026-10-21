@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # 2026-10-20 五项验收的定向真浏览器回归（只打 live :8120，不起 webServer）。
-# 覆盖：①孩子端周总结卡 ②历史 tab 全月浏览 ③主题指路文案 ④家长端看历史
+# 覆盖：①孩子端周总结卡 ②历史 tab 全月浏览 ③主题指路文案 ④家长端孩子卡
+# 日视图（学生端同款周历条+月视图开关，无「看历史」链接）
 # ⑤媒体库录音/视频分类点击白屏回归（点穿 audio chip——上轮只点过视频路径的教训）。
 # 选择器全部来自真实源码：week-summary / kid-history-page / hist-summary /
-# kid-history-button / kid-history-view / history-day-label / media chip 体系。
+# kid-day-view / kid-history-view / history-day-label / media chip 体系。
 import sys, glob
 from playwright.sync_api import sync_playwright
 
@@ -111,7 +112,7 @@ with sync_playwright() as p:
     check('本周页无前端报错（pageerror=0）', len(errors) == 0, f'{errors[:2]}')
     ctx.close()
 
-    # ============ 场景B：家长端 Alex —— 看历史 + 主题指路（问题③④）============
+    # ============ 场景B：家长端 Alex —— 孩子卡日视图 + 主题指路（问题③④）============
     ctx2 = browser.new_context(viewport={'width': 1280, 'height': 900})
     page2 = ctx2.new_page()
     errors2 = []
@@ -121,25 +122,48 @@ with sync_playwright() as p:
     page2.wait_for_load_state('networkidle')
     page2.wait_for_timeout(2500)
 
-    # 问题④：展开孩子卡 → 「看历史」→ 月历视图（点选日 → 当日清单）
+    # 问题④ v2：展开孩子卡即见学生端同款日视图（周历条+月视图开关+当日清单），
+    # 不再有「看历史」链接。
     card = page2.locator('div[data-person]').filter(has_text='小明').first
     card.click()
-    page2.wait_for_timeout(1200)
-    hb = page2.locator('[data-test="kid-history-button"]').first
-    hb.wait_for(state='visible', timeout=10000)
-    check('家长端孩子卡展开出现「看历史」按钮（问题④）', hb.is_visible())
-    hb.click()
+    page2.wait_for_timeout(1500)
+    dv = page2.locator('[data-test="kid-day-view"]')
+    dv.first.wait_for(state='visible', timeout=10000)
+    check('家长端孩子卡展开即显示日视图（kid-day-view，问题④）', dv.count() > 0)
+    check('「看历史」链接已移除（无 kid-history-button）',
+          page2.locator('[data-test="kid-history-button"]').count() == 0)
+    strip = page2.locator('[data-test="kid-day-view"] [aria-label="本周任务日"]')
+    check('日视图含学生端同款周历条（七日）', strip.count() == 1 and strip.locator('button').count() == 7,
+          f'strip={strip.count()} days={strip.locator("button").count() if strip.count() else 0}')
+    lbl = page2.locator('[data-test="history-day-label"]')
+    check('日视图默认显示当日标签+清单（history-day-label）', lbl.count() >= 1)
+    # 点周历条另一天：清单换成该日（标签更新）
+    strip_days = strip.locator('button')
+    if strip_days.count() == 7:
+        strip_days.nth(6).click()  # 周日
+        page2.wait_for_timeout(1000)
+        check('点周历日切换所选日（标签仍渲染）',
+              page2.locator('[data-test="history-day-label"]').count() >= 1,
+              f'pageerror={errors2[:1]}')
+    # 点「月视图」→ 整月日历在周条原位置展开（kid-history-view）
+    mt2 = page2.locator('[data-test="kid-day-view"] button', has_text='月视图').first
+    mt2.click()
     page2.wait_for_timeout(2000)
     hv = page2.locator('[data-test="kid-history-view"]')
-    check('点「看历史」展开月历视图', hv.count() > 0, f'pageerror={errors2[:1]}')
+    check('点「月视图」整月日历展开（kid-history-view）', hv.count() > 0, f'pageerror={errors2[:1]}')
     admin_days = page2.locator('[data-test="kid-history-view"] [data-test="hist-days"] button:not([disabled])')
     if admin_days.count() > 0:
         admin_days.first.click()
         page2.wait_for_timeout(1200)
-        daylabels = page2.locator('[data-test="history-day-label"]')
-        check('点月历日显示该日任务清单（history-day-label + done/total）',
-              daylabels.count() >= 1, f'labels={daylabels.count()}')
-        # 上个月步进可用（aria-label=上个月）
+        check('点月历日后月历收起、周条回来、清单换该日',
+              page2.locator('[data-test="kid-history-view"]').count() == 0
+              and page2.locator('[data-test="kid-day-view"] [aria-label="本周任务日"]').count() == 1,
+              f'pageerror={errors2[:1]}')
+        check('所选日清单渲染（history-day-label + done/total）',
+              page2.locator('[data-test="history-day-label"]').count() >= 1)
+        # 再展开一次验月份步进（‹ aria-label=上个月）
+        page2.locator('[data-test="kid-day-view"] button', has_text='月视图').first.click()
+        page2.wait_for_timeout(1500)
         prev_btn = page2.locator('[data-test="kid-history-view"] button[aria-label="上个月"]').first
         check('家长端月历月份步进钮存在', prev_btn.count() > 0)
         prev_btn.click()
@@ -149,7 +173,7 @@ with sync_playwright() as p:
     else:
         check('该月无任务时月历视图显示空态（不白屏）',
               page2.locator('body').inner_text().strip() != '')
-    check('家长端历史视图无前端报错（pageerror=0）', len(errors2) == 0, f'{errors2[:2]}')
+    check('家长端日视图无前端报错（pageerror=0）', len(errors2) == 0, f'{errors2[:2]}')
 
     # 问题③：设置页主题卡 + 皮肤指路文案
     page2.locator('[data-test="header-settings"]').click()

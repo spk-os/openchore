@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -315,8 +316,7 @@ func parseSummaryTime(v string) (hour, minute int) {
 // of finished weeks are generated once and kept; anything else is written
 // on demand.
 func (h *ReportsHandler) GetAISummary(w http.ResponseWriter, r *http.Request) {
-	ai := h.aiSvc.AI()
-	if ai == nil {
+	if h.aiSvc.AI() == nil && h.aiSvc.Agent() == nil {
 		writeError(w, http.StatusServiceUnavailable, "AI is not configured")
 		return
 	}
@@ -373,7 +373,8 @@ func (h *ReportsHandler) GetAISummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := ai.WeeklySummary(r.Context(), *stats)
+	// 任务③：spk-agent 优先（真 agent 总结），直连 LLM 回退。
+	summary, err := h.writeSummary(r.Context(), *stats, fmt.Sprintf("summary:%d:%s", userID, startStr))
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "AI summary generation failed: "+err.Error())
 		return
@@ -542,8 +543,7 @@ func (h *ReportsHandler) StartWeeklySummaries(ctx context.Context) {
 // StartWeeklySummaries calls it every minute; the finished-week cache
 // keeps repeats cheap.
 func (h *ReportsHandler) WriteWeeklySummaries(ctx context.Context, now time.Time) {
-	ai := h.aiSvc.AI()
-	if ai == nil {
+	if h.aiSvc.AI() == nil && h.aiSvc.Agent() == nil {
 		return
 	}
 	if on, _ := h.store.GetSetting(ctx, "ai_weekly_summary"); on != "true" {
@@ -585,7 +585,7 @@ func (h *ReportsHandler) WriteWeeklySummaries(ctx context.Context, now time.Time
 		if err != nil || stats == nil {
 			continue
 		}
-		summary, err := ai.WeeklySummary(ctx, *stats)
+		summary, err := h.writeSummary(ctx, *stats, fmt.Sprintf("summary:%d:%s", kid.UserID, startStr))
 		if err != nil {
 			log.Printf("ai: weekly summary for %s failed: %v", kid.Name, err)
 			continue
@@ -627,8 +627,7 @@ func (h *ReportsHandler) StartMonthlySummaries(ctx context.Context) {
 // summarized as it ends, so late approvals on the last evening still count
 // as long as they land before monthly_time.
 func (h *ReportsHandler) WriteMonthlySummaries(ctx context.Context, now time.Time) {
-	ai := h.aiSvc.AI()
-	if ai == nil {
+	if h.aiSvc.AI() == nil && h.aiSvc.Agent() == nil {
 		return
 	}
 	if on, _ := h.store.GetSetting(ctx, monthlyEnabledSetting); on != "true" {
@@ -662,7 +661,7 @@ func (h *ReportsHandler) WriteMonthlySummaries(ctx context.Context, now time.Tim
 		if err != nil || stats == nil {
 			continue
 		}
-		summary, err := ai.WeeklySummary(ctx, *stats)
+		summary, err := h.writeSummary(ctx, *stats, fmt.Sprintf("summary:%d:%s", kid.UserID, startStr))
 		if err != nil {
 			log.Printf("ai: monthly summary for %s failed: %v", kid.Name, err)
 			continue

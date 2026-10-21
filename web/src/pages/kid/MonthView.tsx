@@ -1,22 +1,21 @@
-// 「月视图」展开区：原「历史」页的全部内容（月总结卡、月历网格）收进
-// 主页的一块可展开区域。点「月视图」按钮展开/收起；点网格里的日子回填
-// 到主页任务列表。月历与周历条同款视觉：周一~周日表头 + 日期圆圈
-// （有任务的圆圈里穿 done/total），月份切换就地下拉，不另起步进条。
-// hist-summary / hist-days / kid-history-page 的 data-test 全部保留
-// （kid-history-page 根节点落在展开区上）。
+// 「月视图」就地展开区（opencore.png 参考图交互）：点今日进度卡的
+// 「月视图」，整月日历在周历条的原位置展开（替换 .strip）；点日期后
+// 月历收起、周条回来，主页任务列表换成所选日——布局不变，只换内容。
+// 月历与周历条同款视觉：周一~周日表头 + 日期圆圈（有任务的圆圈里穿
+// done/total），月份就地下拉切换。kid-history-page / hist-days /
+// hist-month-list 的 data-test 契约全部保留。
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api';
 import type { ScheduledChore, User } from '../../types';
 import { Icon } from '../../design';
 import { monthKey, monthLead, monthLength, monthStart, shiftMonth } from './dates';
-import { Notice } from './parts';
 import s from './kid.module.css';
 
 interface MonthViewProps {
   user: User;
   today: string;
-  /** The day the month grid jumps the home list to. */
+  /** The day the month grid jumps the home list to (and folds itself). */
   onPickDay: (date: string) => void;
 }
 
@@ -26,24 +25,23 @@ export function MonthView({ user, today, onPickDay }: MonthViewProps) {
   const [month, setMonth] = useState(() => monthKey(today));
   const [monthOpen, setMonthOpen] = useState(false);
   const [chores, setChores] = useState<ScheduledChore[] | null>(null);
-  const [failed, setFailed] = useState(false);
+
+  // The month's own summary (问题①): one read-only fetch, never a
+  // generation — "" (not yet written) shows the "not yet" line. Fetched
+  // once per month, rendered below the grid so the calendar keeps the
+  // strip's slot.
   const [summary, setSummary] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setFailed(false);
     setChores(null);
     try {
-      setChores(await api.users.getChoresSelf('month', monthStart(`${month}-01`)));
-    } catch {
-      setFailed(true);
+      setChores(await api.users.getChoresSelf('month', monthStart(`${month}-01`)));    } catch {
       setChores([]);
     }
   }, [month]);
 
   useEffect(() => { load(); }, [load]);
 
-  // The month's own summary card (问题①): one read-only fetch, never a
-  // generation — "" (not yet written) shows the "not yet" line.
   useEffect(() => {
     let live = true;
     setSummary(null);
@@ -63,7 +61,6 @@ export function MonthView({ user, today, onPickDay }: MonthViewProps) {
     }
     return m;
   }, [chores]);
-  const hasRows = byDate.size > 0;
 
   const monthLabel = new Date(`${month}-01T00:00:00`)
     .toLocaleDateString(lang, { year: 'numeric', month: 'long' });
@@ -102,7 +99,7 @@ export function MonthView({ user, today, onPickDay }: MonthViewProps) {
   };
 
   return (
-    <section className={s.histScreen} data-test="kid-history-page" id="home-month-view">
+    <div className={s.histScreen} data-test="kid-history-page" id="home-month-view">
       {/* 月份切换：todo清单式的就地下拉——点「月份 ▾」原地展开月份清单，
           选一个即切月；‹ › 步进钮保留。 */}
       <div className={s.histMonthPick}>
@@ -154,20 +151,10 @@ export function MonthView({ user, today, onPickDay }: MonthViewProps) {
         </button>
       </div>
 
-      <section className={s.histSummary} data-test="hist-summary" aria-label={t('kid.history.summaryTitle')}>
-        <h2 className={s.histSummaryTitle}><Icon name="star" fill /> {t('kid.history.summaryTitle')}</h2>
-        {summary === null && <p className={s.ebLoading}>{t('kid.history.loading')}</p>}
-        {summary !== null && summary !== '' && <p className={s.histSummaryText} data-test="hist-summary-text">{summary}</p>}
-        {summary === '' && <p className={s.histSummaryEmpty} data-test="hist-summary-empty">{t('kid.history.summaryEmpty')}</p>}
-      </section>
-
-      {failed && <p className={s.ebError} role="alert">{t('kid.history.loadFailed')}</p>}
       {chores === null && <p className={s.ebLoading}>{t('kid.history.loading')}</p>}
-      {chores !== null && !hasRows && !failed && (
-        <Notice icon="cal" title={t('kid.history.emptyTitle')}>{t('kid.history.emptyText')}</Notice>
-      )}
+
       {/* 月历：与周历条同款七列网格，日期放圆圈里，有任务的日子圈里
-          穿 done/total；点选回填主页任务列表。 */}
+          穿 done/total；点选后收起月历、任务列表换成该日。 */}
       {chores !== null && (
         <div className={s.histDays} data-test="hist-days" role="grid" aria-label={monthLabel}>
           {weekdays.map(w => (
@@ -209,7 +196,15 @@ export function MonthView({ user, today, onPickDay }: MonthViewProps) {
           )}
         </div>
       )}
-      <p className={s.ebFoot}>{t('kid.history.foot')}</p>
-    </section>
+
+      {/* 本月总结：日历下方一张小卡——月份的总结随月历一起看，
+          「为什么有这块」由标题与脚注交代。 */}
+      <section className={s.histSummary} data-test="hist-summary" aria-label={t('kid.history.summaryTitle')}>
+        <h2 className={s.histSummaryTitle}><Icon name="star" fill /> {t('kid.history.summaryTitle')}</h2>
+        {summary === null && <p className={s.ebLoading}>{t('kid.history.loading')}</p>}
+        {summary !== null && summary !== '' && <p className={s.histSummaryText} data-test="hist-summary-text">{summary}</p>}
+        {summary === '' && <p className={s.histSummaryEmpty} data-test="hist-summary-empty">{t('kid.history.summaryEmpty')}</p>}
+      </section>
+    </div>
   );
 }

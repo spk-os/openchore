@@ -215,11 +215,10 @@ func (h *ChoreHandler) queueAutoPaperAnalysis(completion *model.ChoreCompletion)
 		if err != nil || done == nil || done.Status != model.AnalysisDone {
 			return
 		}
-		ai := h.aiSvc.AI()
-		if ai == nil {
+		if h.aiSvc.AI() == nil && h.aiSvc.Agent() == nil {
 			return
 		}
-		if _, err := h.distillMeasuresForAnalysis(ctx, ai, done, completion.CompletedBy); err != nil {
+		if _, err := h.distillMeasuresForAnalysis(ctx, done, completion.CompletedBy); err != nil {
 			log.Printf("auto-analysis: distilling measures for analysis %d: %v", analysis.ID, err)
 		}
 	}()
@@ -471,13 +470,19 @@ func (h *ChoreHandler) recordErrorItem(ctx context.Context, analysis *model.Pape
 	if originalURL == "" {
 		originalURL = fmt.Sprintf("completion:%d", completion.ID)
 	}
-	// The 来源 line (error_items.source): the chore the photographed
-	// paper was submitted against — 「来自：数学错题订正」 in the book.
+	// 任务②（错题可追溯）：source 是给人看的文本，下面三列才是硬链——
+	// 来自哪次任务（schedule）、哪天的卷（completion_date 非解析时间）、
+	// 来源任务标题快照（任务删了标题仍在）。
 	source := "试卷分析"
+	var scheduleID *int64
+	choreTitle := ""
 	if completion != nil && completion.ChoreScheduleID != 0 {
+		sid := completion.ChoreScheduleID
+		scheduleID = &sid
 		if sched, err := h.store.GetSchedule(ctx, completion.ChoreScheduleID); err == nil && sched != nil {
 			if chore, err := h.store.GetChore(ctx, sched.ChoreID); err == nil && chore != nil {
 				source = chore.Title
+				choreTitle = chore.Title
 			}
 		}
 	}
@@ -485,6 +490,9 @@ func (h *ChoreHandler) recordErrorItem(ctx context.Context, analysis *model.Pape
 		UserID:           analysis.UserID,
 		CompletionID:     &analysis.CompletionID,
 		AnalysisID:       &analysis.ID,
+		ChoreScheduleID:  scheduleID,
+		ChoreTitle:       choreTitle,
+		ErroredDate:      completion.CompletionDate,
 		Subject:          analysis.Subject,
 		OriginalImageURL: originalURL,
 		QuestionText:     item.QuestionText,

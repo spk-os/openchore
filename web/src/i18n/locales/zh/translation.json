@@ -306,7 +306,9 @@
       "entryOpen": "查看 →",
       "entryEmptyTodo": "{{count}} 题在册 · ✨ AI 讲解已就绪",
       "choreSource": "来自：{{source}}",
-      "masteryBarLabel": "掌握度 {{percent}}%"
+      "masteryBarLabel": "掌握度 {{percent}}%",
+      "erroredOn": "{{date}} 错的",
+      "fromChore": "来自「{{title}}」"
     },
     "goal": {
       "addPlaceholder": "加入积分（最多 {{max}}）",
@@ -344,6 +346,15 @@
       "toGo_one": "还差 {{count}} 分",
       "toGo_other": "还差 {{count}} 分",
       "you": "你"
+    },
+    "points": {
+      "title": "积分明细",
+      "help": "每一分的来历都在这里：完成任务加分、兑换奖励扣分、存入目标、彩蛋奖励……遇到不明白的变动，拿这页问家长。",
+      "balanceSub": "当前可花积分",
+      "savedSub": "可花 {{count}} 分 · 已攒入目标的不算在内",
+      "empty": "还没有积分记录。完成第一个任务后，这里就会记下第一笔。",
+      "openAria_one": "查看积分明细（{{count}} 分）",
+      "openAria_other": "查看积分明细（{{count}} 分）"
     },
     "pet": {
       "title": "我的小伙伴",
@@ -1366,6 +1377,7 @@
       "historyDayLabel": "{{date}}",
       "historyDayAria": "{{day}}日：{{done}}/{{total}} 完成",
       "historyDayEmpty": "{{day}}日：没有任务",
+      "historyDayEmptyList": "这一天没有安排任务。",
       "historyClose": "收起"
     },
     "modal": {
@@ -1764,6 +1776,33 @@
         "profileDesc": "聚合错题 / 课程 / 复习数据生成画像，AI 建议全部标注依据（source_refs），家长终审后生效；不使用聊天记录",
         "profileLink": "配置画像 →",
         "profileFlag": "画像与 AI 规划开关"
+      },
+      "agent": {
+        "title": "Agent 派发（spk-agent）",
+        "description": "文本 AI 任务（学习规划、周报/月报总结、措施蒸馏与加强）派给 spk-agent 上的真 agent 执行；失败自动回落直连 AI 连接。拍照审查、试卷判读仍走直连多模态模型。",
+        "help": "填写本机 spk-agent 服务地址（SPK-OS 统一 agent 派发入口）。留空表示不启用，所有 AI 任务走上方直连连接。",
+        "baseUrlLabel": "spk-agent 地址",
+        "baseUrlPlaceholder": "http://192.168.96.1:8097",
+        "agentRefLabel": "Agent 名",
+        "agentRefHelp": "omnigent 里的 agent 名（默认 spk-tester；名字只能字母数字连字符下划线，不能用点号）。",
+        "modelLabel": "模型（可选）",
+        "modelPlaceholder": "留空用 agent 默认模型",
+        "modelHelp": "覆盖该 agent 会话使用的模型 ID；留空则用 agent 自身默认。",
+        "tokenLabel": "鉴权 Token（可选）",
+        "tokenPlaceholder": "SPK_AGENT_AUTH_TOKEN，未设鉴权则留空",
+        "tokenSavedPlaceholder": "已保存（留空保持不变）",
+        "tokenHelp": "spk-agent 的 SPK_AGENT_AUTH_TOKEN；家用 spk-agent 未开鉴权时留空即可。",
+        "clearToken": "清除已保存的 Token",
+        "saveButton": "保存 Agent 配置",
+        "savingButton": "保存中…",
+        "saveSuccess": "Agent 配置已保存",
+        "saveError": "保存失败：{{detail}}",
+        "testButton": "测试连接",
+        "testingButton": "测试中…",
+        "testSuccess": "spk-agent 连接正常",
+        "testStatusError": "spk-agent 返回 {{status}}",
+        "testNetworkError": "无法连接 spk-agent，请检查地址",
+        "fromEnv": "由 AGENT_BASE_URL 环境变量配置，界面只读。"
       }
     },
     "skins": {
@@ -2146,7 +2185,8 @@
       "weekScopeTitle": "本周错题",
       "weekScopeItems": "本周 {{count}} 道错题",
       "weekScopeFixed": "{{count}} 已订正",
-      "weekScopeManual": "{{count}} 待人工"
+      "weekScopeManual": "{{count}} 待人工",
+      "itemTrace": "{{subject}} · {{date}} 错的 · 来自「{{title}}」"
     },
     "measuresTab": {
       "heading": "学习措施",
@@ -2188,7 +2228,10 @@
       "createPriority": "优先级",
       "create": "创建",
       "creating": "创建中…",
-      "createFailed": "创建失败，再试一次"
+      "createFailed": "创建失败，再试一次",
+      "whyManual": "{{date}} 家长手写 · 用于跟踪你为孩子定下的学习安排",
+      "whyStrengthen": "{{date}} AI 加强 · 依据孩子最新错题数据（薄弱点/错因分布）重写",
+      "whyAnalysis": "{{date}} 由试卷分析报告 #{{id}} 自动蒸馏 · 依据报告的薄弱知识点与错因分布"
     }
   },
   "boost": {

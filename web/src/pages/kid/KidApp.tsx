@@ -21,6 +21,7 @@ import { CourseScreen } from './CourseScreen';
 import { PhotoSheet } from './PhotoSheet';
 import { SubmissionSheet } from './SubmissionSheet';
 import { MeSheet } from './MeSheet';
+import { PointsSheet } from './PointsSheet';
 import { CelebrationLayer } from './CelebrationLayer';
 import { choreDomId } from './ChoreItem';
 import { catFromCategory } from '../../design';
@@ -61,6 +62,8 @@ export const KidApp: React.FC = () => {
 
   const [tts, setTts] = useState(() => (user ? readTts(user.id, user.age) : false));
   const [meOpen, setMeOpen] = useState(false);
+  // 任务④：积分明细抽屉——顶栏积分胶囊点开，每一分的来历都在里面。
+  const [pointsOpen, setPointsOpen] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
   const [linkedOpen, setLinkedOpen] = useState(false);
   const [photoChore, setPhotoChore] = useState<ScheduledChore | null>(null);
@@ -185,6 +188,7 @@ export const KidApp: React.FC = () => {
       balance={data.points?.balance ?? 0}
       onMe={() => setMeOpen(true)}
       onManage={isAdmin ? toManage : undefined}
+      onPoints={() => setPointsOpen(true)}
     />
   );
   const shared = { user, data, topBar, viewOf, tts, onToggle, onPhoto: setPhotoChore, onViewSubmission: setSubmissionChore, onSpeak: speakOrPlay };
@@ -274,6 +278,10 @@ export const KidApp: React.FC = () => {
 
       {submissionChore && (
         <SubmissionSheet chore={submissionChore} onClose={() => setSubmissionChore(null)} />
+      )}
+
+      {pointsOpen && (
+        <PointsSheet data={data} onClose={() => setPointsOpen(false)} />
       )}
 
       {celebrating && (

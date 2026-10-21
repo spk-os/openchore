@@ -46,6 +46,16 @@
   color: var(--oc-text, #2b2a28);
 }
 
+/* 任务②：行头的错题日期（哪天错的）——不展开也能扫出时间线。 */
+.itemDate {
+  flex: none;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--oc-muted, #8a8782);
+  white-space: nowrap;
+}
+
 .itemMastery {
   flex: none;
   padding: 2px 10px;

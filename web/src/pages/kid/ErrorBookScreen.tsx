@@ -118,6 +118,15 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ item, onDone, configSummary }) =>
           <span className={s.ebCause} data-test={`eb-cause-${causeSuffix(item.error_type)}`}>
             {errorTypeLabel(t, item.error_type)}
           </span>
+          {/* 任务②：哪天、哪个任务错的——错题卡的「来历」行，让孩子（和
+              家长）知道这道题为什么在这里。 */}
+          {(item.errored_date || item.chore_title) && (
+            <span className={s.ebTrace} data-test="eb-trace">
+              {item.errored_date && t('kid.errorbook.erroredOn', { date: item.errored_date })}
+              {item.errored_date && item.chore_title && ' · '}
+              {item.chore_title && t('kid.errorbook.fromChore', { title: item.chore_title })}
+            </span>
+          )}
         </div>
         <span
           className={`${s.ebMastery} ${s['ebMastery' + masteryClass(item.mastery_level)] ?? ''}`}

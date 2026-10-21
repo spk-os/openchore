@@ -25,6 +25,15 @@ const OriginChip: React.FC<{ origin: LearningMeasure['origin'] }> = ({ origin })
   return <span className={clsx(s.itemMastery, origin === 'analysis' && s.itemMasteryNew)}>{t(`admin.measuresTab.${key}`)}</span>;
 };
 
+/** 任务②：措施的「为什么有这条」——创建日期 + 依据（哪份报告/哪个知识点
+ *  蒸馏来的，origin_id 指向 paper_analyses）。 */
+const originWhy = (t: ReturnType<typeof useTranslation>['t'], m: LearningMeasure): string => {
+  const created = new Date(m.created_at).toLocaleDateString();
+  if (m.origin === 'manual') return t('admin.measuresTab.whyManual', { date: created });
+  if (m.origin === 'ai_strengthen') return t('admin.measuresTab.whyStrengthen', { date: created });
+  return t('admin.measuresTab.whyAnalysis', { date: created, id: m.origin_id ?? 0 });
+};
+
 /** One measure card: title, detail, error types, and the actions. */
 const MeasureCard: React.FC<{
   m: LearningMeasure;
@@ -77,6 +86,8 @@ const MeasureCard: React.FC<{
         {m.error_types.length > 0 && (
           <p className={s.itemMeta}>{t('admin.measuresTab.errorTypesLabel', { types: m.error_types.map(x => errorTypeLabel(t, x)).join(' · ') })}</p>
         )}
+        {/* 任务②：来历行——让家长知道这条措施为什么存在、依据什么。 */}
+        <p className={s.itemMeta} data-test={`pm-why-${m.id}`}>{originWhy(t, m)}</p>
         <div className={s.itemActions}>
           <button type="button" className={ui.btnGhost} onClick={strengthen} disabled={!!busy} data-test={`pm-strengthen-${m.id}`}>
             {busy === 'strengthen' ? t('admin.measuresTab.strengthening') : t('admin.measuresTab.strengthen')}
