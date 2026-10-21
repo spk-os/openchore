@@ -369,7 +369,14 @@
       "tabErrorbook": "Mistakes",
       "tabMeasures": "Measures",
       "navMore": "{{count}} more tabs hidden — swipe the row",
-      "navScrollHint": "Swipe for more tabs"
+      "navScrollHint": "Swipe for more tabs",
+      "groupOverview": "Overview",
+      "groupTodo": "To review",
+      "groupTasks": "Tasks",
+      "groupLearning": "Learning",
+      "groupRewards": "Rewards",
+      "groupFamily": "Family",
+      "more": "More"
     },
     "editChore": {
       "labelCategory": "Category",
@@ -1406,7 +1413,8 @@
       "titleRemove": "Remove PIN",
       "titleSet": "Set PIN"
     },
-    "save": "Save"
+    "save": "Save",
+    "close": "Close"
   },
   "dashboard": {
     "quickAssign": {
@@ -1527,11 +1535,9 @@
     "tabs": {
       "label": "Main",
       "rewards": "Rewards",
-      "today": "Today",
-      "week": "Week",
+      "today": "Home",
       "errorbook": "Mistakes",
-      "review": "Review",
-      "history": "History"
+      "review": "Review"
     }
   },
   "entry": {
@@ -2026,7 +2032,9 @@
       "emptyText": "Try another month.",
       "freeTitle": "A free day",
       "freeText": "Nothing on the list that day.",
-      "foot": "History is read-only · the summary is written automatically on the last day of each month"
+      "foot": "History is read-only · the summary is written automatically on the last day of each month",
+      "expand": "Month view",
+      "collapse": "Hide month view"
     }
   },
   "linkedAccounts": {

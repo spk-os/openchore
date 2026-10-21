@@ -359,6 +359,64 @@
 .dayDashed { fill: none; stroke: var(--ink-muted); stroke-width: 2; stroke-dasharray: 3 4.5; }
 .dayNone { fill: var(--ink-muted); }
 
+/* ---------- 主页三合一：今日进度卡（今天+本周+历史收进一张卡） ---------- */
+.homeProgressCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  box-sizing: border-box;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--lift);
+}
+.homeProgressCard .strip { margin-bottom: 0; }
+.homeProgressCard .todayLine { margin: 0; }
+
+/* streak + 月视图开关共占一行：streak 收窄成行内块。 */
+.homeWeekRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.streakInline {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.streakInline .streakIcon { width: 40px; height: 40px; }
+.streakInline .streakNum {
+  font-size: 15px;
+  line-height: 20px;
+}
+.streakInline .streakSub { font-size: 12px; }
+.monthToggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  box-sizing: border-box;
+  border: var(--outline-w) solid var(--line);
+  border-radius: var(--oc-radius-pill);
+  background: var(--chip);
+  color: var(--on-chip);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.monthToggle svg { width: 17px; height: 17px; }
+.monthToggle:active { transform: scale(0.96); }
+
+/* 月视图展开区嵌进主页时，不再占独立页的满宽。 */
+.histScreen { margin-bottom: var(--space-4); }
+
 .streak { flex-direction: row; flex-wrap: wrap; align-items: center; }
 .streakIcon {
   width: 48px;

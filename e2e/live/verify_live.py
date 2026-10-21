@@ -69,8 +69,8 @@ with sync_playwright() as p:
 
     # ============ 场景B：孩子端 小明（问题① 查看提交）============
     # view-submission 只对「已完成且带 completion/photo」的任务渲染；今天
-    # 的任务往往全部未完成，所以先到 /week 点昨天/前天再验证（2026-10-20
-    # 起今天的行不再保证有已完成项）。
+    # 的任务往往全部未完成，所以在主页（三合一）的周历条里逐日点选找。
+    # /week 现重定向回主页（三页合一）。
     ctx2 = browser.new_context(viewport={'width': 1280, 'height': 900})
     page2 = ctx2.new_page()
     errors2 = []
@@ -79,9 +79,11 @@ with sync_playwright() as p:
     page2.goto(BASE + '/week')
     page2.wait_for_load_state('networkidle')
     page2.wait_for_timeout(2000)
-    # 从最早的一天往今天找：任何有 view-submission 的日子都行
+    # /week 重定向回主页；周历条 chips 在 [data-test="kid-home-page"] 的
+    # [role="group"] 里（与任务区 progress group 区分开——用含 aria-pressed
+    # 的按钮集合）。
     for i in range(7):
-        chips = page2.locator('div[role="group"] button', has_text='周')
+        chips = page2.locator('div[role="group"] button[aria-pressed]', has_text='周')
         if chips.count() == 0:
             break
         chips.first.click()

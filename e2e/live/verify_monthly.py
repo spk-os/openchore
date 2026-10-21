@@ -152,6 +152,7 @@ with sync_playwright() as p:
     errors3 = []
     page3.on('pageerror', lambda e: errors3.append(str(e)))
     login(page3, '小明', '')
+    # 三合一后 /week 重定向回主页；月度任务在主页周历条选日仍可见
     page3.goto(BASE + '/week')
     page3.wait_for_load_state('networkidle')
     page3.wait_for_timeout(2500)
@@ -160,7 +161,7 @@ with sync_playwright() as p:
     # 选中日：把周内七天 chip 都点一遍，任何一天见到月度任务即通过
     # （脚本跑在 19 号那天时默认选中即可见；跨天后要点对 chip）。
     seen_monthly = False
-    day_chips = page3.locator('div[role="group"] button', has_text='周')
+    day_chips = page3.locator('div[role="group"] button[aria-pressed]', has_text='周')
     for i in range(day_chips.count()):
         day_chips.nth(i).click()
         page3.wait_for_timeout(700)

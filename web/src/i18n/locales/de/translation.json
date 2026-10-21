@@ -369,7 +369,14 @@
       "tabErrorbook": "Fehler",
       "tabMeasures": "Maßnahmen",
       "navMore": "{{count}} Tabs versteckt — wischen",
-      "navScrollHint": "Für mehr Tabs wischen"
+      "navScrollHint": "Für mehr Tabs wischen",
+      "groupOverview": "Übersicht",
+      "groupTodo": "Zu prüfen",
+      "groupTasks": "Aufgaben",
+      "groupLearning": "Lernen",
+      "groupRewards": "Belohnungen",
+      "groupFamily": "Familie",
+      "more": "Mehr"
     },
     "editChore": {
       "labelCategory": "Kategorie",
@@ -1408,7 +1415,8 @@
       "titleRemove": "PIN entfernen",
       "titleSet": "PIN festlegen"
     },
-    "save": "Speichern"
+    "save": "Speichern",
+    "close": "Schließen"
   },
   "dashboard": {
     "quickAssign": {
@@ -1529,11 +1537,9 @@
     "tabs": {
       "label": "Hauptmenü",
       "rewards": "Belohnungen",
-      "today": "Heute",
-      "week": "Woche",
+      "today": "Start",
       "errorbook": "Fehlerheft",
-      "review": "Wiederholen",
-      "history": "Verlauf"
+      "review": "Wiederholen"
     }
   },
   "entry": {
@@ -2014,7 +2020,9 @@
       "emptyText": "Probiere einen anderen Monat.",
       "freeTitle": "Ein freier Tag",
       "freeText": "An diesem Tag stand nichts auf der Liste.",
-      "foot": "Der Verlauf ist schreibgeschützt · die Zusammenfassung entsteht automatisch am Monatsende"
+      "foot": "Der Verlauf ist schreibgeschützt · die Zusammenfassung entsteht automatisch am Monatsende",
+      "expand": "Monatsansicht",
+      "collapse": "Monatsansicht schließen"
     },
     "submission": {
       "aiNote": "KI-Anmerkung",

@@ -18,8 +18,10 @@ test.describe('Dashboard Views', () => {
   test('weekly view shows 7-day calendar', async ({ page }) => {
     await selectUser(page, 'Emma');
 
-    // Switch to Week view
-    await page.getByRole('link', { name: 'Week' }).click();
+    // The week strip lives on the merged Home screen (three-page merge):
+    // its day chips are links by role "button" inside a [role=group].
+    const strip = page.locator('div[role="group"] button');
+    await expect(strip.first()).toBeVisible({ timeout: 5_000 });
 
     // Should show day abbreviations
     await expect(page.getByText('Sun').first()).toBeVisible({ timeout: 5_000 });

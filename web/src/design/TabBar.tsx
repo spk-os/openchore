@@ -7,10 +7,8 @@ import type { TabId } from './types';
 
 export const TABS: readonly { id: TabId; icon: IconName }[] = [
   { id: 'today', icon: 'home' },
-  { id: 'week', icon: 'cal' },
-  // 问题②: the whole past — one tab per history month beats burying the
-  // past behind a "load more" on Week.
-  { id: 'history', icon: 'clock' },
+  // 三页合一之后，「本周」和「历史」不再是 tab：周历条与月视图展开区
+  // 都收进了主页的今日进度卡（OD spk-openchore kid-home.html 的契约）。
   { id: 'errorbook', icon: 'book' },
   { id: 'review', icon: 'spark' },
   { id: 'rewards', icon: 'gift' },

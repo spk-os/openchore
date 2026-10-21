@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
@@ -48,12 +48,62 @@ const TABS: { id: Tab; label: string; icon?: IconName }[] = [
   { id: 'settings', label: 'admin.dashboard.tabSettings' },
 ];
 
+// 六分组导航（OD spk-openchore admin-*.html 的契约）：桌面 ≥1024px 固定
+// 左侧边栏，分组标题 + 成员项；手机顶部横向导航只放高频 4 项 +「更多」
+// 展开分组抽屉。nav 顺序保持 TABS 数组顺序（设置最后）。
+const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
+  { label: 'admin.dashboard.groupOverview', tabs: ['kids-status'] },
+  { label: 'admin.dashboard.groupTodo', tabs: ['approvals', 'media'] },
+  { label: 'admin.dashboard.groupTasks', tabs: ['chores', 'templates', 'courses'] },
+  { label: 'admin.dashboard.groupLearning', tabs: ['profile', 'errorbook', 'measures'] },
+  { label: 'admin.dashboard.groupRewards', tabs: ['rewards', 'points'] },
+  { label: 'admin.dashboard.groupFamily', tabs: ['activity', 'users', 'settings'] },
+];
+
+// 手机顶部导航的高频 4 项（OD 原型：今天 / 审批 / 媒体库 / 任务）。
+const MOBILE_TABS: Tab[] = ['kids-status', 'approvals', 'media', 'chores'];
+
+const TAB_OF = Object.fromEntries(TABS.map(x => [x.id, x])) as unknown as Record<Tab, { label: string; icon?: IconName }>;
+
+/** ≥1024px：桌面侧边栏形态（顶导与抽屉不渲染）。SSR 一律按手机形态。 */
+const DESKTOP_QUERY = '(min-width: 1024px)';
+const subscribeDesktop = (cb: () => void) => {
+  const mq = window.matchMedia(DESKTOP_QUERY);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+};
+const getDesktop = () => window.matchMedia(DESKTOP_QUERY).matches;
+function useDesktopNav(): boolean {
+  return useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
+}
+
 /** The four overlapping dots of the House logo, one per person colour. */
 const LogoMark: React.FC = () => (
   <span className={styles.logo} aria-hidden>
     <i data-person="coral" /><i data-person="mint" /><i data-person="butter" /><i data-person="sky" />
   </span>
 );
+
+/** One nav item: the shared button the sidebar, the top nav and the sheet
+ *  all render, approvals badge included. */
+function NavItem({ id, on, onClick, pendingCount }: { id: Tab; on: boolean; onClick: () => void; pendingCount: number }) {
+  const { t } = useTranslation();
+  const { label, icon } = TAB_OF[id];
+  return (
+    <button
+      type="button"
+      className={clsx(styles.tab, on && styles.tabOn)}
+      aria-current={on ? 'page' : undefined}
+      onClick={onClick}
+    >
+      {icon ? <Icon name={icon} /> : <Settings aria-hidden />}
+      <span>{t(label)}</span>
+      {id === 'approvals' && pendingCount > 0 && (
+        <span className={styles.count}>{pendingCount}</span>
+      )}
+    </button>
+  );
+}
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -74,44 +124,33 @@ export const AdminDashboard: React.FC = () => {
   // The QuickAssign tab to open with: 'copilot' when the entry came from
   // the wizard's 「让 AI 建议与规划任务」 (问题③), else the quick tab.
   const [quickAssignMode, setQuickAssignMode] = useState<'quick' | 'copilot'>('quick');
+  // 手机「更多」分组抽屉。
+  const [moreOpen, setMoreOpen] = useState(false);
+  const desktop = useDesktopNav();
 
   const openQuickAssign = useCallback((mode: 'quick' | 'copilot' = 'quick') => {
     setQuickAssignMode(mode);
     setQuickAssignOpen(true);
   }, []);
-  // The 14 tabs overflow on phones; the row scrolls but hides its
-  // scrollbar, so a "settings?" dead-end is easy to hit (问题④). The edge
-  // fades + a screen-reader-only hint make the overflow observable.
-  const navRef = useRef<HTMLElement>(null);
-  const [navOverflow, setNavOverflow] = useState(false);
-  // Edge fades: left fade only while scrolled in, right fade only while
-  // content remains on the right — the fade is the scroll affordance.
-  const [fadeLeft, setFadeLeft] = useState(false);
-  const [fadeRight, setFadeRight] = useState(false);
 
+  // 分组抽屉的 body 滚动锁（Sheet 同款行为，不打断面板内滚动）。
   useEffect(() => {
-    const el = navRef.current;
-    if (!el) return;
-    const check = () => {
-      const over = el.scrollWidth > el.clientWidth + 1;
-      setNavOverflow(over);
-      setFadeLeft(over && el.scrollLeft > 2);
-      setFadeRight(over && el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
-    };
-    check();
-    el.addEventListener('scroll', check, { passive: true });
-    window.addEventListener('resize', check);
-    return () => {
-      el.removeEventListener('scroll', check);
-      window.removeEventListener('resize', check);
-    };
+    if (!moreOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [moreOpen]);
+
+  const goTab = useCallback((id: Tab) => {
+    setTab(id);
+    setMoreOpen(false);
   }, []);
 
   useEffect(() => {
     const onHash = () => {
       const next = tabFromHash();
       if (next) {
-        setTab(next);
+        goTab(next);
         // Strip the hash so a refresh returns to the default tab and the
         // browser back button doesn't replay tab switches.
         window.history.replaceState(null, '', window.location.pathname);
@@ -119,7 +158,15 @@ export const AdminDashboard: React.FC = () => {
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+  }, [goTab]);
+
+  // Escape 关抽屉。
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMoreOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [moreOpen]);
 
   const refreshCount = useCallback(() => {
     api.chores.listPending().then(p => setPendingCount(p.length)).catch(() => {});
@@ -138,8 +185,9 @@ export const AdminDashboard: React.FC = () => {
     // Personal (OIDC) sessions follow the system setting; the shared tablet
     // (tap/PIN) follows the evening schedule.
     <HouseScope mode="auto" persistent={!!session?.persistent} className={styles.shell}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
+      {/* 桌面侧边栏（≥1024px）：分组标题 + 全部 14 项，设置在最后。 */}
+      <aside className={styles.sidebar} aria-label={t('admin.dashboard.navLabel')}>
+        <div className={styles.sidebarHead}>
           <button type="button" className={styles.back} onClick={() => navigate('/')} aria-label={backLabel} title={backLabel}>
             <Icon name="back" />
           </button>
@@ -147,76 +195,125 @@ export const AdminDashboard: React.FC = () => {
             <LogoMark />
             <h1 className={styles.title}>{t('admin.dashboard.title')}</h1>
           </div>
-          <div className={styles.headerActions}>
-            <LanguageSelector className={styles.lang} />
-            <button type="button" className={styles.reports} onClick={() => navigate('/admin/reports')}>
-              <BarChart3 aria-hidden />
-              <span>{t('admin.dashboard.reports')}</span>
-            </button>
-            {/* 设置在 nav 第 14 位，手机上溢出到屏幕外看不见（问题⑤ 二次
-                反馈：渐隐提示不够）。header 齿轮把它固定成一键直达，
-                nav 里原位保留（e2e 依赖 `nav button` last 是 settings）。 */}
-            <button
-              type="button"
-              className={styles.settingsBtn}
-              data-test="header-settings"
-              onClick={() => setTab('settings')}
-              aria-label={t('admin.dashboard.tabSettings')}
-              title={t('admin.dashboard.tabSettings')}
-            >
-              <Settings aria-hidden />
-            </button>
-          </div>
         </div>
-        <nav
-          ref={navRef}
-          className={clsx(styles.nav, navOverflow && styles.navOverflow)}
+        <nav className={styles.sidebarNav}>
+          {NAV_GROUPS.map(group => (
+            <div key={group.label} className={styles.sideGroup}>
+              <p className={styles.sideGroupTitle}>{t(group.label)}</p>
+              {group.tabs.map(id => (
+                <NavItem key={id} id={id} on={tab === id} onClick={() => goTab(id)} pendingCount={pendingCount} />
+              ))}
+            </div>
+          ))}
+        </nav>
+        <button type="button" className={styles.sideNew} onClick={() => openQuickAssign()}>
+          <Icon name="plus" />
+          <span>{t('admin.dashboard.quickAssign')}</span>
+        </button>
+      </aside>
+
+      <div className={styles.mainCol}>
+        <header className={styles.header}>
+          <div className={styles.headerInner}>
+            {/* 手机：返回 + 标题；桌面侧边栏已带标题，这里只留动作。 */}
+            <button type="button" className={clsx(styles.back, styles.backMobile)} onClick={() => navigate('/')} aria-label={backLabel} title={backLabel}>
+              <Icon name="back" />
+            </button>
+            <h2 className={styles.mobileTitle}>{t('admin.dashboard.title')}</h2>
+            <div className={styles.headerActions}>
+              <LanguageSelector className={styles.lang} />
+              <button type="button" className={styles.reports} onClick={() => navigate('/admin/reports')}>
+                <BarChart3 aria-hidden />
+                <span>{t('admin.dashboard.reports')}</span>
+              </button>
+              {/* 设置齿轮固定在 header（e2e `data-test="header-settings"`）。 */}
+              <button
+                type="button"
+                className={styles.settingsBtn}
+                data-test="header-settings"
+                onClick={() => goTab('settings')}
+                aria-label={t('admin.dashboard.tabSettings')}
+                title={t('admin.dashboard.tabSettings')}
+              >
+                <Settings aria-hidden />
+              </button>
+            </div>
+          </div>
+          {/* 手机顶部导航：高频 4 项 + 「更多」。 */}
+          {!desktop && (
+            <nav className={styles.nav} aria-label={t('admin.dashboard.navLabel')}>
+              <div className={styles.navInner}>
+                {MOBILE_TABS.map(id => (
+                  <NavItem key={id} id={id} on={tab === id && !moreOpen} onClick={() => goTab(id)} pendingCount={pendingCount} />
+                ))}
+                <button
+                  type="button"
+                  className={clsx(styles.tab, moreOpen && styles.tabOn)}
+                  aria-expanded={moreOpen}
+                  onClick={() => setMoreOpen(v => !v)}
+                >
+                  <Icon name="chev" />
+                  <span>{t('admin.dashboard.more')}</span>
+                </button>
+              </div>
+            </nav>
+          )}
+        </header>
+
+        <main className={styles.content}>
+          {tab === 'kids-status' && <KidsStatusTab onPendingChange={setPendingCount} />}
+          {tab === 'chores' && <ChoresTab onOpenCopilot={() => openQuickAssign('copilot')} />}
+          {tab === 'templates' && <TemplatesTab />}
+          {tab === 'courses' && <CoursesTab />}
+          {tab === 'profile' && <ProfileTab />}
+          {tab === 'errorbook' && <ErrorbookTab />}
+          {tab === 'measures' && <MeasuresTab />}
+          {tab === 'approvals' && <ApprovalsTab onCountChange={setPendingCount} />}
+          {tab === 'media' && <MediaTab />}
+          {tab === 'users' && <UsersTab />}
+          {tab === 'rewards' && <RewardsTab />}
+          {tab === 'points' && <PointsTab />}
+          {tab === 'activity' && <ActivityTab />}
+          {tab === 'settings' && <SettingsTab />}
+        </main>
+      </div>
+
+      {/* 手机「更多」分组抽屉：Sheet 从底部滑出，按 6 组分节列出全部
+          14 项（设置在最后）。 */}
+      {!desktop && moreOpen && (
+        <div className={styles.sheetBackdrop} onClick={() => setMoreOpen(false)} />
+      )}
+      {!desktop && moreOpen && (
+        <div
+          className={styles.sheetPanel}
+          role="dialog"
+          aria-modal="true"
           aria-label={t('admin.dashboard.navLabel')}
         >
-          {/* Screen-reader hint first: the visible row overflows and the
-              fade is invisible to AT, so the hidden count is named. */}
-          <span className={styles.srOnly}>{navOverflow ? t('admin.dashboard.navMore', { count: TABS.length }) : ''}</span>
-          <div className={styles.navInner}>
-            {TABS.map(({ id, label, icon }) => (
-              <button
-                key={id}
-                type="button"
-                className={clsx(styles.tab, tab === id && styles.tabOn)}
-                aria-current={tab === id ? 'page' : undefined}
-                onClick={() => setTab(id)}
-              >
-                {icon ? <Icon name={icon} /> : <Settings aria-hidden />}
-                <span>{t(label)}</span>
-                {id === 'approvals' && pendingCount > 0 && (
-                  <span className={styles.count}>{pendingCount}</span>
-                )}
-              </button>
+          <span className={styles.sheetGrip} aria-hidden />
+          <div className={styles.sheetHead}>
+            <h2 className={styles.sheetTitle}>{t('admin.dashboard.more')}</h2>
+            <button
+              type="button"
+              className={styles.sheetClose}
+              onClick={() => setMoreOpen(false)}
+              aria-label={t('common.close')}
+            >
+              <Icon name="plus" />
+            </button>
+          </div>
+          <div className={styles.sheetBody}>
+            {NAV_GROUPS.map(group => (
+              <div key={group.label} className={styles.sheetGroup}>
+                <p className={styles.sideGroupTitle}>{t(group.label)}</p>
+                {group.tabs.map(id => (
+                  <NavItem key={id} id={id} on={tab === id} onClick={() => goTab(id)} pendingCount={pendingCount} />
+                ))}
+              </div>
             ))}
           </div>
-          {/* The overflow affordance: soft edges on the side(s) that still
-              have content beyond them (设置 hides off-screen on phones —
-              问题④). */}
-          <span className={styles.fadeLeft} data-hidden={!fadeLeft} aria-hidden />
-          <span className={styles.fadeRight} data-hidden={!fadeRight} aria-hidden />
-        </nav>
-      </header>
-
-      <main className={styles.content}>
-        {tab === 'kids-status' && <KidsStatusTab onPendingChange={setPendingCount} />}
-        {tab === 'chores' && <ChoresTab onOpenCopilot={() => openQuickAssign('copilot')} />}
-        {tab === 'templates' && <TemplatesTab />}
-        {tab === 'courses' && <CoursesTab />}
-        {tab === 'profile' && <ProfileTab />}
-        {tab === 'errorbook' && <ErrorbookTab />}
-        {tab === 'measures' && <MeasuresTab />}
-        {tab === 'approvals' && <ApprovalsTab onCountChange={setPendingCount} />}
-        {tab === 'media' && <MediaTab />}
-        {tab === 'users' && <UsersTab />}
-        {tab === 'rewards' && <RewardsTab />}
-        {tab === 'points' && <PointsTab />}
-        {tab === 'activity' && <ActivityTab />}
-        {tab === 'settings' && <SettingsTab />}
-      </main>
+        </div>
+      )}
 
       <button
         type="button"

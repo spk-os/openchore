@@ -3,7 +3,7 @@ import i18n from '../../i18n';
 import type { ScheduledChore, RewardCommitment, PointTransaction } from '../../types';
 import { choreView, type ChoreViewContext } from './choreView';
 import { daysToGoal, goalProgress } from './goals';
-import { weekDates } from './WeekScreen';
+import { weekDates } from './dates';
 
 const TODAY = '2026-09-24';
 const at = (h: number, m = 0) => { const d = new Date(2026, 8, 24, h, m); return d; };

@@ -44,4 +44,6 @@ export function catFromCategory(category: string | null | undefined): Cat {
 }
 
 export type ChoreState = 'todo' | 'done' | 'waiting' | 'locked';
-export type TabId = 'today' | 'week' | 'history' | 'errorbook' | 'review' | 'rewards';
+// 四个 tab：主页吞掉了原来的「本周」「历史」（三页合一）；错题本 / 复习 /
+// 奖励保持自己的门。/week 和 /history 路由保留为重定向，旧链接不悬空。
+export type TabId = 'today' | 'errorbook' | 'review' | 'rewards';

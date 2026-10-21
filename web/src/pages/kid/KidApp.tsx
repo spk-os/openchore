@@ -1,5 +1,3 @@
-// A person's own screens — Today, Week and Rewards — in their own skin.
-// Kids and grown-ups alike: a parent's personal screen works the same way.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -15,9 +13,7 @@ import LinkedAccountsModal from '../../components/LinkedAccounts/LinkedAccountsM
 import { choreView, gates, isDone, type ChoreView } from './choreView';
 import { useKidData } from './useKidData';
 import { TopBar, CAT_ORDER } from './parts';
-import { TodayScreen } from './TodayScreen';
-import { WeekScreen } from './WeekScreen';
-import { HistoryScreen } from './HistoryScreen';
+import { HomeScreen } from './HomeScreen';
 import { RewardsScreen } from './RewardsScreen';
 import { ErrorBookScreen } from './ErrorBookScreen';
 import { ReviewScreen } from './ReviewScreen';
@@ -30,7 +26,9 @@ import { choreDomId } from './ChoreItem';
 import { catFromCategory } from '../../design';
 import s from './kid.module.css';
 
-const HREFS: Record<TabId, string> = { today: '/', week: '/week', history: '/history', errorbook: '/errorbook', review: '/review', rewards: '/rewards' };
+// 四个 tab：主页 / 错题本 / 复习 / 奖励。/week 与 /history 不再是 tab，
+// 但路由保留为重定向——旧链接（live 脚本、分享链接）直接落回主页。
+const HREFS: Record<TabId, string> = { today: '/', errorbook: '/errorbook', review: '/review', rewards: '/rewards' };
 
 const ttsKey = (id: number) => `openchore_tts_${id}`;
 function readTts(id: number, age?: number): boolean {
@@ -55,12 +53,11 @@ export const KidApp: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const now = useMinuteClock();
 
-  const tab: TabId = location.pathname.startsWith('/week') ? 'week'
-    : location.pathname.startsWith('/history') ? 'history'
-    : location.pathname.startsWith('/errorbook') ? 'errorbook'
+  const tab: TabId = location.pathname.startsWith('/errorbook') ? 'errorbook'
     : location.pathname.startsWith('/review') ? 'review'
     : location.pathname.startsWith('/rewards') ? 'rewards' : 'today';
-  const data = useKidData(user, { week: tab === 'week', rewards: tab === 'rewards' });
+  // 主页常驻周数据（周历条 / 周小结随主页渲染）；奖励数据仍只在奖励页拉。
+  const data = useKidData(user, { week: true, rewards: tab === 'rewards' });
 
   const [tts, setTts] = useState(() => (user ? readTts(user.id, user.age) : false));
   const [meOpen, setMeOpen] = useState(false);
@@ -196,10 +193,11 @@ export const KidApp: React.FC = () => {
     <SkinScope skin={skin} color={color} className={s.root}>
       <main className={s.main}>
         <Routes>
-          <Route index element={<TodayScreen {...shared} now={now} />} />
-          <Route path="week" element={<WeekScreen {...shared} />} />
-          {/* 问题②: the whole past, one month at a time. */}
-          <Route path="history" element={<HistoryScreen user={user} topBar={topBar} today={data.today} viewOf={viewOf} tts={tts} onPhoto={setPhotoChore} onViewSubmission={setSubmissionChore} onSpeak={speakOrPlay} />} />
+          <Route index element={<HomeScreen {...shared} now={now} />} />
+          {/* 三页合一后的旧路由：/week 与 /history 重定向回主页（月视图
+              展开区承载原历史页内容），旧链接不悬空。 */}
+          <Route path="week" element={<Navigate to="/" replace />} />
+          <Route path="history" element={<Navigate to="/" replace />} />
           <Route path="errorbook" element={<ErrorBookScreen topBar={topBar} />} />
           <Route path="review" element={<ReviewScreen topBar={topBar} />} />
           <Route path="course/:id" element={<CourseScreen topBar={topBar} />} />

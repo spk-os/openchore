@@ -1,10 +1,21 @@
-/* The grown-up shell, in House / House Dark. */
+/* The grown-up shell, in House / House Dark.
+   双形态：≥1024px 左侧固定侧边栏（六分组）+ 右侧内容列；手机顶部横向
+   导航（高频 4 项 + 「更多」展开底部抽屉）。OD spk-openchore admin-*.html。 */
 
 .shell {
   min-height: 100vh;
   min-height: 100dvh;
   --admin-max: 1120px;
   --admin-gutter: var(--space-5);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    flex-direction: row;
+    align-items: stretch;
+  }
 }
 
 @media (max-width: 640px) {
@@ -19,7 +30,132 @@
   stroke-width: var(--icon-stroke);
 }
 
-/* ---------- header ---------- */
+/* ---------- desktop sidebar ---------- */
+.sidebar {
+  display: none;
+}
+
+.mainCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    width: 230px;
+    height: 100dvh;
+    box-sizing: border-box;
+    padding: var(--space-4) var(--space-3);
+    gap: var(--space-2);
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+  }
+
+  .sidebarHead {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-1) var(--space-3);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .sidebarNav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sideGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sideGroupTitle {
+    margin: 0 0 2px;
+    padding: 0 var(--space-3);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  /* 侧边栏项：左对齐满宽（区别于顶导的胶囊）。 */
+  .sidebarNav .tab,
+  .sidebarNav .tabOn,
+  .sidebarNav .tabOn:hover {
+    justify-content: flex-start;
+    width: 100%;
+    border-radius: var(--oc-radius-md);
+  }
+
+  .sideNew {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--oc-radius-md);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-family: var(--font-text);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+/* ---------- shared header pieces ---------- */
+.logo {
+  display: inline-flex;
+  flex: none;
+}
+
+.logo i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--you);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.logo i + i {
+  margin-left: -6px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  font-size: 22px;
+  line-height: 28px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .header {
   position: sticky;
   top: 0;
@@ -53,41 +189,35 @@
   cursor: pointer;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
+.backMobile {
+  display: grid;
 }
 
-.logo {
-  display: inline-flex;
-  flex: none;
+@media (min-width: 1024px) {
+  /* 桌面返回键只在侧边栏；header 里这颗藏起来。 */
+  .backMobile {
+    display: none;
+  }
 }
 
-.logo i {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--you);
-  box-shadow: 0 0 0 2px var(--surface);
-}
-
-.logo i + i {
-  margin-left: -6px;
-}
-
-.title {
+.mobileTitle {
+  display: none;
   margin: 0;
   font-family: var(--font-display);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-tracking);
-  font-size: 22px;
-  line-height: 28px;
+  font-size: 20px;
+  line-height: 26px;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 1023px) {
+  .mobileTitle {
+    display: block;
+  }
 }
 
 .headerActions {
@@ -161,13 +291,9 @@
   .headerActions .lang {
     max-width: 120px;
   }
-
-  .title {
-    font-size: 19px;
-  }
 }
 
-/* ---------- tabs ---------- */
+/* ---------- mobile top nav ---------- */
 .nav {
   position: relative;
   max-width: var(--admin-max);
@@ -180,60 +306,19 @@
   display: none;
 }
 
-/* The overflow affordance (问题④: "系统配置界面在哪里了？"): with 14 tabs
-   the row scrolls on phones but the hidden scrollbar made that invisible,
-   so settings read as missing. Soft gradient edges appear on the side(s)
-   that still have content beyond them. */
-.fadeLeft,
-.fadeRight {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 28px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .2s ease;
-}
-.fadeLeft {
-  left: 0;
-  background: linear-gradient(to right, var(--surface), transparent);
-}
-.fadeRight {
-  right: 0;
-  background: linear-gradient(to left, var(--surface), transparent);
-}
-.navOverflow .fadeLeft,
-.navOverflow .fadeRight {
-  opacity: 1;
-}
-
-/* Edge fades only on the side that actually has more content: the scroll
-   listener toggles these data-attrs as the row moves. */
-.fadeLeft[data-hidden='true'],
-.fadeRight[data-hidden='true'] {
-  opacity: 0;
-}
-
-/* The SR-only hint naming how many tabs are off-screen. */
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  overflow: hidden;
-  white-space: nowrap;
-}
-
 .navInner {
   display: flex;
   gap: 4px;
   width: max-content;
   padding: var(--space-1) var(--admin-gutter) var(--space-3);
   box-sizing: border-box;
+}
+
+@media (min-width: 1024px) {
+  /* 桌面导航全部收进侧边栏；顶导（含「更多」）整行隐藏。 */
+  .nav {
+    display: none;
+  }
 }
 
 .tab {
@@ -285,6 +370,119 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- the「更多」sheet (mobile) ---------- */
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--ink) 38%, transparent);
+  animation: sheetFade .18s ease both;
+}
+
+@keyframes sheetFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sheetPanel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  max-height: min(82dvh, 82vh);
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--oc-radius-xl) var(--oc-radius-xl) 0 0;
+  box-shadow: var(--lift-lg);
+  font-family: var(--font-text);
+  animation: sheetUp .22s ease both;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(12%); opacity: .6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (min-width: 1024px) {
+  /* 桌面侧边栏已列全 14 项，抽屉按钮整个不渲染（组件层已控制）。 */
+  .sheetBackdrop,
+  .sheetPanel {
+    display: none;
+  }
+}
+
+.sheetGrip {
+  width: 40px;
+  height: 4px;
+  margin: var(--space-2) auto 0;
+  border-radius: 999px;
+  background: var(--line);
+  flex: none;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-2) var(--space-5);
+  flex: none;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  font-size: 19px;
+  line-height: 24px;
+}
+
+.sheetClose {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.sheetClose svg {
+  transform: rotate(45deg);
+}
+
+.sheetBody {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+}
+
+.sheetGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--space-3);
+}
+
+/* 抽屉里的项：左对齐满宽。 */
+.sheetGroup .tab,
+.sheetGroup .tabOn,
+.sheetGroup .tabOn:hover {
+  justify-content: flex-start;
+  width: 100%;
+  border-radius: var(--oc-radius-md);
+}
+
 /* ---------- content ---------- */
 .content {
   max-width: var(--admin-max);
@@ -310,6 +508,13 @@
   color: var(--on-accent);
   box-shadow: var(--lift-lg);
   cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+  /* 桌面：新建入口收进侧边栏，FAB 隐藏。 */
+  .fab {
+    display: none;
+  }
 }
 
 .fab svg {

@@ -34,7 +34,7 @@ test.describe('Screenshots', () => {
     await page.setViewportSize({ width: 1024, height: 768 });
     await selectUser(page, 'Emma');
     await expect(page.locator('body')).toContainText('pts', { timeout: 10_000 });
-    await page.getByRole('link', { name: 'Week' }).click();
+    // The week strip is part of the merged Home screen now.
     await expect(page.getByText('Mon').first()).toBeVisible({ timeout: 5_000 });
     await page.screenshot({ path: `${dir}/03-kid-dashboard-weekly.png`, fullPage: false });
   });

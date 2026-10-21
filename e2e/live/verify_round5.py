@@ -41,12 +41,17 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e: errors.append(str(e)))
     login(page, '小明', '')
 
-    # 问题②：TabBar 出现第 6 个「历史」tab，点进去是整月浏览
+    # 问题②：三页合一后，整月浏览在主页「月视图」展开区（kid-history-page）
     page.goto(BASE + '/history')
     page.wait_for_load_state('networkidle')
     page.wait_for_timeout(2500)
+    # /history 重定向回主页；点「月视图」按钮展开历史区
+    mt = page.locator('button', has_text='月视图')
+    mt.first.wait_for(state='visible', timeout=10000)
+    mt.first.click()
+    page.wait_for_timeout(2000)
     hp = page.locator('[data-test="kid-history-page"]')
-    check('孩子端历史页打开（/history 可达，问题②）', hp.count() > 0, f'url={page.url}')
+    check('主页「月视图」展开历史区（kid-history-page，问题②）', hp.count() > 0, f'url={page.url}')
     check('历史页月份条 + 日网格已渲染', page.locator('[data-test="hist-summary"]').count() > 0,
           f'pageerror={errors[:1]}')
     # 月总结卡三态之一必现（text / empty），不能整卡消失
@@ -63,9 +68,14 @@ with sync_playwright() as p:
         check('点日 chip 后该日任务列表渲染', page.locator('#root').inner_text().strip() != '')
     else:
         check('历史页本月无任务时显示空态（不白屏）', page.locator('body').inner_text().strip() != '')
+    # 月视图内月份步进（kid-history-page 内的 histMonthBar）
+    prev_m = page.locator('[data-test="kid-history-page"] button', has_text='上个月')
+    if prev_m.count() == 0:
+        # 中文 aria-label 是「上个月」，按钮内是 back 图标——按 aria-label 找
+        prev_m = page.locator('[data-test="kid-history-page"] button[aria-label]')
     check('历史页无前端报错（pageerror=0）', len(errors) == 0, f'{errors[:2]}')
 
-    # 问题①：Week 页周总结卡
+    # 问题①：周总结卡（三合一后收在主页今日进度卡内）
     page.goto(BASE + '/week')
     page.wait_for_load_state('networkidle')
     page.wait_for_timeout(2000)

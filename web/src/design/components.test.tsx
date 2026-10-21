@@ -58,18 +58,18 @@ describe('ChoreRow', () => {
 describe('TabBar', () => {
   it('renders links with hrefs and reports navigation', () => {
     const onNavigate = vi.fn();
-    render(<TabBar active="week" hrefs={{ today: '/', week: '/week', rewards: '/rewards' }} onNavigate={onNavigate} />);
-    const week = screen.getByRole('link', { name: 'Week' });
-    expect(week.getAttribute('aria-current')).toBe('page');
+    render(<TabBar active="today" hrefs={{ today: '/', rewards: '/rewards' }} onNavigate={onNavigate} />);
+    const home = screen.getByRole('link', { name: 'Home' });
+    expect(home.getAttribute('aria-current')).toBe('page');
     fireEvent.click(screen.getByRole('link', { name: 'Rewards' }));
     expect(onNavigate).toHaveBeenCalledWith('rewards');
   });
 
   it('renders buttons without hrefs', () => {
     render(<TabBar />);
-    // today / week / history / errorbook / review / rewards — six tabs
-    // since 问题② added the whole-past History tab.
-    expect(screen.getAllByRole('button')).toHaveLength(6);
+    // today / errorbook / review / rewards — four tabs since the
+    // three-page merge folded Week and History into the Home screen.
+    expect(screen.getAllByRole('button')).toHaveLength(4);
   });
 });
 

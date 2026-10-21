@@ -33,7 +33,8 @@
       "titleRemove": "移除 PIN",
       "titleSet": "设置 PIN"
     },
-    "save": "保存"
+    "save": "保存",
+    "close": "关闭"
   },
   "dashboard": {
     "quickAssign": {
@@ -154,11 +155,9 @@
     "tabs": {
       "label": "主页",
       "rewards": "奖励",
-      "today": "今天",
-      "week": "本周",
+      "today": "主页",
       "errorbook": "错题本",
-      "review": "复习",
-      "history": "历史"
+      "review": "复习"
     }
   },
   "entry": {
@@ -653,7 +652,9 @@
       "emptyText": "换一个月看看。",
       "freeTitle": "自由的一天",
       "freeText": "那天没有任务。",
-      "foot": "历史记录只读 · 总结由系统在每月最后一天自动生成"
+      "foot": "历史记录只读 · 总结由系统在每月最后一天自动生成",
+      "expand": "月视图",
+      "collapse": "收起月视图"
     }
   },
   "linkedAccounts": {
@@ -1175,7 +1176,14 @@
       "tabErrorbook": "错题",
       "tabMeasures": "措施",
       "navMore": "还有 {{count}} 项未显示，左右滑动查看",
-      "navScrollHint": "左右滑动查看更多栏目"
+      "navScrollHint": "左右滑动查看更多栏目",
+      "groupOverview": "概览",
+      "groupTodo": "待处理",
+      "groupTasks": "任务",
+      "groupLearning": "学习",
+      "groupRewards": "激励",
+      "groupFamily": "家庭",
+      "more": "更多"
     },
     "editChore": {
       "labelCategory": "类别",
