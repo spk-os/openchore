@@ -42,17 +42,22 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e: errors.append(str(e)))
     login(page, '小明', '')
 
-    # 问题②：三页合一后，整月浏览在主页「月视图」展开区（kid-history-page）
+    # 问题②：三页合一后，整月浏览在主页月视图展开区（kid-history-page）。
+    # 2026-10-22 定稿：入口是周历条下方居中的小箭头（data-test="month-arrow"），
+    # 不再有「月视图」文字按钮；点箭头原地展开整月日历。
     page.goto(BASE + '/history')
     page.wait_for_load_state('networkidle')
     page.wait_for_timeout(2500)
-    # /history 重定向回主页；点「月视图」按钮展开历史区
-    mt = page.locator('button', has_text='月视图')
+    # /history 重定向回主页；点月视图箭头展开历史区
+    mt = page.locator('[data-test="month-arrow"]')
     mt.first.wait_for(state='visible', timeout=10000)
+    check('周历条下方居中月视图箭头存在（无「月视图」文字链接）',
+          mt.count() == 1 and page.locator('button', has_text='月视图').count() == 0,
+          f'arrow={mt.count()} textBtn={page.locator("button", has_text="月视图").count()}')
     mt.first.click()
     page.wait_for_timeout(2000)
     hp = page.locator('[data-test="kid-history-page"]')
-    check('主页「月视图」展开历史区（kid-history-page，问题②）', hp.count() > 0, f'url={page.url}')
+    check('点箭头展开月视图历史区（kid-history-page，问题②）', hp.count() > 0, f'url={page.url}')
     check('历史页月份条 + 日网格已渲染', page.locator('[data-test="hist-summary"]').count() > 0,
           f'pageerror={errors[:1]}')
     # 月总结卡三态之一必现（text / empty），不能整卡消失
@@ -78,7 +83,7 @@ with sync_playwright() as p:
     label_btn = page.locator('[data-test="kid-history-page"] button[aria-haspopup="listbox"]')
     if label_btn.count() == 0:
         # 点选日会收起月视图（pickDay 联动 setMonthOpen(false)），重新展开再验下拉
-        page.locator('button', has_text='月视图').first.click()
+        page.locator('[data-test="month-arrow"]').first.click()
         page.wait_for_timeout(1500)
         label_btn = page.locator('[data-test="kid-history-page"] button[aria-haspopup="listbox"]')
     if label_btn.count() > 0:
@@ -145,12 +150,12 @@ with sync_playwright() as p:
         check('点周历日切换所选日（标签仍渲染）',
               page2.locator('[data-test="history-day-label"]').count() >= 1,
               f'pageerror={errors2[:1]}')
-    # 点「月视图」→ 整月日历在周条原位置展开（kid-history-view）
-    mt2 = page2.locator('[data-test="kid-day-view"] button', has_text='月视图').first
+    # 点月视图箭头 → 整月日历在周条原位置展开（kid-history-view）
+    mt2 = page2.locator('[data-test="kid-day-view"] [data-test="month-arrow"]').first
     mt2.click()
     page2.wait_for_timeout(2000)
     hv = page2.locator('[data-test="kid-history-view"]')
-    check('点「月视图」整月日历展开（kid-history-view）', hv.count() > 0, f'pageerror={errors2[:1]}')
+    check('点月视图箭头整月日历展开（kid-history-view）', hv.count() > 0, f'pageerror={errors2[:1]}')
     admin_days = page2.locator('[data-test="kid-history-view"] [data-test="hist-days"] button:not([disabled])')
     if admin_days.count() > 0:
         admin_days.first.click()
@@ -162,7 +167,7 @@ with sync_playwright() as p:
         check('所选日清单渲染（history-day-label + done/total）',
               page2.locator('[data-test="history-day-label"]').count() >= 1)
         # 再展开一次验月份步进（‹ aria-label=上个月）
-        page2.locator('[data-test="kid-day-view"] button', has_text='月视图').first.click()
+        page2.locator('[data-test="kid-day-view"] [data-test="month-arrow"]').first.click()
         page2.wait_for_timeout(1500)
         prev_btn = page2.locator('[data-test="kid-history-view"] button[aria-label="上个月"]').first
         check('家长端月历月份步进钮存在', prev_btn.count() > 0)

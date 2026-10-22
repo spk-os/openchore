@@ -92,11 +92,11 @@ func TestCopilotDraftFromText(t *testing.T) {
 		map[string]any{"assigned_to": kid, "request": "下周每天背 20 个英语单词"}, adminHeaders(), http.StatusOK)
 	var out struct {
 		Tasks []struct {
-			Title       string `json:"title"`
-			Category    string `json:"category"`
-			PointsValue int    `json:"points_value"`
+			Title       string   `json:"title"`
+			Category    string   `json:"category"`
+			PointsValue int      `json:"points_value"`
 			Days        []string `json:"days"`
-			Confidence  float64 `json:"confidence"`
+			Confidence  float64  `json:"confidence"`
 		} `json:"tasks"`
 		Notes []string `json:"notes"`
 		Mode  string   `json:"mode"`
@@ -497,5 +497,67 @@ func TestApplyCopilotDraftValidates(t *testing.T) {
 	}
 	if n != 0 {
 		t.Fatalf("expected atomic rollback (0 chores), found %d", n)
+	}
+}
+
+// TestApplyCopilotDraftDedupOnRewrite pins the write-path dedup guard
+// (2026-10-22): applying the same card twice — the planner/verify loop used
+// to do exactly that — must skip the second copy, not land a duplicate chore.
+// The live database had「AI规划验收-每日口算10题」×4 from repeated applies.
+func TestApplyCopilotDraftDedupOnRewrite(t *testing.T) {
+	env := setupTest(t)
+	env.createAdmin(t)
+	kid := env.createChild(t, "小言")
+
+	type applyOut struct {
+		Applied int      `json:"applied"`
+		Skipped []string `json:"skipped"`
+	}
+
+	// First apply lands the card.
+	resp := env.expectStatus(t, "POST", "/api/admin/copilot/apply",
+		applyBody(kid, "planner"), adminHeaders(), http.StatusCreated)
+	var first applyOut
+	decodeBody(t, resp, &first)
+	if first.Applied != 1 || len(first.Skipped) != 0 {
+		t.Fatalf("expected 1 applied / 0 skipped on first apply, got %d / %v", first.Applied, first.Skipped)
+	}
+
+	// Second apply of the same card is deduped: 201 still, but nothing new.
+	resp = env.expectStatus(t, "POST", "/api/admin/copilot/apply",
+		applyBody(kid, "planner"), adminHeaders(), http.StatusCreated)
+	var second applyOut
+	decodeBody(t, resp, &second)
+	if second.Applied != 0 || len(second.Skipped) != 1 {
+		t.Fatalf("expected 0 applied / 1 skipped on repeat apply, got %d / %v", second.Applied, second.Skipped)
+	}
+
+	// Exactly one chore row and one set of schedules on disk.
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM chores`).Scan(&n); err != nil {
+		t.Fatalf("count chores: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("expected exactly 1 chore after two applies, found %d", n)
+	}
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM chore_schedules`).Scan(&n); err != nil {
+		t.Fatalf("count schedules: %v", err)
+	}
+	if n != 7 {
+		t.Fatalf("expected 7 schedules (one daily set), found %d", n)
+	}
+
+	// A duplicate card inside one request is caught the same way: the
+	// planner drafts repeat themselves, so the guard also dedups within
+	// the batch.
+	resp = env.expectStatus(t, "POST", "/api/admin/copilot/apply",
+		applyBody(kid, "planner",
+			map[string]any{"title": "读英语绘本 15 分钟", "category": "core", "points_value": 4, "days": []string{"daily"}},
+			map[string]any{"title": "读英语绘本15分钟", "category": "core", "points_value": 4, "days": []string{"daily"}},
+		), adminHeaders(), http.StatusCreated)
+	var third applyOut
+	decodeBody(t, resp, &third)
+	if third.Applied != 1 || len(third.Skipped) != 1 {
+		t.Fatalf("expected 1 applied / 1 skipped for in-batch duplicate, got %d / %v", third.Applied, third.Skipped)
 	}
 }

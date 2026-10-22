@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { api } from '../../api';
-import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote, Pet, PetResponse, PaperAnalysis } from '../../types';
+import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote, Pet, PetResponse, PaperAnalysis, CompletionAttachment } from '../../types';
 import { Avatar, CategoryHeader, CategoryMark, Icon, catFromCategory } from '../../design';
 import { localDateStr } from '../../utils';
 import { ApprovalList } from './ApprovalList';
+import Modal from '../Modal/Modal';
 import { PaperAnalysisModal } from './PaperAnalysisCard';
 import { IconWell, personColor } from './pickers';
 import { glanceFor, type TodayGlance } from './todayGlance';
@@ -192,6 +193,9 @@ const KidDayView: React.FC<{
   const week = useMemo(() => weekDates(today), [today]);
   const [selected, setSelected] = useState(today);
   const [monthOpen, setMonthOpen] = useState(false);
+  // 2026-10-22 用户定稿交互：月视图入口改成周历条下方居中的小箭头
+  // （点击或滑动），无「月视图」文字链接——与学生端同构。
+  const touchStartY = useRef<number | null>(null);
   // 所选月的全部行：周条与月历共用（与学生端「一次月请求」同构）。
   const [month, setMonth] = useState(() => monthOf(today));
   const [chores, setChores] = useState<ScheduledChore[] | null>(null);
@@ -245,6 +249,11 @@ const KidDayView: React.FC<{
   }, [month]);
   const dayList = byDate.get(selected) ?? [];
 
+  // 问题⑤：家长端能力覆盖孩子端——任务行加「查看提交」入口，点开
+  // Modal 看该次完成提交的附件（图文/视频/音频/PDF）与 AI 审查意见，
+  // 与孩子端 SubmissionSheet 同源（api.chores.listAttachments）。
+  const [viewing, setViewing] = useState<ScheduledChore | null>(null);
+
   const statusOf = (c: ScheduledChore) => {
     if (c.completion_status === 'excused') return t('admin.kidsStatusTab.statusExcused');
     if (c.completed && c.completion_status === 'pending') return t('admin.kidsStatusTab.statusPending');
@@ -259,6 +268,7 @@ const KidDayView: React.FC<{
         const isExcused = c.completion_status === 'excused';
         const isOverdue = !c.completed && c.expired && c.category !== 'bonus';
         const isPending = c.completion_status === 'pending';
+        const hasSubmission = !!(c.completion_id || c.photo_url);
         return (
           <li key={`${c.schedule_id}-${c.date}`} className={clsx(styles.chore, c.completed && styles.choreDone)}>
             <span className={clsx(
@@ -280,6 +290,17 @@ const KidDayView: React.FC<{
                 {statusOf(c)}
               </span>
             </span>
+            {hasSubmission && (
+              <button
+                type="button"
+                className={styles.viewSubmissionBtn}
+                data-test="view-submission"
+                onClick={() => setViewing(c)}
+              >
+                <Icon name="camera" size={16} />
+                <span>{t('kid.submission.viewBtn')}</span>
+              </button>
+            )}
           </li>
         );
       })}
@@ -364,7 +385,19 @@ const KidDayView: React.FC<{
           )}
         </div>
       ) : (
-        <div className={styles.weekStrip} role="group" aria-label={t('kid.week.days')}>
+        <div
+          className={styles.weekStrip}
+          role="group"
+          aria-label={t('kid.week.days')}
+          onTouchStart={e => { touchStartY.current = e.touches[0].clientY; }}
+          onTouchEnd={e => {
+            if (touchStartY.current == null) return;
+            const dy = e.changedTouches[0].clientY - touchStartY.current;
+            touchStartY.current = null;
+            if (Math.abs(dy) < 24) return;
+            if (dy < 0) setMonthOpen(true);
+          }}
+        >
           {week.map(date => {
             const d = new Date(`${date}T00:00:00`);
             const list = byDate.get(date) ?? [];
@@ -393,29 +426,170 @@ const KidDayView: React.FC<{
         </div>
       )}
 
-      {/* 月视图开关 + 所选日标签一行（与学生端 homeWeekRow 同构）。 */}
+      {/* 所选日标签一行；月视图入口是周历条下方居中的小箭头
+          （点击或滑动，无文字链接，与学生端同构）。 */}
       <div className={styles.dayViewBar}>
         <span className={styles.dayViewLabel} data-test="history-day-label">
           {new Date(`${selected}T00:00:00`).toLocaleDateString(lang, { month: 'long', day: 'numeric', weekday: 'short' })}
           {dayList.length > 0 && ` · ${dayList.filter(c => c.completed).length}/${dayList.length}`}
         </span>
-        <button
-          type="button"
-          className={styles.monthToggle}
-          aria-expanded={monthOpen}
-          onClick={() => setMonthOpen(v => !v)}
-        >
-          <Icon name="cal" />
-          <span>{monthOpen ? t('kid.history.collapse') : t('kid.history.expand')}</span>
-        </button>
       </div>
+      <button
+        type="button"
+        className={styles.monthArrow}
+        data-test="month-arrow"
+        aria-expanded={monthOpen}
+        aria-label={monthOpen ? t('kid.history.collapse') : t('kid.history.expand')}
+        onClick={() => setMonthOpen(v => !v)}
+      >
+        <Icon name="chev" className={monthOpen ? styles.monthArrowChevUp : styles.monthArrowChev} />
+      </button>
 
       {failed && <p className={ui.msgError} role="alert">{t('admin.kidsStatusTab.loadError')}</p>}
       {chores !== null && dayList.length === 0 && !failed && (
         <p className={ui.emptyInline}>{t('admin.kidsStatusTab.historyDayEmptyList')}</p>
       )}
       {chores !== null && dayList.length > 0 && renderChores(dayList)}
+      {viewing && <SubmissionViewModal chore={viewing} onClose={() => setViewing(null)} />}
     </div>
+  );
+};
+
+/** 问题⑤：单个提交的查看弹层——附件（图文/视频/音频/PDF）+ AI 审查
+ *  意见 + 完成时间，家长端覆盖孩子端 SubmissionSheet 的能力。 */
+const SubmissionViewModal: React.FC<{ chore: ScheduledChore; onClose: () => void }> = ({ chore, onClose }) => {
+  const { t } = useTranslation();
+  const [attachments, setAttachments] = useState<CompletionAttachment[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [zoomed, setZoomed] = useState<string | null>(null);
+  // 点开的非图片附件（视频/音频/PDF）在网格下方 inline 播放。
+  const [active, setActive] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActive(null);
+    if (!chore.completion_id) {
+      setAttachments([]);
+      return;
+    }
+    let live = true;
+    api.chores.listAttachments(chore.completion_id)
+      .then(atts => { if (live) setAttachments(atts); })
+      .catch(() => { if (live) { setFailed(true); setAttachments([]); } });
+    return () => { live = false; };
+  }, [chore.completion_id]);
+
+  const previews = useMemo(() => (attachments ?? []).map(a => ({
+    kind: a.mime_class,
+    url: a.file_path,
+    name: a.display_name,
+    feedback: a.ai_feedback,
+  })), [attachments]);
+  const legacyPhoto = chore.photo_url && !previews.some(p => p.url === chore.photo_url)
+    ? chore.photo_url
+    : null;
+  const doneAt = chore.completed_at ? new Date(chore.completed_at) : null;
+  const doneAtLine = doneAt && !Number.isNaN(doneAt.getTime()) ? doneAt.toLocaleString() : null;
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={t('kid.submission.title')}
+      maxWidth="640px"
+    >
+      <div className={styles.subView} data-test="admin-submission-view">
+        <p className={styles.subViewLead}>
+          <strong>{chore.title}</strong>
+          <span>
+            {doneAtLine
+              ? t('kid.submission.doneAt', { time: doneAtLine })
+              : t('kid.submission.doneLabel')}
+          </span>
+        </p>
+
+        {chore.ai_feedback && (
+          <div className={styles.subAiNote} data-test="submission-ai-note">
+            <span className={styles.subAiTitle}>{t('kid.submission.aiNote')}</span>
+            <p>{chore.ai_feedback}</p>
+          </div>
+        )}
+
+        <p className={styles.subCaption}>{t('kid.submission.attsCaption')}</p>
+
+        {attachments === null && <p className={ui.emptyInline} role="status">{t('kid.submission.loading')}</p>}
+        {attachments !== null && failed && <p className={ui.msgError} role="alert">{t('kid.submission.loadFailed')}</p>}
+        {attachments !== null && previews.length === 0 && !legacyPhoto && (
+          <p className={ui.emptyInline}>{t('kid.submission.emptyText')}</p>
+        )}
+
+        {attachments !== null && (previews.length > 0 || !!legacyPhoto) && (
+          <div className={styles.subGrid} data-test="admin-submission-grid" role="group">
+            {legacyPhoto && (
+              <button
+                type="button"
+                className={styles.subTile}
+                onClick={() => setZoomed(legacyPhoto)}
+                aria-label={t('kid.submission.legacyPhoto')}
+              >
+                <span className={styles.subBadge}>{t('kid.photo.cls_image')}</span>
+                <img src={legacyPhoto} alt="" loading="lazy" />
+              </button>
+            )}
+            {previews.map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                className={clsx(styles.subTile, active === p.url && styles.subTileActive)}
+                onClick={() => {
+                  if (p.kind === 'image') setZoomed(p.url);
+                  else setActive(active === p.url ? null : p.url);
+                }}
+                aria-label={t('kid.photo.attAria', { index: i + 1, name: p.name, cls: t(`kid.photo.cls_${p.kind}`) })}
+              >
+                <span className={styles.subBadge}>{t(`kid.photo.cls_${p.kind}`)}</span>
+                {p.kind === 'image' && <img src={p.url} alt="" loading="lazy" />}
+                {p.kind === 'video' && <span className={styles.subDocIcon}><Icon name="film" /></span>}
+                {p.kind === 'audio' && <span className={styles.subDocIcon}><Icon name="mic" /></span>}
+                {p.kind === 'pdf' && <span className={styles.subDocIcon}><Icon name="book" /></span>}
+                <span className={styles.subName}>{p.name}</span>
+                {p.feedback && <span className={styles.subTileFeedback}>{p.feedback}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 非图片附件 inline 播放：点网格里的视频/音频/PDF 才出现，再点收起。 */}
+        {(() => {
+          const current = previews.find(p => p.url === active);
+          if (!current) return null;
+          return (
+            <div className={styles.subPlayer} data-test="admin-submission-player">
+              {current.kind === 'video' && <video src={current.url} controls playsInline />}
+              {current.kind === 'audio' && <audio src={current.url} controls />}
+              {current.kind === 'pdf' && (
+                <object data={current.url} type="application/pdf" aria-label={current.name}>
+                  <a href={current.url} target="_blank" rel="noreferrer">{t('kid.submission.openPdf')}</a>
+                </object>
+              )}
+              <p className={styles.subPlayerName}>{current.name}</p>
+            </div>
+          );
+        })()}
+
+        {zoomed && (
+          <div
+            className={styles.subZoom}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('kid.submission.legacyPhoto')}
+            onClick={() => setZoomed(null)}
+          >
+            <img src={zoomed} alt="" />
+            <p>{t('kid.photo.referenceZoomHint')}</p>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 };
 

@@ -2066,7 +2066,7 @@
       "freeTitle": "Ein freier Tag",
       "freeText": "An diesem Tag stand nichts auf der Liste.",
       "foot": "Der Verlauf ist schreibgeschützt · die Zusammenfassung entsteht automatisch am Monatsende",
-      "expand": "Monatsansicht",
+      "expand": "Monatsansicht öffnen",
       "collapse": "Monatsansicht schließen",
       "dayEmpty": "Tag {{day}}: nichts geplant",
       "dayLabel": "Tag {{day}}: {{done}}/{{total}} erledigt"

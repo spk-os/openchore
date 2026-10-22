@@ -2078,8 +2078,8 @@
       "freeTitle": "A free day",
       "freeText": "Nothing on the list that day.",
       "foot": "History is read-only · the summary is written automatically on the last day of each month",
-      "expand": "Month view",
-      "collapse": "Hide month view",
+      "expand": "Open the month view",
+      "collapse": "Close the month view",
       "dayEmpty": "Day {{day}}: nothing scheduled",
       "dayLabel": "Day {{day}}: {{done}}/{{total}} done"
     }

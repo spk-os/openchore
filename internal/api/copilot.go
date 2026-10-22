@@ -370,6 +370,13 @@ type copilotApplyRequest struct {
 // dated one-off (春游准备). Everything runs in the template-import
 // transaction, so a bad card aborts the whole apply, and applying goes
 // through the same store paths a manual create does.
+//
+// 2026-10-22: apply is dedup-guarded the same way a fresh draft is — a card
+// whose title near-duplicates an existing chore (or an earlier card in this
+// same request) is skipped with a note instead of creating a second copy.
+// The planner/verify loop used to fan out one chore per apply call
+// (「AI规划验收-每日口算10题」×4 on live), so the guard lives on the write
+// path, not only on DraftWithCopilot's read path.
 func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request) {
 	user := UserFromContext(r.Context())
 	var req copilotApplyRequest
@@ -398,6 +405,20 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Prefetch the household's chore titles once: every card is checked
+	// against this list, and titles of cards we do apply are appended so a
+	// duplicate inside one request (planner drafts repeat themselves) is
+	// caught too.
+	existingChores, err := h.store.ListChores(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load chores")
+		return
+	}
+	existingTitles := make([]string, 0, len(existingChores)+len(req.Tasks))
+	for _, c := range existingChores {
+		existingTitles = append(existingTitles, c.Title)
+	}
+
 	tx, err := h.store.BeginTemplateTx(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to start apply")
@@ -407,11 +428,19 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 
 	today := time.Now().Format(model.DateFormat)
 	applied := make([]model.Chore, 0, len(req.Tasks))
+	skipped := make([]string, 0)
 	for _, t := range req.Tasks {
 		if t.Title == "" {
 			writeError(w, http.StatusBadRequest, "task title is required")
 			return
 		}
+		// The write-path dedup guard: a card duplicating an existing chore
+		// (or an earlier card in this request) is skipped, not landed.
+		if match := similarExisting(t.Title, existingTitles); match != "" {
+			skipped = append(skipped, fmt.Sprintf("与现有任务「%s」重复，已跳过「%s」", match, t.Title))
+			continue
+		}
+		existingTitles = append(existingTitles, t.Title)
 		category := t.Category
 		if category == "" {
 			category = model.CategoryCore
@@ -526,5 +555,6 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"applied": len(applied),
 		"chores":  applied,
+		"skipped": skipped,
 	})
 }

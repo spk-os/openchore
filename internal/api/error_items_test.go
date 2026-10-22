@@ -585,3 +585,68 @@ func truncateForLog(s string) string {
 	}
 	return s
 }
+
+// TestCorrectionTaskIdempotent pins the 一键订正 idempotency (2026-10-22):
+// a double-tap used to fan out a second chore+schedule for the same error
+// item (live had a 订正 pair on error_item:2). The second request reuses
+// the existing chore — 200 + reused:true — and lands nothing new.
+func TestCorrectionTaskIdempotent(t *testing.T) {
+	env, _ := setupPaperTest(t)
+	env.createAdmin(t)
+	kidID, completionID := completePhotoChore(t, env)
+
+	analysisID := env.startAnalysis(t, completionID)
+	env.chores.WaitForAnalyses()
+	_ = env.waitForAnalysisDone(t, analysisID)
+
+	resp := env.expectStatus(t, "GET", fmt.Sprintf("/api/error-items?user_id=%d", kidID), nil, adminHeaders(), http.StatusOK)
+	var items []errorItemResp
+	decodeBody(t, resp, &items)
+	if len(items) == 0 {
+		t.Fatal("expected the kid's items via user_id filter")
+	}
+
+	type correctionOut struct {
+		Chore struct {
+			ID    int64  `json:"id"`
+			Title string `json:"title"`
+		} `json:"chore"`
+		Reused bool `json:"reused"`
+	}
+
+	// First tap creates.
+	resp = env.expectStatus(t, "POST", fmt.Sprintf("/api/admin/error-items/%d/correction-task", items[0].ID),
+		map[string]any{"points": 4}, adminHeaders(), http.StatusCreated)
+	var first correctionOut
+	decodeBody(t, resp, &first)
+	if first.Reused {
+		t.Fatalf("first tap must create, got reused=true (chore %d)", first.Chore.ID)
+	}
+
+	// Second tap on the same item reuses the same chore — no new row.
+	resp = env.expectStatus(t, "POST", fmt.Sprintf("/api/admin/error-items/%d/correction-task", items[0].ID),
+		map[string]any{"points": 4}, adminHeaders(), http.StatusOK)
+	var second correctionOut
+	decodeBody(t, resp, &second)
+	if !second.Reused {
+		t.Fatalf("second tap must reuse, got reused=false (chore %d)", second.Chore.ID)
+	}
+	if second.Chore.ID != first.Chore.ID {
+		t.Fatalf("expected the same chore %d reused, got a new chore %d", first.Chore.ID, second.Chore.ID)
+	}
+
+	// Exactly one correction chore and one schedule survived both taps.
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM chores WHERE title LIKE '订正错题%'`).Scan(&n); err != nil {
+		t.Fatalf("count correction chores: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("expected exactly 1 correction chore, found %d", n)
+	}
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM chore_schedules WHERE chore_id = ?`, first.Chore.ID).Scan(&n); err != nil {
+		t.Fatalf("count schedules: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("expected exactly 1 schedule on the reused chore, found %d", n)
+	}
+}

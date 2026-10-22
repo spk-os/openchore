@@ -1,11 +1,13 @@
 // 主页 = 今天 + 本周 + 历史 三合一（OD spk-openchore kid-home.html 的契约）。
 // Today 的全部（进度弧 / 入口卡 / 任务组 / 教练备注）保持原位；「本周」的
 // 周历条与 streak 收进今日进度卡的底部一行；「历史」的月历在周历条的
-// 原位置就地展开（点「月视图」→ 整月日历替换周条，点日期 → 周条回来、
-// 任务列表换成所选日——布局不变，只换内容，opencore.png 参考图交互）。
+// 原位置就地展开（周历条下方居中小箭头点击或滑动 → 整月日历替换周条，
+// 点日期 → 周条回来、任务列表换成所选日——布局不变，只换内容，
+// opencore.png 参考图交互）。周历条的日期数字在圆圈内（2026-10-22
+// 用户定稿：日期在圈里，不要在圈下面）。
 // 选中「今天」的任务可交互；过去日只读（choreView 的 canToggle 只对
 // isToday 放开，天然安全）。
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { DayProgress, Greeting, Icon, catFromCategory, salutationFor, type DayProgressItem } from '../../design';
@@ -33,32 +35,32 @@ export const dayFraction = (d: Date) =>
 /** The four marks a week-strip day can wear. */
 type DayKind = 'full' | 'partial' | 'future' | 'none';
 
-function DayMark({ kind, pct }: { kind: DayKind; pct: number }) {
+// 参考图 opencore.png 的形态：日期数字进圈里（不是圈下一个裸数字）。
+// 四态语义保留——full 实心圈白字、partial 轨道圈+高亮弧+数字、
+// future 虚线圈+数字、none 无任务小圆点（数字仍在旁侧小字）。
+function DayRing({ num, kind, pct, isToday }: { num: number; kind: DayKind; pct: number; isToday: boolean }) {
   return (
-    <svg className={s.dayMark} data-kind={kind} viewBox="0 0 36 36" aria-hidden focusable="false">
-      {kind === 'full' && (
+    <span
+      className={s.dayRing}
+      data-kind={kind}
+      data-today={isToday || undefined}
+      data-full={kind === 'full' || undefined}
+      aria-hidden
+    >
+      {kind === 'none' ? (
         <>
-          <circle className={s.dayFull} cx="18" cy="18" r="16" />
-          <path className={s.dayTick} d="M11.5 18.5l4.5 4.5 8.5-9" />
+          <span className={s.dayRingNum}>{num}</span>
+          <span className={s.dayRingDot} />
         </>
-      )}
-      {kind === 'partial' && (
+      ) : kind === 'partial' ? (
         <>
-          <circle className={s.dayTrack} cx="18" cy="18" r="14.5" />
-          {pct > 0 && (
-            <circle
-              className={s.dayArc}
-              cx="18" cy="18" r="14.5"
-              pathLength={100}
-              strokeDasharray={`${pct} 100`}
-              transform="rotate(-90 18 18)"
-            />
-          )}
+          {pct > 0 && <span className={s.dayRingArc} style={{ background: `conic-gradient(var(--highlight) ${pct}%, transparent 0)` }} />}
+          <span className={s.dayRingNum}>{num}</span>
         </>
+      ) : (
+        <span className={s.dayRingNum}>{num}</span>
       )}
-      {kind === 'future' && <circle className={s.dayDashed} cx="18" cy="18" r="14.5" />}
-      {kind === 'none' && <circle className={s.dayNone} cx="18" cy="18" r="3" />}
-    </svg>
+    </span>
   );
 }
 
@@ -86,6 +88,11 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
   useEffect(() => { setSelected(data.today); }, [data.today]);
 
   const [monthOpen, setMonthOpen] = useState(false);
+  // 2026-10-22 用户定稿交互：月视图入口不再是「月视图」文字按钮，而是
+  // 周历条下方居中的小箭头——点击或上下滑动切换（todo 清单下拉语义）。
+  const touchStartY = useRef<number | null>(null);
+  const openMonth = useCallback(() => setMonthOpen(true), []);
+  const toggleMonth = useCallback(() => setMonthOpen(v => !v), []);
   const week = weekDates(data.today);
   const allWeek = data.weekChores ?? [];
   // 选中日可能落在当前周之外（月视图点选），任务数据源跟随选中日：
@@ -162,13 +169,25 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
                 {pending > 0 && <span>{t('kid.today.pending', { count: pending })}</span>}
               </p>
             )}
-            {/* 参考图交互：点「月视图」→ 整月日历在周历条的原位置展开
-                （替换 .strip），点日期后月历收起、周条回来，任务列表
-                换成所选日——布局不变，只换内容。 */}
+            {/* 参考图交互：周历条下方居中小箭头点击/上下滑动 → 整月日历
+                在周历条的原位置展开（替换 .strip），点日期后月历收起、
+                周条回来，任务列表换成所选日——布局不变，只换内容。 */}
             {monthOpen ? (
               <MonthView user={user} today={data.today} onPickDay={pickDay} />
             ) : (
-              <div className={s.strip} role="group" aria-label={t('kid.week.days')}>
+              <div
+                className={s.strip}
+                role="group"
+                aria-label={t('kid.week.days')}
+                onTouchStart={e => { touchStartY.current = e.touches[0].clientY; }}
+                onTouchEnd={e => {
+                  if (touchStartY.current == null) return;
+                  const dy = e.changedTouches[0].clientY - touchStartY.current;
+                  touchStartY.current = null;
+                  if (Math.abs(dy) < 24) return;
+                  if (dy < 0) openMonth();
+                }}
+              >
                 {week.map(date => {
                   const d = new Date(`${date}T00:00:00`);
                   const list = allWeek.filter(c => c.date === date);
@@ -190,14 +209,14 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
                       onClick={() => setSelected(date)}
                     >
                       <span className={s.dayName} aria-hidden>{d.toLocaleDateString(lang, { weekday: 'short' })}</span>
-                      <DayMark kind={kind} pct={total ? (done / total) * 100 : 0} />
-                      <span className={s.dayNum} aria-hidden>{d.getDate()}</span>
+                      <DayRing num={d.getDate()} kind={kind} pct={total ? (done / total) * 100 : 0} isToday={isToday} />
                     </button>
                   );
                 })}
               </div>
             )}
-            {/* 本周小结行：🔥 streak · 周总结卡 · 月视图开关。 */}
+            {/* 本周小结行：🔥 streak · 周总结卡。月视图开关收进周历条
+                下方的居中小箭头（点击或滑动展开，无文字链接）。 */}
             <div className={s.homeWeekRow}>
               <section className={s.streakInline} aria-label={t('kid.week.streak')}>
                 <span className={s.streakIcon}><Icon name="flame" fill size={26} /></span>
@@ -206,18 +225,18 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
                   <span className={s.streakSub}>{t('kid.week.best', { count: streak?.longest_streak ?? 0 })}</span>
                 </span>
               </section>
-              <button
-                type="button"
-                className={s.monthToggle}
-                aria-expanded={monthOpen}
-                aria-controls="home-month-view"
-                onClick={() => setMonthOpen(v => !v)}
-              >
-                <Icon name="cal" />
-                <span>{monthOpen ? t('kid.history.collapse') : t('kid.history.expand')}</span>
-                <Icon name="chev" className={monthOpen ? s.monthToggleChevUp : s.monthToggleChev} />
-              </button>
             </div>
+            <button
+              type="button"
+              className={s.monthArrow}
+              data-test="month-arrow"
+              aria-expanded={monthOpen}
+              aria-controls="home-month-view"
+              aria-label={monthOpen ? t('kid.history.collapse') : t('kid.history.expand')}
+              onClick={toggleMonth}
+            >
+              <Icon name="chev" className={monthOpen ? s.monthArrowChevUp : s.monthArrowChev} />
+            </button>
             {streak?.next_reward && (
               <p className={s.streakNext}>
                 {t('kid.week.nextMilestone', {

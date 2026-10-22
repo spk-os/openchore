@@ -349,16 +349,59 @@
   letter-spacing: 0.02em;
   text-transform: var(--label-case);
 }
-.dayNum { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .dayToday { color: var(--ink); }
 .daySelected { background: var(--surface-raised); border-color: var(--line); box-shadow: var(--lift); color: var(--ink); }
-.dayMark { width: 36px; height: 36px; overflow: visible; }
-.dayFull { fill: var(--done); stroke: var(--line); stroke-width: var(--mark-stroke); }
-.dayTick { fill: none; stroke: var(--on-done); stroke-width: 2.75; stroke-linecap: round; stroke-linejoin: round; }
-.dayTrack { fill: none; stroke: var(--surface-sunk); stroke-width: 4; }
-.dayArc { fill: none; stroke: var(--highlight); stroke-width: 4; stroke-linecap: round; }
-.dayDashed { fill: none; stroke: var(--ink-muted); stroke-width: 2; stroke-dasharray: 3 4.5; }
-.dayNone { fill: var(--ink-muted); }
+
+/* 日期进圈（2026-10-22 用户定稿：数字在圆圈内，不在圈下）。
+   四态：full 实心圈反色字 / partial 轨道圈+conic 进度弧 / future 虚线圈
+   / none 无任务——数字+旁侧小圆点。today 由 data-today 描边强调。 */
+.dayRing {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink);
+}
+.dayRing[data-today] { border-color: var(--highlight); }
+.dayRing[data-kind='full'] {
+  border-color: var(--done);
+  background: var(--done);
+  color: var(--on-done);
+}
+.dayRing[data-kind='future'] {
+  border-style: dashed;
+  border-color: var(--ink-muted);
+  color: var(--ink-muted);
+}
+.dayRing[data-kind='none'] { border-color: transparent; }
+.dayRingNum {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.dayRing[data-kind='partial'] .dayRingNum { color: var(--ink); }
+.dayRingArc {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  /* conic 进度扇形作弧底，中空露出轨道圈与数字。 */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+}
+.dayRingDot {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+}
 
 /* ---------- 主页三合一：今日进度卡（今天+本周+历史收进一张卡） ---------- */
 .homeProgressCard {
@@ -395,28 +438,26 @@
   line-height: 20px;
 }
 .streakInline .streakSub { font-size: 12px; }
-.monthToggle {
-  flex: none;
+
+/* 月视图入口箭头（2026-10-22 定稿）：无文字链接，周历条下方居中的
+   小 chevron，点击或上下滑动切换月视图；收起朝下、展开朝上。 */
+.monthArrow {
+  align-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 var(--space-3);
+  justify-content: center;
+  width: 44px;
+  height: 28px;
   box-sizing: border-box;
-  border: var(--outline-w) solid var(--line);
-  border-radius: var(--oc-radius-pill);
-  background: var(--chip);
-  color: var(--on-chip);
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 700;
+  border: none;
+  border-radius: var(--oc-radius-md);
+  background: transparent;
+  color: var(--ink-muted);
   cursor: pointer;
 }
-.monthToggle svg { width: 17px; height: 17px; }
-.monthToggle:active { transform: scale(0.96); }
-/* 展开状态指示箭头：收起朝下、展开朝上（todo清单的下拉箭头语义）。 */
-.monthToggleChev { width: 14px !important; height: 14px !important; }
-.monthToggleChevUp { width: 14px !important; height: 14px !important; transform: rotate(-90deg); }
+.monthArrow:active { transform: scale(0.92); background: var(--chip); }
+.monthArrowChev { width: 18px !important; height: 18px !important; transform: rotate(90deg); }
+.monthArrowChevUp { width: 18px !important; height: 18px !important; transform: rotate(-90deg); }
 
 /* 月视图展开区嵌进主页时，不再占独立页的满宽。 */
 .histScreen { margin-bottom: var(--space-4); }
@@ -1315,7 +1356,7 @@
   .rewardsMain { max-width: 600px; padding-top: 60px; }
   .rewardsMain > .sectionTitle:first-child { margin-top: 0; }
 
-  .dayMark { width: 44px; height: 44px; }
+  .dayRing { width: 40px; height: 40px; }
 }
 
 /* ---------- L1: the wrong-question book (errorbook) ---------- */

@@ -826,6 +826,52 @@ func (h *ChoreHandler) CreateCorrectionTask(w http.ResponseWriter, r *http.Reque
 		externalID = "error_item:" + strconv.FormatInt(item.ID, 10) + "|" + item.Source
 	}
 
+	// Idempotency (2026-10-22): a double-tap on「一键订正」used to fan out a
+	// second chore+schedule for the same error item (live had a 订正 pair on
+	// error_item:2). If a chore with this exact external_id already exists,
+	// reuse it — same chore, plus the schedule the request asked for only if
+	// it doesn't have one yet.
+	if existing := h.findChoreByExternalID(r, externalID); existing != nil {
+		date := time.Now().Format(model.DateFormat)
+		if req.SpecificDate != nil && *req.SpecificDate != "" {
+			date = *req.SpecificDate
+		}
+		schedules, err := h.store.ListSchedulesForChore(r.Context(), existing.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list schedules")
+			return
+		}
+		if len(schedules) > 0 {
+			writeJSON(w, http.StatusOK, map[string]any{
+				"chore":    existing,
+				"schedule": schedules[0],
+				"reused":   true,
+			})
+			return
+		}
+		schedule := &model.ChoreSchedule{
+			ChoreID:          existing.ID,
+			AssignedTo:       item.UserID,
+			AssignmentType:   model.AssignmentIndividual,
+			SpecificDate:     &date,
+			PointsMultiplier: 1.0,
+			ExpiryPenalty:    model.ExpiryBlock,
+		}
+		if req.DueBy != nil && *req.DueBy != "" {
+			schedule.DueBy = req.DueBy
+		}
+		if err := h.store.CreateSchedule(r.Context(), schedule); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to create schedule")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"chore":    existing,
+			"schedule": schedule,
+			"reused":   true,
+		})
+		return
+	}
+
 	chore := &model.Chore{
 		Title:            title,
 		Description:      description,
@@ -865,6 +911,23 @@ func (h *ChoreHandler) CreateCorrectionTask(w http.ResponseWriter, r *http.Reque
 		"chore":    chore,
 		"schedule": schedule,
 	})
+}
+
+// findChoreByExternalID scans the household's chores for one whose
+// external_id matches exactly. There is no dedicated store query for this
+// (external_id is a free-form column shared by copilot drafts, flyers and
+// error items), so the scan happens here over ListChores.
+func (h *ChoreHandler) findChoreByExternalID(r *http.Request, externalID string) *model.Chore {
+	chores, err := h.store.ListChores(r.Context())
+	if err != nil {
+		return nil
+	}
+	for i := range chores {
+		if chores[i].ExternalID == externalID {
+			return &chores[i]
+		}
+	}
+	return nil
 }
 
 // ErrorBookReport is the aggregate view the parent's diagnosis page needs

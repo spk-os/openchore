@@ -939,27 +939,191 @@
   color: var(--ink-muted);
 }
 
-.monthToggle {
+/* 2026-10-22 用户定稿：月视图入口不再是「月视图」文字按钮，而是周历条
+   下方居中的小箭头（点击或上下滑动，与学生端同构，无文字链接）。 */
+.monthArrow {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 28px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--r-pill, 999px);
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.monthArrow:active { transform: scale(0.92); background: var(--surface-sunk); }
+.monthArrowChev { width: 18px !important; height: 18px !important; transform: rotate(90deg); }
+.monthArrowChevUp { width: 18px !important; height: 18px !important; transform: rotate(-90deg); }
+
+/* ---------- 问题⑤ v2: the parent-side submission viewer (SubmissionViewModal)
+   — covers the kid-side SubmissionSheet: attachments grid + AI note + zoom. ---------- */
+
+/* The per-chore row button that opens the viewer ("查看提交"). */
+.viewSubmissionBtn {
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 0 12px;
+  gap: 5px;
+  margin-left: auto;
+  padding: 6px 10px;
   box-sizing: border-box;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--surface-sunk);
-  color: var(--ink);
+  background: var(--surface-raised);
+  color: var(--ink-muted);
   font-family: var(--font-text);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
+.viewSubmissionBtn:hover { color: var(--ink); border-color: color-mix(in oklab, var(--ink) 30%, var(--line)); }
+.viewSubmissionBtn svg { width: 14px; height: 14px; }
 
-.monthToggle[aria-expanded="true"] {
-  background: var(--surface-raised);
-  border-color: color-mix(in oklab, var(--ink) 30%, var(--line));
+/* Modal body: title + done-at on one lead line. */
+.subView { display: grid; gap: var(--space-2); }
+.subViewLead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.subViewLead strong { font-size: 15px; color: var(--ink); }
+
+/* The AI reviewer's note card (same shape as the kid side). */
+.subAiNote {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-row);
+  background: var(--surface-sunk);
+}
+.subAiTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.subAiNote p { margin: 4px 0 0; font-size: 14px; color: var(--ink); }
+
+/* Caption line above the grid ("提交的附件"). */
+.subCaption {
+  margin: var(--space-2) 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
 }
 
-.monthToggle svg { width: 15px; height: 15px; }
+/* The attachment grid: square cells, tight gaps (the kid side's 3-col .atts). */
+.subGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.subTile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-sunk);
+  overflow: hidden;
+  cursor: pointer;
+}
+.subTileActive { border-color: var(--accent, var(--ink)); }
+.subTile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.subDocIcon {
+  position: absolute;
+  inset: 0 0 22%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+}
+.subDocIcon svg { width: 32%; height: 32%; }
+/* mime-class corner mark (图片/视频/音频/PDF). */
+.subBadge {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  z-index: 1;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--ink) 76%, transparent);
+  color: var(--surface);
+}
+/* Filename strip at the cell bottom, one ellipsised line. */
+.subName {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--surface-raised) 86%, transparent);
+  border-radius: 6px;
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Per-attachment AI feedback strip above the filename. */
+.subTileFeedback {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 24px;
+  z-index: 1;
+  font-size: 9px;
+  line-height: 1.3;
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--surface-raised) 86%, transparent);
+  border-radius: 6px;
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Inline player (video/audio/pdf) under the grid, once tapped. */
+.subPlayer {
+  margin: var(--space-2) 0 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.subPlayer video,
+.subPlayer audio,
+.subPlayer object { width: 100%; border-radius: 12px; }
+.subPlayer object { min-height: 320px; background: var(--surface-sunk); }
+.subPlayerName {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+/* Full-screen zoom for photos (the kid side's refZoom shape). */
+.subZoom {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--ink) 85%, transparent);
+  cursor: pointer;
+}
+.subZoom img { max-width: 100%; max-height: 80vh; border-radius: var(--r-row); }
+.subZoom p { color: #fff; font-size: 14px; font-weight: 600; margin: 0; }
