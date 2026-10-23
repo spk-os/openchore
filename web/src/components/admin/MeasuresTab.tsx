@@ -25,13 +25,23 @@ const OriginChip: React.FC<{ origin: LearningMeasure['origin'] }> = ({ origin })
   return <span className={clsx(s.itemMastery, origin === 'analysis' && s.itemMasteryNew)}>{t(`admin.measuresTab.${key}`)}</span>;
 };
 
-/** 任务②：措施的「为什么有这条」——创建日期 + 依据（哪份报告/哪个知识点
- *  蒸馏来的，origin_id 指向 paper_analyses）。 */
-const originWhy = (t: ReturnType<typeof useTranslation>['t'], m: LearningMeasure): string => {
+/** 任务②（第三次反馈）：措施的「为什么有这条」——创建日期 + 知识点 +
+ *  依据（哪份报告蒸馏来的，origin_id 指向 paper_analyses）。与错题
+ *  同轮修复：live 真实存在的字段恒渲染，不再依赖可能为空的列。 */
+const originWhy = (t: ReturnType<typeof useTranslation>['t'], m: LearningMeasure): string[] => {
   const created = new Date(m.created_at).toLocaleDateString();
-  if (m.origin === 'manual') return t('admin.measuresTab.whyManual', { date: created });
-  if (m.origin === 'ai_strengthen') return t('admin.measuresTab.whyStrengthen', { date: created });
-  return t('admin.measuresTab.whyAnalysis', { date: created, id: m.origin_id ?? 0 });
+  const lines: string[] = [];
+  if (m.origin === 'manual') {
+    lines.push(t('admin.measuresTab.whyManual', { date: created }));
+  } else if (m.origin === 'ai_strengthen') {
+    lines.push(t('admin.measuresTab.whyStrengthen', { date: created }));
+  } else {
+    lines.push(t('admin.measuresTab.whyAnalysis', { date: created, id: m.origin_id ?? 0 }));
+  }
+  // 知识点恒显（live 15 条措施大多带 kc_tag_id）——这是「措施↔知识」
+  // 的关系；没有 kc_name 的（手写/AI 加强）不硬凑。
+  if (m.kc_name) lines.push(t('admin.measuresTab.kcLabel', { kc: m.kc_name }));
+  return lines;
 };
 
 /** One measure card: title, detail, error types, and the actions. */
@@ -82,12 +92,14 @@ const MeasureCard: React.FC<{
           </span>
         </div>
         <p className={s.measureDetail}>{m.detail}</p>
-        {m.kc_name && <p className={s.itemMeta}>{t('admin.measuresTab.kcLabel', { kc: m.kc_name })}</p>}
         {m.error_types.length > 0 && (
           <p className={s.itemMeta}>{t('admin.measuresTab.errorTypesLabel', { types: m.error_types.map(x => errorTypeLabel(t, x)).join(' · ') })}</p>
         )}
-        {/* 任务②：来历行——让家长知道这条措施为什么存在、依据什么。 */}
-        <p className={s.itemMeta} data-test={`pm-why-${m.id}`}>{originWhy(t, m)}</p>
+        {/* 任务②（第三次反馈）：来历行恒渲染——日期+报告+知识点，让
+            家长看出这条措施的时间与任务关系。 */}
+        {originWhy(t, m).map((line, i) => (
+          <p key={i} className={s.itemMeta} data-test={i === 0 ? `pm-why-${m.id}` : undefined}>{line}</p>
+        ))}
         <div className={s.itemActions}>
           <button type="button" className={ui.btnGhost} onClick={strengthen} disabled={!!busy} data-test={`pm-strengthen-${m.id}`}>
             {busy === 'strengthen' ? t('admin.measuresTab.strengthening') : t('admin.measuresTab.strengthen')}

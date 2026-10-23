@@ -173,6 +173,9 @@ export interface Chore {
   photo_source?: 'child' | 'external' | 'both';
   /** Parent's "this is what done looks like" example photo. '' = none. */
   reference_photo_url?: string;
+  /** The chore's external provenance (L1): "error_item:<id>" on correction
+   *  tasks — the error book matches it back to show the linked task. */
+  external_id?: string;
   tts_audio_url?: string;
 }
 

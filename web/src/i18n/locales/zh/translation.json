@@ -2186,7 +2186,10 @@
       "weekScopeItems": "本周 {{count}} 道错题",
       "weekScopeFixed": "{{count}} 已订正",
       "weekScopeManual": "{{count}} 待人工",
-      "itemTrace": "{{subject}} · {{date}} 错的 · 来自「{{title}}」"
+      "itemTrace": "{{subject}} · {{date}} 错的 · 来自「{{title}}」",
+      "itemOrigin": "{{subject}} · {{date}} 进本",
+      "itemLinkedTask": "已关联订正任务：「{{title}}」",
+      "itemSource": "来源：{{source}}"
     },
     "measuresTab": {
       "heading": "学习措施",

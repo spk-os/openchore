@@ -1365,7 +1365,10 @@
       "weekScopeItems": "{{count}} wrong this week",
       "weekScopeFixed": "{{count}} fixed",
       "weekScopeManual": "{{count}} need review",
-      "itemTrace": "{{subject}} · wrong on {{date}} · from “{{title}}”"
+      "itemTrace": "{{subject}} · wrong on {{date}} · from “{{title}}”",
+      "itemOrigin": "{{subject}} · added {{date}}",
+      "itemLinkedTask": "Linked correction task: “{{title}}”",
+      "itemSource": "Source: {{source}}"
     },
     "measuresTab": {
       "heading": "Learning measures",

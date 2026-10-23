@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { api } from '../../api';
-import type { ErrorItem, KnowledgeTag, User } from '../../types';
+import type { Chore, ErrorItem, KnowledgeTag, User } from '../../types';
 import { MathText } from '../MathText';
 import { Icon } from '../../design';
 import ui from './ui.module.css';
@@ -36,18 +36,25 @@ const masteryKey = (m: number) => m === 2 ? 'mastered' : m === 1 ? 'reviewing' :
 /** One wrong question row: verdict, stem, AI note, and the actions. */
 const ItemRow: React.FC<{
   item: ErrorItem;
+  /** 错题→订正任务的现成关联：external_id 为 error_item:<id> 的任务，
+   *  由 ErrorbookTab 拉一次 chores 建映射传入（live 真实存在）。 */
+  linkedTask?: { id: number; title: string };
   onDeleted: (id: number) => void;
   onToast: (msg: string) => void;
-}> = ({ item, onDeleted, onToast }) => {
+}> = ({ item, linkedTask, onDeleted, onToast }) => {
   const { t } = useTranslation();
   const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [hasTask, setHasTask] = useState(false);
+  const [madeTask, setMadeTask] = useState(false);
+  // 挂载即知已有订正任务（外部关联优先），不再只看本轮点击。
+  const hasTask = madeTask || !!linkedTask;
 
-  // 任务②：错题行头也带日期——不展开就能看出「哪天错的」。
-  const dateLabel = item.errored_date
-    ? new Date(`${item.errored_date}T00:00:00`).toLocaleDateString(i18n.language, { month: 'numeric', day: 'numeric' })
+  // 任务②（第三次反馈）：日期恒显示——errored_date 没有时回退
+  // created_at（live 恒有），家长不展开也能看出「哪天进本的」。
+  const dateStr = item.errored_date || item.created_at.slice(0, 10);
+  const dateLabel = dateStr
+    ? new Date(`${dateStr}T00:00:00`).toLocaleDateString(i18n.language, { month: 'numeric', day: 'numeric' })
     : '';
 
   const del = async () => {
@@ -69,7 +76,7 @@ const ItemRow: React.FC<{
     setBusy(true);
     try {
       await api.admin.createCorrectionTask(item.id);
-      setHasTask(true);
+      setMadeTask(true);
       onToast(t('admin.errorbookTab.taskCreated'));
     } catch {
       onToast(t('admin.errorbookTab.taskFailed'));
@@ -93,21 +100,21 @@ const ItemRow: React.FC<{
       </button>
       {open && (
         <div className={s.itemBody}>
-          {/* 任务②：错题的「来历」——哪天的卷、哪个任务/拍卷来的，让家长
-              一眼看出这道题为什么在这里（可追溯三列：errored_date /
-              chore_title / source）。 */}
-          {item.errored_date && item.chore_title && (
-            <p className={s.itemMeta}>{t('admin.errorbookTab.itemTrace', {
-              subject: subjectLabel(t, item.subject),
-              date: item.errored_date,
-              title: item.chore_title,
-            })}</p>
+          {/* 任务②（第三次反馈）：「来历」行恒渲染——上轮依赖的
+              errored_date/chore_title 在 live 存量全 NULL，条件永不成立，
+              所以用户「说了两次都没改」。本轮用 live 真实存在的数据：
+              日期（errored_date 回退 created_at）+ 关联订正任务
+              （external_id=error_item:<id>）+ 来源 + 知识点，一个都不少。 */}
+          <p className={s.itemMeta} data-test={`pe-item-${item.id}-origin`}>
+            {t('admin.errorbookTab.itemOrigin', { subject: subjectLabel(t, item.subject), date: dateStr })}
+          </p>
+          {linkedTask && (
+            <p className={s.itemMeta} data-test={`pe-item-${item.id}-task`}>
+              {t('admin.errorbookTab.itemLinkedTask', { title: linkedTask.title })}
+            </p>
           )}
-          {!item.errored_date && item.source && (
-            <p className={s.itemMeta}>{t('admin.errorbookTab.itemTitle', { subject: subjectLabel(t, item.subject), source: item.source })}</p>
-          )}
-          {!item.errored_date && !item.source && (
-            <p className={s.itemMeta}>{t('admin.errorbookTab.itemNoSource', { subject: subjectLabel(t, item.subject) })}</p>
+          {item.source && (
+            <p className={s.itemMeta}>{t('admin.errorbookTab.itemSource', { source: item.source })}</p>
           )}
           {item.wrong_answer_text && (
             <p className={s.itemWrote}>{t('admin.errorbookTab.fixWrong')}：<MathText text={item.wrong_answer_text} /></p>
@@ -135,6 +142,18 @@ const ItemRow: React.FC<{
   );
 };
 
+/** 任务②：错题→订正任务映射——拉一次 chores，按 external_id
+ *  (error_item:<id>) 建错题 id → 任务行映射。 */
+const buildTaskMap = (chores: Chore[]): Map<number, { id: number; title: string }> => {
+  const m = new Map<number, { id: number; title: string }>();
+  for (const c of chores) {
+    const ext = c.external_id ?? '';
+    const hit = /^error_item:(\d+)$/.exec(ext);
+    if (hit) m.set(Number(hit[1]), { id: c.id, title: c.title });
+  }
+  return m;
+};
+
 /** The week-scope strip (OD pa-week-scope): this week's wrong / fixed / manual. */
 const WeekScope: React.FC<{ items: ErrorItem[] }> = ({ items }) => {
   const { t } = useTranslation();
@@ -158,6 +177,9 @@ export const ErrorbookTab: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [kidId, setKidId] = useState<number | null>(null);
   const [items, setItems] = useState<ErrorItem[] | null>(null);
+  // 任务②：一次拉全量任务建 external_id→错题映射，错题行据此显示
+  // 「已关联订正任务」（live 真实存在的 14/16 号任务就是证据）。
+  const [taskMap, setTaskMap] = useState<Map<number, { id: number; title: string }>>(new Map());
   const [failed, setFailed] = useState(false);
   const [subject, setSubject] = useState('');
   const [mastery, setMastery] = useState<'' | 0 | 1 | 2>('');
@@ -172,6 +194,10 @@ export const ErrorbookTab: React.FC = () => {
       const first = list.find(u => u.role === 'child');
       if (first) setKidId(first.id);
     }).catch(() => setFailed(true));
+  }, []);
+
+  useEffect(() => {
+    api.chores.list().then(rows => setTaskMap(buildTaskMap(rows))).catch(() => setTaskMap(new Map()));
   }, []);
 
   const load = useCallback(async () => {
@@ -329,7 +355,7 @@ export const ErrorbookTab: React.FC = () => {
 
           {items !== null && shown.length > 0 && (
             <ul className={s.list} data-test="pe-list">
-              {shown.map(it => <ItemRow key={it.id} item={it} onDeleted={onDeleted} onToast={setToast} />)}
+              {shown.map(it => <ItemRow key={it.id} item={it} linkedTask={taskMap.get(it.id)} onDeleted={onDeleted} onToast={setToast} />)}
             </ul>
           )}
         </>

@@ -2,17 +2,18 @@
 // The parent's mistake-management tab (L1+): the stat strip, week scope,
 // subject chips + mastery filters, and the expandable wrong-question rows
 // with fix/delete/makeTask. The measures (034) live in their own tab.
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import i18n from '../../i18n';
 
 // The API client is mocked at the module level: the tab must only talk to
-// users.list / errorItems.list / admin.deleteErrorItem /
+// users.list / errorItems.list / chores.list / admin.deleteErrorItem /
 // admin.createCorrectionTask.
 const { api } = vi.hoisted(() => ({
   api: {
     users: { list: vi.fn() },
     errorItems: { list: vi.fn() },
+    chores: { list: vi.fn() },
     admin: {
       deleteErrorItem: vi.fn(),
       createCorrectionTask: vi.fn(),
@@ -56,6 +57,12 @@ const q = (root: HTMLElement, sel: string) => root.querySelector(sel)!;
 beforeAll(async () => { await i18n.changeLanguage('en'); });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+// 任务②：错题→订正任务关联（external_id=error_item:<id>）是页内一次
+// chores.list 拉取建的映射——每个用例默认空映射（无关联任务）。
+beforeEach(() => {
+  vi.mocked(api.chores.list).mockResolvedValue([] as never);
+});
+
 describe('ErrorbookTab', () => {
   it('shows the stats, week scope and the questions with subject chips', async () => {
     vi.mocked(api.users.list).mockResolvedValue([kid()]);
@@ -72,9 +79,10 @@ describe('ErrorbookTab', () => {
       const el = container.querySelector('[data-test="pe-item-31"]');
       expect(el).toBeTruthy();
     });
-    // Three questions; the cause span carries pe-item-<id>-cause so the
-    // prefix selector hits root + verdict per row.
-    expect(container.querySelectorAll('[data-test^="pe-item-"]').length).toBe(6);
+    // Three questions; the cause span carries pe-item-<id>-cause and the
+    // date row pe-item-<id>-date so the prefix selector hits root + verdict
+    // + date per row.
+    expect(container.querySelectorAll('[data-test^="pe-item-"]').length).toBe(9);
     expect(q(container, '[data-test="pe-filter-subject-math"]').textContent).toContain('2');
     expect(q(container, '[data-test="pe-filter-subject-english"]').textContent).toContain('1');
     // The mastery filters are all present.
@@ -166,5 +174,32 @@ describe('ErrorbookTab', () => {
     await waitFor(() => {
       expect(container.querySelector('[data-test="pe-item-32"]')).toBeTruthy();
     });
+  });
+
+  it('任务②: shows the linked correction task and origin line on live-shaped data', async () => {
+    // live 存量形状：errored_date/chore_title 全空，只有 created_at；
+    // 关联任务走 chores.external_id=error_item:<id>。
+    vi.mocked(api.users.list).mockResolvedValue([kid()]);
+    vi.mocked(api.errorItems.list).mockResolvedValue([
+      item({ id: 31, errored_date: undefined, chore_title: undefined, created_at: '2026-10-13T22:01:29Z' }),
+    ]);
+    vi.mocked(api.chores.list).mockResolvedValue([
+      { id: 14, title: '订正错题 解方程：3x+6=18', external_id: 'error_item:31' },
+    ] as never);
+
+    const { container } = render(<ErrorbookTab />);
+    // 行头日期恒显示（created_at 回退，不再是 errored_date 才有）。
+    await waitFor(() => {
+      expect(container.querySelector('[data-test="pe-item-31-date"]')).toBeTruthy();
+    });
+
+    fireEvent.click(q(container, '[data-test="pe-item-31"] button'));
+    // 展开体：来历行 + 已关联订正任务行 + makeTask 直接呈已挂状态。
+    await waitFor(() => {
+      expect(container.querySelector('[data-test="pe-item-31-origin"]')).toBeTruthy();
+    });
+    expect(q(container, '[data-test="pe-item-31-task"]').textContent).toContain('订正错题 解方程：3x+6=18');
+    expect((q(container, '[data-test="pe-make-task"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(q(container, '[data-test="pe-item-31-origin"]').textContent).toContain('2026-10-13');
   });
 });

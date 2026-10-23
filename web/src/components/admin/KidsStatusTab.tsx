@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { api } from '../../api';
 import type { User, ScheduledChore, UserStreakData, PointBalance, PendingCompletion, DailyCoachNote, Pet, PetResponse, PaperAnalysis, CompletionAttachment } from '../../types';
-import { Avatar, CategoryHeader, CategoryMark, Icon, catFromCategory } from '../../design';
+import { Avatar, CategoryMark, Icon, catFromCategory } from '../../design';
 import { localDateStr } from '../../utils';
 import { ApprovalList } from './ApprovalList';
 import Modal from '../Modal/Modal';
@@ -172,7 +172,12 @@ const DailyReportPreview: React.FC<{ kid: KidStatus }> = ({ kid }) => {  const {
 const KidDayView: React.FC<{
   kid: KidStatus;
   today: string;
-}> = ({ kid, today }) => {
+  /** 2026-10-23 用户定稿：家长端只保留这一份清单（与学生端一致），
+   *  请假/代完成不再在下方分类清单里重复出现，而是并入行内。 */
+  onExcuse: (e: React.MouseEvent, chore: ScheduledChore) => void;
+  onToggle: (e: React.MouseEvent, chore: ScheduledChore) => void;
+  togglingKey: string | null;
+}> = ({ kid, today, onExcuse, onToggle, togglingKey }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const monthOf = (date: string) => date.slice(0, 7);
@@ -269,16 +274,36 @@ const KidDayView: React.FC<{
         const isOverdue = !c.completed && c.expired && c.category !== 'bonus';
         const isPending = c.completion_status === 'pending';
         const hasSubmission = !!(c.completion_id || c.photo_url);
+        const key = `${c.schedule_id}-${c.date}`;
+        const toggleLabel = c.completed
+          ? t('admin.kidsStatusTab.markNotDone', { title: c.title, name: kid.user.name })
+          : t('admin.kidsStatusTab.markDone', { title: c.title, name: kid.user.name });
         return (
-          <li key={`${c.schedule_id}-${c.date}`} className={clsx(styles.chore, c.completed && styles.choreDone)}>
-            <span className={clsx(
-              styles.ring,
-              isExcused && styles.ringExcused,
-              !isExcused && c.completed && !isPending && styles.ringDone,
-              !isExcused && c.completed && isPending && styles.ringWaiting,
-            )} aria-hidden>
-              {c.completed && <Icon name="check" />}
-            </span>
+          <li key={key} className={clsx(styles.chore, c.completed && styles.choreDone)}>
+            {isExcused ? (
+              <span className={clsx(styles.ring, styles.ringExcused)} aria-hidden>
+                <Icon name="check" />
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={styles.check}
+                onClick={e => onToggle(e, c)}
+                disabled={togglingKey !== null}
+                aria-label={toggleLabel}
+                title={toggleLabel}
+              >
+                <span className={clsx(
+                  styles.ring,
+                  c.completed && !isPending && styles.ringDone,
+                  isPending && styles.ringWaiting,
+                )}>
+                  {togglingKey === key
+                    ? <Loader2 aria-hidden className={ui.spin} />
+                    : c.completed && <Icon name="check" />}
+                </span>
+              </button>
+            )}
             <IconWell icon={c.icon} cat={catFromCategory(c.category)} className={styles.choreWell} />
             <span className={styles.choreText}>
               <span className={styles.choreTitle}>{c.title}</span>
@@ -299,6 +324,16 @@ const KidDayView: React.FC<{
               >
                 <Icon name="camera" size={16} />
                 <span>{t('kid.submission.viewBtn')}</span>
+              </button>
+            )}
+            {!c.completed && !isExcused && (
+              <button
+                type="button"
+                className={styles.excuse}
+                onClick={e => onExcuse(e, c)}
+                title={t('admin.kidsStatusTab.excuseButtonTooltip')}
+              >
+                {t('admin.kidsStatusTab.excuseButton')}
               </button>
             )}
           </li>
@@ -715,11 +750,11 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
   // assignee is credited, and no photo is needed since the parent vouches.
   const [toggling, setToggling] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const handleToggle = async (e: React.MouseEvent, kid: KidStatus, chore: ScheduledChore) => {
+  const handleToggle = async (e: React.MouseEvent, chore: ScheduledChore) => {
     e.stopPropagation();
     const key = `${chore.schedule_id}-${chore.date}`;
     if (toggling) return;
-    if (chore.completed && !window.confirm(t('admin.kidsStatusTab.confirmUndo', { title: chore.title, name: kid.user.name }))) {
+    if (chore.completed && !window.confirm(t('admin.kidsStatusTab.confirmUndo', { title: chore.title, name: kids.find(k => k.user.role === 'child')?.user.name ?? '' }))) {
       return;
     }
     setToggling(key);
@@ -1015,10 +1050,17 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
 
               {isExpanded && (
                 <div id={detailsId} className={styles.details}>
-                  {/* 问题④ v2: the expanded card opens on the kid's own day
-                      view — same shape as the kid's home (week strip + 月视图
-                      toggle + the picked day), not a "看历史" side link. */}
-                  <KidDayView kid={kid} today={today} />
+                  {/* 2026-10-23 用户定稿（第三次反馈）：家长端展开区与学生端
+                      完全一致——只保留 KidDayView 这一份日清单，功能差别
+                      （请假/代完成/查看提交）全部并入行内；下方不再有重复的
+                      分类清单。 */}
+                  <KidDayView
+                    kid={kid}
+                    today={today}
+                    onExcuse={handleExcuse}
+                    onToggle={handleToggle}
+                    togglingKey={toggling}
+                  />
                   {kid.loadError && (
                     <p className={ui.msgError}>{t('admin.kidsStatusTab.childLoadError')}</p>
                   )}
@@ -1038,85 +1080,6 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
                   {!kid.loadError && kid.chores.length === 0 && (
                     <p className={ui.emptyInline}>{t('admin.kidsStatusTab.noChoresScheduledDetail')}</p>
                   )}
-                  {!kid.loadError && (['required', 'core', 'bonus'] as const).map(category => {
-                    const items = kid.chores.filter(c => c.category === category);
-                    if (items.length === 0) return null;
-                    const cat = catFromCategory(category);
-                    const done = items.filter(c => c.completed).length;
-                    return (
-                      <div key={category}>
-                        <CategoryHeader cat={cat} as="h4" count={t('admin.kidsStatusTab.catCount', { done, total: items.length })} className={styles.catHead} />
-                        <ul className={styles.choreList}>
-                          {items.map(c => {
-                            const isOverdue = !c.completed && c.expired && c.category !== 'bonus';
-                            const isPending = c.completion_status === 'pending';
-                            const isExcused = c.completion_status === 'excused';
-                            const key = `${c.schedule_id}-${c.date}`;
-                            const label = c.completed
-                              ? t('admin.kidsStatusTab.markNotDone', { title: c.title, name: kid.user.name })
-                              : t('admin.kidsStatusTab.markDone', { title: c.title, name: kid.user.name });
-                            return (
-                              <li key={key} className={clsx(styles.chore, c.completed && styles.choreDone)}>
-                                {isExcused ? (
-                                  <span className={clsx(styles.ring, styles.ringExcused)} aria-hidden>
-                                    <Icon name="check" />
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className={styles.check}
-                                    onClick={(e) => handleToggle(e, kid, c)}
-                                    disabled={toggling !== null}
-                                    aria-label={label}
-                                    title={label}
-                                  >
-                                    <span className={clsx(
-                                      styles.ring,
-                                      c.completed && !isPending && styles.ringDone,
-                                      isPending && styles.ringWaiting,
-                                    )}>
-                                      {toggling === key
-                                        ? <Loader2 aria-hidden className={ui.spin} />
-                                        : c.completed && <Icon name="check" />}
-                                    </span>
-                                  </button>
-                                )}
-                                <IconWell icon={c.icon} cat={cat} className={styles.choreWell} />
-                                <span className={styles.choreText}>
-                                  <span className={styles.choreTitle}>{c.title}</span>
-                                  <span className={clsx(
-                                    styles.choreStatus,
-                                    isOverdue && styles.statusUrgent,
-                                    isPending && styles.statusWaiting,
-                                  )} title={isExcused ? c.ai_feedback || undefined : undefined}>
-                                    {isExcused
-                                      ? t('admin.kidsStatusTab.statusExcused')
-                                      : c.completed && isPending
-                                        ? t('admin.kidsStatusTab.statusPending')
-                                        : c.completed
-                                          ? t('admin.kidsStatusTab.statusDone', { points: c.points_value })
-                                          : isOverdue
-                                            ? t('admin.kidsStatusTab.statusOverdue')
-                                            : t('admin.kidsStatusTab.statusIdle', { points: c.points_value })}
-                                  </span>
-                                </span>
-                                {!c.completed && (
-                                  <button
-                                    type="button"
-                                    className={styles.excuse}
-                                    onClick={(e) => handleExcuse(e, c)}
-                                    title={t('admin.kidsStatusTab.excuseButtonTooltip')}
-                                  >
-                                    {t('admin.kidsStatusTab.excuseButton')}
-                                  </button>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    );
-                  })}
                 </div>
               )}
             </div>

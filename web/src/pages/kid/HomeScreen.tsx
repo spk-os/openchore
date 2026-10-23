@@ -215,17 +215,8 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
                 })}
               </div>
             )}
-            {/* 本周小结行：🔥 streak · 周总结卡。月视图开关收进周历条
-                下方的居中小箭头（点击或滑动展开，无文字链接）。 */}
-            <div className={s.homeWeekRow}>
-              <section className={s.streakInline} aria-label={t('kid.week.streak')}>
-                <span className={s.streakIcon}><Icon name="flame" fill size={26} /></span>
-                <span className={s.streakMain}>
-                  <span className={s.streakNum}>{t('kid.week.streakDays', { count: streak?.current_streak ?? 0 })}</span>
-                  <span className={s.streakSub}>{t('kid.week.best', { count: streak?.longest_streak ?? 0 })}</span>
-                </span>
-              </section>
-            </div>
+            {/* 2026-10-23 用户定稿：月视图箭头紧贴周历条日期（在 streak 行
+                上面），streak 单行化「连续 X 天 · 最佳：Y 天」并整体缩小。 */}
             <button
               type="button"
               className={s.monthArrow}
@@ -237,6 +228,15 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
             >
               <Icon name="chev" className={monthOpen ? s.monthArrowChevUp : s.monthArrowChev} />
             </button>
+            <div className={s.homeWeekRow}>
+              <section className={s.streakInline} aria-label={t('kid.week.streak')}>
+                <span className={s.streakIcon}><Icon name="flame" fill size={18} /></span>
+                <span className={s.streakMain}>
+                  <span className={s.streakNum}>{t('kid.week.streakDays', { count: streak?.current_streak ?? 0 })}</span>
+                  <span className={s.streakSub}>{t('kid.week.best', { count: streak?.longest_streak ?? 0 })}</span>
+                </span>
+              </section>
+            </div>
             {streak?.next_reward && (
               <p className={s.streakNext}>
                 {t('kid.week.nextMilestone', {

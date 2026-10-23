@@ -1367,7 +1367,10 @@
       "weekScopeItems": "{{count}} Fehler diese Woche",
       "weekScopeFixed": "{{count}} korrigiert",
       "weekScopeManual": "{{count}} zu prüfen",
-      "itemTrace": "{{subject}} · falsch am {{date}} · aus „{{title}}“"
+      "itemTrace": "{{subject}} · falsch am {{date}} · aus „{{title}}“",
+      "itemOrigin": "{{subject}} · am {{date}} aufgenommen",
+      "itemLinkedTask": "Verknüpfte Korrekturaufgabe: „{{title}}“",
+      "itemSource": "Quelle: {{source}}"
     },
     "measuresTab": {
       "heading": "Lernmaßnahmen",

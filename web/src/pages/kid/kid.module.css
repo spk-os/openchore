@@ -419,7 +419,8 @@
 .homeProgressCard .strip { margin-bottom: 0; }
 .homeProgressCard .todayLine { margin: 0; }
 
-/* streak + 月视图开关共占一行：streak 收窄成行内块。 */
+/* streak 单行紧凑行（2026-10-23 用户定稿）：「连续 X 天 · 最佳：Y 天」
+   同一行、整块缩小，配合箭头紧贴周历条日期。 */
 .homeWeekRow {
   display: flex;
   align-items: center;
@@ -430,24 +431,27 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
-.streakInline .streakIcon { width: 40px; height: 40px; }
+.streakInline .streakIcon { width: 22px; height: 22px; }
+.streakInline .streakMain { flex-direction: row; align-items: baseline; gap: 6px; }
 .streakInline .streakNum {
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 18px;
 }
-.streakInline .streakSub { font-size: 12px; }
+.streakInline .streakSub { font-size: 12px; line-height: 18px; }
 
-/* 月视图入口箭头（2026-10-22 定稿）：无文字链接，周历条下方居中的
-   小 chevron，点击或上下滑动切换月视图；收起朝下、展开朝上。 */
+/* 月视图入口箭头（2026-10-23 上移）：无文字链接，紧贴周历条日期下沿
+   （在 streak 行上面），居中小 chevron，点击或上下滑动切换月视图；
+   收起朝下、展开朝上。 */
 .monthArrow {
   align-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 44px;
-  height: 28px;
+  height: 20px;
+  margin-top: calc(-1 * var(--space-3) / 2);
   box-sizing: border-box;
   border: none;
   border-radius: var(--oc-radius-md);
