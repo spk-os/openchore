@@ -8,6 +8,7 @@ import { api } from '../../api';
 import type { ScheduledChore } from '../../types';
 import { useThemeSound } from '../../hooks/useThemeSound';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import { useChoreAudio } from '../../hooks/useChoreAudio';
 import PinSettingsModal from '../../components/PinPad/PinSettingsModal';
 import LinkedAccountsModal from '../../components/LinkedAccounts/LinkedAccountsModal';
 import { choreView, gates, isDone, type ChoreView } from './choreView';
@@ -41,6 +42,9 @@ function readTts(id: number, age?: number): boolean {
   return age !== undefined && age <= 7;
 }
 
+// The key the shared clip player knows a chore row by (matches ChoreItem's).
+export const choreSpeakKey = (scheduleId: number, date: string) => `${scheduleId}-${date}`;
+
 interface Celebrating { chore: ScheduledChore; points: number; bonusDrop?: number }
 
 export const KidApp: React.FC = () => {
@@ -49,6 +53,10 @@ export const KidApp: React.FC = () => {
   const { skin, color, setSkin, setColor } = useTheme();
   const { playComplete, playAllDone } = useThemeSound();
   const { speak, stop } = useTextToSpeech();
+  // One shared audio element for chore clips, with a speaking state the say
+  // button reflects — a tap that plays a short clip (or fails) is still
+  // visible, instead of reading as "nothing happened".
+  const { speakingId, speak: speakClip, stop: stopClip } = useChoreAudio(speak);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -71,6 +79,15 @@ export const KidApp: React.FC = () => {
   const [submissionChore, setSubmissionChore] = useState<ScheduledChore | null>(null);
   const [celebrating, setCelebrating] = useState<Celebrating | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
+
+  // The server remembers the read-aloud preference per person (it used to be
+  // per browser): a new device picks it up; the local value stays the
+  // instant-response fallback until the fetch lands. null = not set yet
+  // (keep the age-based default).
+  useEffect(() => {
+    if (!user || user.read_aloud == null) return;
+    setTts(user.read_aloud);
+  }, [user?.id, user?.read_aloud]);
 
   // The household's public URL for QR links (a grown-up setting; kids fall
   // back to this device's origin).
@@ -116,13 +133,11 @@ export const KidApp: React.FC = () => {
     prevDone.current = allDone;
   }, [allDone, data.chores, playAllDone]);
 
-  const speakOrPlay = useCallback((text: string, audioUrl?: string) => {
-    if (audioUrl) {
-      new Audio(audioUrl).play().catch(() => speak(text));
-      return;
-    }
-    speak(text);
-  }, [speak]);
+  const speakOrPlay = useCallback((text: string, audioUrl?: string, key?: string) => {
+    // The chore rows pass their speak key so the right button pulses; the
+    // coach note has none and falls back to its text.
+    speakClip(key ?? text, text, audioUrl);
+  }, [speakClip]);
 
   const celebrate = useCallback((chore: ScheduledChore, bonusDrop = 0) => {
     playComplete();
@@ -170,7 +185,9 @@ export const KidApp: React.FC = () => {
     if (!user) return;
     setTts(on);
     try { localStorage.setItem(ttsKey(user.id), on ? '1' : '0'); } catch { /* storage blocked */ }
-    if (!on) stop();
+    // Persist across devices too: the preference is per person, not per browser.
+    api.users.updateReadAloud(user.id, on).catch(() => {});
+    if (!on) { stop(); stopClip(); }
   };
 
   const logout = async () => {
@@ -191,7 +208,7 @@ export const KidApp: React.FC = () => {
       onPoints={() => setPointsOpen(true)}
     />
   );
-  const shared = { user, data, topBar, viewOf, tts, onToggle, onPhoto: setPhotoChore, onViewSubmission: setSubmissionChore, onSpeak: speakOrPlay };
+  const shared = { user, data, topBar, viewOf, tts, speakingId, onToggle, onPhoto: setPhotoChore, onViewSubmission: setSubmissionChore, onSpeak: speakOrPlay };
 
   return (
     <SkinScope skin={skin} color={color} className={s.root}>

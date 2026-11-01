@@ -70,14 +70,16 @@ interface HomeProps {  user: User;
   topBar: React.ReactNode;
   viewOf: (c: ScheduledChore) => ChoreView;
   tts: boolean;
+  /** The key of the chore whose clip is playing (say button pulses). */
+  speakingId: string | null;
   onToggle: (c: ScheduledChore, view: ChoreView) => void;
   onPhoto: (c: ScheduledChore) => void;
   /** Open the kid's own submission record (问题①). */
   onViewSubmission: (c: ScheduledChore) => void;
-  onSpeak: (text: string, audioUrl?: string) => void;
+  onSpeak: (text: string, audioUrl?: string, key?: string) => void;
 }
 
-export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onPhoto, onViewSubmission, onSpeak }: HomeProps) {
+export function HomeScreen({ user, data, now, topBar, viewOf, tts, speakingId, onToggle, onPhoto, onViewSubmission, onSpeak }: HomeProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const firstName = user.name.split(' ')[0];
@@ -314,6 +316,7 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, onToggle, onP
             viewOf={viewOf}
             togglingIds={data.togglingIds}
             tts={tts}
+            speakingId={speakingId}
             onToggle={onToggle}
             onPhoto={onPhoto}
             onViewSubmission={onViewSubmission}

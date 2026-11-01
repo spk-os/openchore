@@ -12,12 +12,14 @@ interface ChoreItemProps {
   busy?: boolean;
   /** Read-aloud is on for this person. */
   tts?: boolean;
+  /** The key of the chore whose clip is playing (say button pulses). */
+  speakingId?: string | null;
   onToggle?: () => void;
   onPhoto?: () => void;
   /** Open the kid's own submission record (问题①). */
   onViewSubmission?: () => void;
   /** Speak text (or play a recorded clip). */
-  onSpeak?: (text: string, audioUrl?: string) => void;
+  onSpeak?: (text: string, audioUrl?: string, key?: string) => void;
 }
 
 const SWIPE_DISTANCE = 100;
@@ -25,11 +27,14 @@ const SWIPE_DISTANCE = 100;
 /** DOM id of a chore's row, for "Next" to scroll to it. */
 export const choreDomId = (c: ScheduledChore) => `chore-${c.schedule_id}-${c.date}`;
 
+/** The key the shared clip player knows this row by. */
+export const choreSpeakKey = (c: ScheduledChore) => `${c.schedule_id}-${c.date}`;
+
 /**
  * One chore on a person's screen: the design's ChoreRow, plus what the old
  * card also carried — the description, a camera for adding photo proof, and swipe right to finish / left to undo.
  */
-export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onViewSubmission, onSpeak }: ChoreItemProps) {
+export function ChoreItem({ chore, view, busy, tts, speakingId, onToggle, onPhoto, onViewSubmission, onSpeak }: ChoreItemProps) {
   const { t } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ x: number; y: number; active: boolean; dragging: boolean }>({ x: 0, y: 0, active: false, dragging: false });
@@ -41,11 +46,13 @@ export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onViewSub
   // completion, or at least the legacy photo) gets the look-back button —
   // the kid can reopen what they submitted.
   const canViewSubmission = onViewSubmission != null && done && !!(chore.completion_id || chore.photo_url);
+  // The say button pulses while this row's clip is the one playing.
+  const speaking = speakingId === `${chore.schedule_id}-${chore.date}`;
 
   const readAloud = () => {
     // The recorded clip reads the same title and description.
     const text = chore.title + (chore.description ? `. ${chore.description}` : '');
-    onSpeak?.(text, chore.tts_audio_url);
+    onSpeak?.(text, chore.tts_audio_url, choreSpeakKey(chore));
   };
 
   // --- Swipe: right to finish, left to undo (touch only) ---
@@ -96,6 +103,7 @@ export function ChoreItem({ chore, view, busy, tts, onToggle, onPhoto, onViewSub
       urgent={view.urgent}
       photo={view.photo}
       readAloud={tts}
+      speaking={speaking}
       onReadAloud={readAloud}
       onToggle={interactive ? onToggle : undefined}
       checkLabel={readOnly ? (done ? t('kid.chore.readonlyDone') : t('kid.chore.readonlyTodo')) : view.checkLabel}

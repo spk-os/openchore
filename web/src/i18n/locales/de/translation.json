@@ -1659,7 +1659,9 @@
       "readonlyDone": "Erledigt",
       "readonlyTodo": "Nicht erledigt",
       "rejected": "Nicht angenommen. Versuch es noch mal",
-      "uploadPhotoProof": "Foto als Nachweis hinzufügen"
+      "uploadPhotoProof": "Foto als Nachweis hinzufügen",
+      "readFailed": "Vorlesen fehlgeschlagen. Lautstärke prüfen und erneut versuchen",
+      "readStopped": "Vorlesen gestoppt"
     },
     "colors": {
       "butter": "Butter",

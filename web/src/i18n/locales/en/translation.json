@@ -1657,7 +1657,9 @@
       "readonlyDone": "Done",
       "readonlyTodo": "Not done",
       "rejected": "Not accepted. Try again",
-      "uploadPhotoProof": "Add photo proof"
+      "uploadPhotoProof": "Add photo proof",
+      "readFailed": "Couldn't read aloud. Check the volume and try again",
+      "readStopped": "Stopped reading aloud"
     },
     "colors": {
       "butter": "Butter",

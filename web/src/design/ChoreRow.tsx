@@ -22,6 +22,8 @@ export interface ChoreRowProps {
   photo?: boolean;
   /** Adds a speaker button for young readers (hidden once done). */
   readAloud?: boolean;
+  /** The say button reflects an in-progress playback (icon + pulse). */
+  speaking?: boolean;
   /** Tap on the check. Not called while locked or busy. */
   onToggle?: () => void;
   onReadAloud?: () => void;
@@ -47,7 +49,7 @@ export interface ChoreRowProps {
  * aria-label "Mark complete" / "Mark incomplete", which the e2e suite relies on.
  */
 export function ChoreRow({
-  cat = 'daily', icon, title, meta, points, state = 'todo', urgent, photo, readAloud,
+  cat = 'daily', icon, title, meta, points, state = 'todo', urgent, photo, readAloud, speaking,
   onToggle, onReadAloud, checkLabel, busy, actions, readOnly, className, id,
 }: ChoreRowProps) {
   const { t } = useTranslation();
@@ -99,8 +101,14 @@ export function ChoreRow({
         {metaLine != null && <span className="oc-chore__meta">{metaLine}</span>}
       </span>
       {readAloud && !readOnly && state !== 'done' && (
-        <button type="button" className="oc-chore__say" onClick={onReadAloud} aria-label={t('design.chore.readAloud', { title })}>
-          <span className="oc-chore__say-ring"><Icon name="sound" /></span>
+        <button
+          type="button"
+          className={clsx('oc-chore__say', speaking && 'oc-chore__say--speaking')}
+          onClick={onReadAloud}
+          aria-label={t('design.chore.readAloud', { title })}
+          aria-pressed={speaking}
+        >
+          <span className="oc-chore__say-ring"><Icon name={speaking ? 'stop' : 'sound'} /></span>
         </button>
       )}
       {actions && <span className="oc-chore__actions">{actions}</span>}

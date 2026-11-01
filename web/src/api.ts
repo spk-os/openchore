@@ -155,6 +155,11 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ avatar_url }),
       }),
+    updateReadAloud: (id: number, read_aloud: boolean) =>
+      fetchWithAuth<User>(`/users/${id}/read-aloud`, {
+        method: 'PUT',
+        body: JSON.stringify({ read_aloud }),
+      }),
     updateLineColor: (id: number, line_color: string) =>
       fetchWithAuth<User>(`/users/${id}/line-color`, {
         method: 'PUT',

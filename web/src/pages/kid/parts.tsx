@@ -60,16 +60,18 @@ export interface ChoreGroupsProps {
   viewOf: (c: ScheduledChore) => ChoreView;
   togglingIds?: Set<number>;
   tts?: boolean;
+  /** The key of the chore whose clip is playing (say button pulses). */
+  speakingId?: string | null;
   onToggle?: (c: ScheduledChore, view: ChoreView) => void;
   onPhoto?: (c: ScheduledChore) => void;
   /** Open the kid's own submission record (问题①). */
   onViewSubmission?: (c: ScheduledChore) => void;
-  onSpeak?: (text: string, audioUrl?: string) => void;
+  onSpeak?: (text: string, audioUrl?: string, key?: string) => void;
   headingLevel?: 'h2' | 'h3';
 }
 
 /** Chores under their category headers, always Must do → Every day → Bonus. */
-export function ChoreGroups({ chores, viewOf, togglingIds, tts, onToggle, onPhoto, onViewSubmission, onSpeak, headingLevel = 'h2' }: ChoreGroupsProps) {
+export function ChoreGroups({ chores, viewOf, togglingIds, tts, speakingId, onToggle, onPhoto, onViewSubmission, onSpeak, headingLevel = 'h2' }: ChoreGroupsProps) {
   const { t } = useTranslation();
   return (
     <>
@@ -92,6 +94,7 @@ export function ChoreGroups({ chores, viewOf, togglingIds, tts, onToggle, onPhot
                 view={views[i]}
                 busy={togglingIds?.has(c.schedule_id)}
                 tts={tts}
+                speakingId={speakingId}
                 onToggle={onToggle ? () => onToggle(c, views[i]) : undefined}
                 onPhoto={onPhoto ? () => onPhoto(c) : undefined}
                 onViewSubmission={onViewSubmission ? () => onViewSubmission(c) : undefined}

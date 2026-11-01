@@ -276,6 +276,46 @@ func (h *UserHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, existing)
 }
 
+// UpdateReadAloud stores the read-aloud preference server-side (041) so it
+// follows the person across devices instead of per-browser localStorage.
+func (h *UserHandler) UpdateReadAloud(w http.ResponseWriter, r *http.Request) {
+	id, err := urlParamInt64(r, "id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	caller := UserFromContext(r.Context())
+	if caller.ID != id {
+		writeError(w, http.StatusForbidden, "can only update your own read-aloud setting")
+		return
+	}
+
+	var req struct {
+		ReadAloud *bool `json:"read_aloud"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.ReadAloud == nil {
+		writeError(w, http.StatusBadRequest, "read_aloud is required")
+		return
+	}
+
+	existing, err := h.store.GetUser(r.Context(), id)
+	if err != nil || existing == nil {
+		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	existing.ReadAloud = req.ReadAloud
+	if err := h.store.UpdateUser(r.Context(), existing); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update read-aloud setting")
+		return
+	}
+	writeJSON(w, http.StatusOK, existing)
+}
+
 func (h *UserHandler) UpdateLineColor(w http.ResponseWriter, r *http.Request) {
 	id, err := urlParamInt64(r, "id")
 	if err != nil {

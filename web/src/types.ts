@@ -115,6 +115,9 @@ export interface User {
   // Digits in the PIN, so the PIN pad submits on the last one. Absent when
   // there's no PIN or it was set before lengths were recorded.
   pin_length?: number;
+  // Read-aloud preference, stored server-side so it follows the person
+  // across devices. null/undefined = never set (age-based default applies).
+  read_aloud?: boolean | null;
   // IDs of OIDC providers linked to this profile ("Continue with ...").
   auth_providers: string[];
   created_at: string;

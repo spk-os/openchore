@@ -126,6 +126,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			// Any user can update their own profile preferences
 			r.Put("/users/{id}/theme", users.UpdateTheme)
 			r.Put("/users/{id}/avatar", users.UpdateAvatar)
+			r.Put("/users/{id}/read-aloud", users.UpdateReadAloud)
 			r.Put("/users/{id}/line-color", users.UpdateLineColor)
 			r.Put("/users/{id}/color", users.UpdateColor)
 			r.Put("/users/{id}/pin", users.SetPin)

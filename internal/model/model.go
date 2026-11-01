@@ -96,6 +96,10 @@ type User struct {
 	HasPin         bool      `json:"has_pin"`
 	PinHash        string    `json:"-"`
 	PinLength      int       `json:"pin_length,omitempty"` // digits in the PIN; 0 = no PIN or not known yet
+	// Read-aloud preference, stored server-side (041) so it follows the
+	// person across devices. nil = never set (the client falls back to an
+	// age-based default).
+	ReadAloud      *bool     `json:"read_aloud,omitempty"`
 	AuthProviders  []string  `json:"auth_providers"`
 	SessionVersion int64     `json:"-"`
 	CreatedAt      time.Time `json:"created_at"`

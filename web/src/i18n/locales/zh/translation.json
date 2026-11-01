@@ -240,7 +240,9 @@
       "readonlyDone": "完成",
       "readonlyTodo": "未完成",
       "rejected": "没通过，再试一次",
-      "uploadPhotoProof": "拍照打卡"
+      "uploadPhotoProof": "拍照打卡",
+      "readFailed": "朗读失败，请检查音量后重试",
+      "readStopped": "已停止朗读"
     },
     "colors": {
       "butter": "奶油黄",

@@ -1466,6 +1466,48 @@ func TestUserAvatarUpdateForbiddenForOthers(t *testing.T) {
 	}, childHeaders(kid2), http.StatusForbidden)
 }
 
+func TestUserReadAloudUpdate(t *testing.T) {
+	env := setupTest(t)
+	env.createAdmin(t)
+	kidID := env.createChild(t, "Kid")
+
+	// Unset by default: the field stays absent so clients fall back to
+	// their age-based default.
+	resp := env.expectStatus(t, "GET", fmt.Sprintf("/api/users/%d", kidID), nil, adminHeaders(), http.StatusOK)
+	var before map[string]any
+	decodeBody(t, resp, &before)
+	if _, set := before["read_aloud"]; set {
+		t.Fatalf("read_aloud should be unset on a fresh profile, got %v", before["read_aloud"])
+	}
+
+	// Kid turns read-aloud on for themselves; it sticks and reads back.
+	resp = env.expectStatus(t, "PUT", fmt.Sprintf("/api/users/%d/read-aloud", kidID), map[string]any{
+		"read_aloud": true,
+	}, childHeaders(kidID), http.StatusOK)
+	var user map[string]any
+	decodeBody(t, resp, &user)
+	if user["read_aloud"] != true {
+		t.Fatalf("read_aloud not updated: %v", user["read_aloud"])
+	}
+	resp = env.expectStatus(t, "GET", fmt.Sprintf("/api/users/%d", kidID), nil, childHeaders(kidID), http.StatusOK)
+	decodeBody(t, resp, &user)
+	if user["read_aloud"] != true {
+		t.Fatalf("read_aloud not persisted: %v", user["read_aloud"])
+	}
+}
+
+func TestUserReadAloudForbiddenForOthers(t *testing.T) {
+	env := setupTest(t)
+	env.createAdmin(t)
+	kid1 := env.createChild(t, "Kid1")
+	kid2 := env.createChild(t, "Kid2")
+	_ = kid1
+
+	env.expectStatus(t, "PUT", fmt.Sprintf("/api/users/%d/read-aloud", kid1), map[string]any{
+		"read_aloud": false,
+	}, childHeaders(kid2), http.StatusForbidden)
+}
+
 func TestUserCreateValidation(t *testing.T) {
 	env := setupTest(t)
 	env.createAdmin(t)

@@ -84,8 +84,8 @@ func (s *Store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 	u := &model.User{}
 	var paused int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at FROM users WHERE id = ?`, id).
-		Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt)
+		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at, read_aloud FROM users WHERE id = ?`, id).
+		Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt, &u.ReadAloud)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -112,7 +112,7 @@ func (s *Store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 
 func (s *Store) ListUsers(ctx context.Context) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at FROM users ORDER BY name`)
+		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at, read_aloud FROM users ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (s *Store) ListUsers(ctx context.Context) ([]model.User, error) {
 	for rows.Next() {
 		var u model.User
 		var paused int
-		if err := rows.Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt, &u.ReadAloud); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -1285,8 +1285,8 @@ func (s *Store) ListSettings(ctx context.Context) (map[string]string, error) {
 func (s *Store) UpdateUser(ctx context.Context, u *model.User) error {
 	paused := boolToInt(u.Paused)
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET name=?, avatar_url=?, role=?, age=?, theme=?, line_color=?, color=?, paused=? WHERE id=?`,
-		u.Name, u.AvatarURL, u.Role, u.Age, u.Theme, u.LineColor, u.Color, paused, u.ID)
+		`UPDATE users SET name=?, avatar_url=?, role=?, age=?, theme=?, line_color=?, color=?, paused=?, read_aloud=? WHERE id=?`,
+		u.Name, u.AvatarURL, u.Role, u.Age, u.Theme, u.LineColor, u.Color, paused, u.ReadAloud, u.ID)
 	return err
 }
 
