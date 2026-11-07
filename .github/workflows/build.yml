@@ -9,18 +9,13 @@ on:
 permissions:
   contents: read
 
-env:
-  REGISTRY: ghcr.io
-  API_IMAGE: ghcr.io/liftedkilt/openchore/api
-  WEB_IMAGE: ghcr.io/liftedkilt/openchore/web
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
@@ -30,13 +25,13 @@ jobs:
   test-e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
 
@@ -58,73 +53,13 @@ jobs:
           CI: true
 
       - name: Upload test results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
           path: e2e/test-results/
           retention-days: 7
 
-  build-api:
-    needs: [test, test-e2e]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: docker/metadata-action@v6
-        id: meta
-        with:
-          images: ${{ env.API_IMAGE }}
-          tags: |
-            type=sha
-            type=raw,value=latest
-
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Containerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-  build-web:
-    needs: [test, test-e2e]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: docker/metadata-action@v6
-        id: meta
-        with:
-          images: ${{ env.WEB_IMAGE }}
-          tags: |
-            type=sha
-            type=raw,value=latest
-
-      - uses: docker/build-push-action@v7
-        with:
-          context: ./web
-          file: ./web/Containerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+  # 原 build-api / build-web job 已删除：镜像由 SPK-OS 本地构建
+  # （Containerfile / web/Containerfile + delivery/app compose），不经 ghcr.io 发布；
+  # 上游 ghcr 发布通道在自建 Gitea 上不可用（GITHUB_TOKEN 非 ghcr.io 凭证）。
