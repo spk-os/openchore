@@ -1,4 +1,4 @@
-.PHONY: all api ui dev dev-ai ai-up ai-down install build test test-e2e test-e2e-install test-all clean help
+.PHONY: all api ui dev dev-ai ai-up ai-down install build test test-e2e test-e2e-pwa test-e2e-install test-all clean help
 
 # Default target
 all: help
@@ -55,8 +55,13 @@ test-e2e:
 	@test -f config/config.yaml || (cp config/config.example.yaml config/config.yaml && echo "Created config/config.yaml from example")
 	cd e2e && npx playwright test
 
+# Run the PWA e2e suite against the production build (vite build + vite
+# preview + real service worker; separate throwaway /tmp DB and ports).
+test-e2e-pwa:
+	cd e2e && npx playwright test --config=playwright.pwa.config.ts --workers=1
+
 # Run all tests (Go unit + e2e)
-test-all: test test-e2e
+test-all: test test-e2e test-e2e-pwa
 
 # Clean up build artifacts and database
 clean:
@@ -76,5 +81,6 @@ help:
 	@echo "  test              - Run Go tests"
 	@echo "  test-e2e-install  - Install e2e test dependencies (Playwright + Chromium)"
 	@echo "  test-e2e          - Run e2e tests (starts servers automatically)"
-	@echo "  test-all          - Run Go tests + e2e tests"
+	@echo "  test-e2e-pwa      - Run PWA e2e tests (production build + service worker)"
+	@echo "  test-all          - Run Go tests + e2e + PWA e2e tests"
 	@echo "  clean             - Clean up build artifacts and database"

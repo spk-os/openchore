@@ -33,6 +33,11 @@
   width: 100%;
 }
 
+/* R2：SubjectPicker 的状态/错误行挪出 <label> 后，label 退化为纯文案块。 */
+.subjectLabelBlock {
+  display: contents;
+}
+
 /* A legend ignores the fieldset's gap. */
 .fieldset > legend {
   margin-bottom: 8px;

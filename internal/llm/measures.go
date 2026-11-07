@@ -56,17 +56,17 @@ var measuresSchema = &Schema{
 		"type": "object",
 		"properties": map[string]any{
 			"measures": map[string]any{
-				"type": "array",
+				"type":     "array",
 				"maxItems": 4,
 				"items": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
-						"subject":    map[string]any{"type": "string"},
-						"kc":         map[string]any{"type": "string"},
-						"title":      map[string]any{"type": "string"},
-						"detail":     map[string]any{"type": "string"},
+						"subject":     map[string]any{"type": "string"},
+						"kc":          map[string]any{"type": "string"},
+						"title":       map[string]any{"type": "string"},
+						"detail":      map[string]any{"type": "string"},
 						"error_types": map[string]any{"type": "array", "items": map[string]any{"type": "string", "enum": []string{"calculation", "concept", "reading", "method"}}},
-						"priority":   map[string]any{"type": "integer", "enum": []int{1, 2, 3}},
+						"priority":    map[string]any{"type": "integer", "enum": []int{1, 2, 3}},
 					},
 					"required":             []string{"title", "detail", "priority"},
 					"additionalProperties": false,
@@ -175,10 +175,11 @@ func parseMeasures(raw string) ([]MeasureDraft, error) {
 		}
 		m.ErrorTypes = types
 		m.KC = strings.TrimSpace(m.KC)
+		// The subject rides through exactly as the model answered it: the
+		// input context (MeasureContext.Subject) is already in the prompt,
+		// so an echoed subject is kept and a missing one stays "" (a
+		// no-subject habit measure) — never silently rewritten to "math".
 		m.Subject = strings.TrimSpace(m.Subject)
-		if m.Subject == "" {
-			m.Subject = "math"
-		}
 		out = append(out, m)
 	}
 	if len(out) == 0 {

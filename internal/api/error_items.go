@@ -54,7 +54,9 @@ func judgementConfidence(j *llm.QuestionJudgement) float64 {
 // on the auto path, carried into both stage prompts and echoed back in
 // the summary when set.
 type startAnalysisRequest struct {
-	CompletionID int64  `json:"completion_id"`
+	CompletionID int64 `json:"completion_id"`
+	// Subject is checked against the seeded word list (subjects table,
+	// enabled rows) when non-empty; empty stays empty — no math default.
 	Subject      string `json:"subject"`
 	Instructions string `json:"instructions"`
 }
@@ -87,8 +89,22 @@ func (h *ChoreHandler) StartPaperAnalysis(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusNotFound, "completion not found")
 		return
 	}
-	if req.Subject == "" {
-		req.Subject = "math"
+	// Subject semantics (042): empty stays empty — it flows into the
+	// stage prompts as "subject: " and the media library treats the
+	// analysis subject the same way as chores.subject (empty = not
+	// school work). A non-empty subject must be in the enabled word
+	// list: junk is a 400, a disabled subject a 400 too, a failed
+	// vocabulary load a 500.
+	if req.Subject != "" {
+		ok, err := h.validSubject(r.Context(), req.Subject)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load subjects")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusBadRequest, "subject must be empty or a subject from the subjects list")
+			return
+		}
 	}
 	req.Instructions = strings.TrimSpace(req.Instructions)
 	if n := len([]rune(req.Instructions)); n > maxAnalysisInstructions {
@@ -192,13 +208,28 @@ func (h *ChoreHandler) queueAutoPaperAnalysis(completion *model.ChoreCompletion)
 		if err != nil || len(prior) > 0 {
 			return
 		}
+		// Dynamic subject (042): inherit the subject of the chore this
+		// completion belongs to — the chore write path (Create/Update)
+		// already ran validSubject on it, so it's a trusted value, not
+		// free text. A household chore without a subject stays
+		// subject-less: no default math on the auto path either, and a
+		// failed lookup (chore deleted) degrades to empty rather than
+		// failing the analysis.
+		subject := ""
+		if completion.ChoreScheduleID != 0 {
+			if sched, err := h.store.GetSchedule(ctx, completion.ChoreScheduleID); err == nil && sched != nil {
+				if chore, err := h.store.GetChore(ctx, sched.ChoreID); err == nil && chore != nil {
+					subject = chore.Subject
+				}
+			}
+		}
 		// created_by: the system user of the auto path is the kid who
 		// handed the paper in (the manual path records the parent).
 		analysis := &model.PaperAnalysis{
 			CompletionID: completion.ID,
 			UserID:       completion.CompletedBy,
 			CreatedBy:    completion.CompletedBy,
-			Subject:      "math",
+			Subject:      subject,
 			Status:       model.AnalysisPending,
 			Stage:        model.StageQueued,
 		}
@@ -318,7 +349,7 @@ func (h *ChoreHandler) runPaperAnalysis(ctx context.Context, analysisID int64) {
 			_ = h.store.UpdatePaperAnalysisProgress(ctx, analysisID, model.StageJudging,
 				progressFor(pageIdx, qi, totalPages, len(cut), 1), len(questions), countWrong(questions))
 
-			j, err := ai.JudgeQuestion(ctx, analysis.Subject, pagePath, q.Number, q.Text, analysis.Instructions)
+			j, err := h.judgeQuestionWithCandidates(ctx, ai, analysis, q, pagePath)
 			if err != nil {
 				// The spec's degrade path: a failed judgement is not a
 				// lost question. Record it into the manual "unknown"
@@ -396,6 +427,48 @@ func (h *ChoreHandler) runPaperAnalysis(ctx context.Context, analysisID int64) {
 	}
 	log.Printf("analysis %d: parsed %d page(s), %d question(s), %d wrong in %s",
 		analysisID, totalPages, len(questions), countWrong(questions), time.Since(start).Round(time.Second))
+}
+
+// maxPaperJudgeCandidates bounds how many same-subject taxonomy candidates one
+// judge call sees. Same value as the store/llm caps (80) — the search DAO would
+// clamp too, this keeps the call site honest about the wire cost.
+const maxPaperJudgeCandidates = 80
+
+// judgeQuestionWithCandidates runs one judge call pinned to the taxonomy
+// candidate set (the Search→Judge→Merge fusion, TX-AI-KC-API-WIRING):
+//
+//   - subject-carrying analysis: same-subject system knowledge points with a
+//     non-empty external_ref are searched (limit 80) by the cut question's
+//     text and mapped to llm.KnowledgeCandidate rows for
+//     JudgeQuestionWithCandidates.
+//   - no subject, search error, or zero candidates: the legacy JudgeQuestion
+//     path, byte-identical prompt/schema (advisory AI must never drag the
+//     judge down with it — a DB hiccup degrades to the old behaviour, it
+//     doesn't fail the question).
+//
+// The search runs once per question (not per page): candidates are the most
+// useful when they match the specific stem.
+func (h *ChoreHandler) judgeQuestionWithCandidates(ctx context.Context, ai *llm.Client, analysis *model.PaperAnalysis, q llm.PaperQuestion, pagePath string) (*llm.QuestionJudgement, error) {
+	if analysis.Subject == "" {
+		return ai.JudgeQuestion(ctx, analysis.Subject, pagePath, q.Number, q.Text, analysis.Instructions)
+	}
+	rows, err := h.store.SearchKnowledgeCandidates(ctx, analysis.Subject, q.Text, nil, maxPaperJudgeCandidates)
+	if err != nil {
+		log.Printf("analysis: searching knowledge candidates for %s: %v", q.Number, err)
+		return ai.JudgeQuestion(ctx, analysis.Subject, pagePath, q.Number, q.Text, analysis.Instructions)
+	}
+	if len(rows) == 0 {
+		return ai.JudgeQuestion(ctx, analysis.Subject, pagePath, q.Number, q.Text, analysis.Instructions)
+	}
+	candidates := make([]llm.KnowledgeCandidate, 0, len(rows))
+	for _, r := range rows {
+		candidates = append(candidates, llm.KnowledgeCandidate{
+			ExternalRef: r.ExternalRef,
+			Name:        r.Name,
+			Subject:     r.Subject,
+		})
+	}
+	return ai.JudgeQuestionWithCandidates(ctx, analysis.Subject, pagePath, q.Number, q.Text, analysis.Instructions, candidates)
 }
 
 // analysisPagePaths resolves the proof images for one analysis: image
@@ -512,13 +585,42 @@ func (h *ChoreHandler) recordErrorItem(ctx context.Context, analysis *model.Pape
 	if err := h.store.CreateErrorItem(ctx, ei); err != nil {
 		return 0, err
 	}
-	for _, name := range item.KnowledgePoints {
-		tagID, err := h.store.FindOrCreateKnowledgeTag(ctx, name, analysis.Subject, nil)
-		if err != nil {
-			continue
-		}
-		if err := h.store.AttachErrorItemTag(ctx, ei.ID, tagID); err != nil {
-			return 0, err
+	// Taxonomy fusion (TX-AI-KC-API-WIRING): on a subject-carrying analysis
+	// the judge's candidate-selected external_refs are merged FIRST, and the
+	// legacy free-text find-or-create only runs when the merge resolved
+	// nothing (resolved==0, no error). The merge is additive (existing
+	// parent links survive), creates no knowledge points, and never touches
+	// the item's fields or FSRS state. resolved>0 — even with attached==0,
+	// links already present — blocks the fallback, so a taxonomy-bound
+	// question can't also grow free-text duplicates. A merge error is
+	// logged only: the freshly created error item survives untouched, and
+	// the free-text fallback must NOT run (advisory AI must not lose a
+	// wrong question, nor mint free-text KC because the advisory step
+	// hiccuped). Empty subject never calls the merge at all: an
+	// empty-subject error item stays legal but must not grow auto-created
+	// tags (DEF-AI-ERRORITEM-EMPTY-SUBJECT-KC — FindOrCreateKnowledgeTag
+	// would persist a subject='' garbage tag the UNIQUE(subject, name,
+	// parent_id) index happily accepts; 042: empty stays empty, no math
+	// default).
+	var refs []string
+	if j != nil {
+		refs = j.KnowledgePointRefs
+	}
+	if analysis.Subject != "" {
+		resolved, _, err := h.store.MergeErrorItemKnowledgeRefs(ctx, ei.ID, analysis.Subject, refs)
+		switch {
+		case err != nil:
+			log.Printf("analysis: merging knowledge refs for error item %d: %v", ei.ID, err)
+		case resolved == 0:
+			for _, name := range item.KnowledgePoints {
+				tagID, err := h.store.FindOrCreateKnowledgeTag(ctx, name, analysis.Subject, nil)
+				if err != nil {
+					continue
+				}
+				if err := h.store.AttachErrorItemTag(ctx, ei.ID, tagID); err != nil {
+					return 0, err
+				}
+			}
 		}
 	}
 	// T+0 (spec §7.2): the wrong question is reviewable the same night.
@@ -962,6 +1064,19 @@ func (h *ChoreHandler) GetErrorBookReport(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, ErrorBookReport{ErrorTypes: errorTypes, WeakTags: weakTags})
 }
 
+// maxErrorItemJSONBytes caps the PUT /admin/error-items/{id} body at 1MB:
+// the payload is corrective text plus a bounded id list, so an oversized
+// body is always a client bug — and it must not hold the single-writer
+// pool behind an unbounded read. Oversize fails decodeJSON, i.e. the same
+// 400 "invalid request body" as any other bad JSON.
+const maxErrorItemJSONBytes = 1 << 20
+
+// maxErrorItemKnowledgeTags bounds the knowledge_tag_ids list: every id
+// costs a membership SELECT plus an INSERT row inside the update
+// transaction, and the single-writer DB must not sit behind a
+// thousand-row tag swap.
+const maxErrorItemKnowledgeTags = 50
+
 // UpdateErrorItem is the parent's manual fix for the "unknown" queue: the
 // AI could not read the question, so the parent types what it should say.
 func (h *ChoreHandler) UpdateErrorItem(w http.ResponseWriter, r *http.Request) {
@@ -979,17 +1094,23 @@ func (h *ChoreHandler) UpdateErrorItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "error item not found")
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxErrorItemJSONBytes)
 	var req struct {
-		Subject         string `json:"subject"`
-		QuestionText    string `json:"question_text"`
-		AnswerText      string `json:"answer_text"`
-		WrongAnswerText string `json:"wrong_answer_text"`
-		Analysis        string `json:"analysis"`
-		MistakeAnalysis string `json:"mistake_analysis"`
-		ErrorType       string `json:"error_type"`
+		Subject         string   `json:"subject"`
+		QuestionText    string   `json:"question_text"`
+		AnswerText      string   `json:"answer_text"`
+		WrongAnswerText string   `json:"wrong_answer_text"`
+		Analysis        string   `json:"analysis"`
+		MistakeAnalysis string   `json:"mistake_analysis"`
+		ErrorType       string   `json:"error_type"`
+		KnowledgeTagIDs *[]int64 `json:"knowledge_tag_ids"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.KnowledgeTagIDs != nil && len(*req.KnowledgeTagIDs) > maxErrorItemKnowledgeTags {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("knowledge_tag_ids must contain at most %d ids", maxErrorItemKnowledgeTags))
 		return
 	}
 	validErrorTypes := map[string]bool{
@@ -1000,7 +1121,22 @@ func (h *ChoreHandler) UpdateErrorItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "error_type must be calculation, concept, reading or method")
 		return
 	}
+	// Same vocabulary check as StartPaperAnalysis/chores: a non-empty
+	// subject the parent sets must be in the enabled word list. The
+	// DTO's existing semantics stay — an omitted/empty subject keeps
+	// the stored value (only a non-empty one overwrites).
+	subjectChanged := false
 	if req.Subject != "" {
+		ok, err := h.validSubject(r.Context(), req.Subject)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load subjects")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusBadRequest, "subject must be empty or a subject from the subjects list")
+			return
+		}
+		subjectChanged = req.Subject != item.Subject
 		item.Subject = req.Subject
 	}
 	if req.QuestionText != "" {
@@ -1026,11 +1162,68 @@ func (h *ChoreHandler) UpdateErrorItem(w http.ResponseWriter, r *http.Request) {
 	if item.MistakeStatus == model.MistakeUnknown && req.QuestionText != "" {
 		item.MistakeStatus = model.MistakeWrongAttempt
 	}
-	if err := h.store.UpdateErrorItemFields(r.Context(), item.ID, item); err != nil {
+	// knowledge_tag_ids distinguishes "absent" (nil — leave the tags alone)
+	// from an explicit array: [] clears the links, a non-empty slice swaps
+	// them. A tag request rides the same short transaction as the field
+	// UPDATE, so a bad tag id rolls the fields back too, and the tag
+	// membership check sees the final subject this request writes.
+	//
+	// A subject change WITHOUT knowledge_tag_ids must not silently leave
+	// the old subject's tags linked: there is no DB trigger that detaches
+	// them (the CASCADE on error_item_tags only reacts to row deletes), so
+	// the cross-subject leftovers would surface as tags the item's own
+	// subject forbids. The same transaction boundary that validates a tag
+	// swap also gates this: when existing tags would be incompatible with
+	// the new subject, the request is a 400 asking for knowledge_tag_ids
+	// in the same body ([] clears them). Compatible tags survive.
+	if req.KnowledgeTagIDs != nil {
+		err := h.store.UpdateErrorItemWithTags(r.Context(), item.ID, item, *req.KnowledgeTagIDs)
+		switch {
+		case errors.Is(err, store.ErrKnowledgeTagMismatch):
+			writeError(w, http.StatusBadRequest, "knowledge tags must exist and share the error item's subject")
+			return
+		case errors.Is(err, store.ErrErrorItemMissingOnUpdate):
+			writeError(w, http.StatusNotFound, "error item not found")
+			return
+		case err != nil:
+			writeError(w, http.StatusInternalServerError, "failed to update error item")
+			return
+		}
+	} else if subjectChanged {
+		// Same short transaction as the tag swap: fields + the
+		// cross-subject guard atomically, ErrErrorItemMissingOnUpdate
+		// covers the concurrent-delete window.
+		err := h.store.UpdateErrorItemOnSubjectChange(r.Context(), item.ID, item)
+		switch {
+		case errors.Is(err, store.ErrKnowledgeTagMismatch):
+			writeError(w, http.StatusBadRequest, "changing subject requires resubmitting knowledge_tag_ids (an empty array clears the old subject's tags)")
+			return
+		case errors.Is(err, store.ErrErrorItemMissingOnUpdate):
+			writeError(w, http.StatusNotFound, "error item not found")
+			return
+		case err != nil:
+			writeError(w, http.StatusInternalServerError, "failed to update error item")
+			return
+		}
+	} else if err := h.store.UpdateErrorItemFields(r.Context(), item.ID, item); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update error item")
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	// Re-read: the stored tags are the truth (the in-memory item still
+	// holds the pre-swap links). A nil here means the row vanished between
+	// the update and the read (concurrent DELETE) — the earlier GetErrorItem
+	// saw it, the write may have been a no-op against a deleted id; report
+	// the missing row instead of a 200 null body.
+	updated, err := h.store.GetErrorItem(r.Context(), item.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get error item")
+		return
+	}
+	if updated == nil {
+		writeError(w, http.StatusNotFound, "error item not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
 }
 
 // truncateFor cuts a string on a rune boundary for display titles.
@@ -1041,6 +1234,3 @@ func truncateFor(s string, n int) string {
 	}
 	return string(runes[:n]) + "…"
 }
-
-var _ = store.ErrErrorItemNotFound // keep the store error import honest
-var _ = errors.New                 // placeholder to keep errors imported if unused

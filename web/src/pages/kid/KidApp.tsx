@@ -19,6 +19,8 @@ import { RewardsScreen } from './RewardsScreen';
 import { ErrorBookScreen } from './ErrorBookScreen';
 import { ReviewScreen } from './ReviewScreen';
 import { CourseScreen } from './CourseScreen';
+// 042：十学科学习工作区（/learn，主页 LearnEntryCard 进入；不是第 5 个 tab）。
+import { LearnScreen } from './LearnScreen';
 import { PhotoSheet } from './PhotoSheet';
 import { SubmissionSheet } from './SubmissionSheet';
 import { MeSheet } from './MeSheet';
@@ -222,6 +224,8 @@ export const KidApp: React.FC = () => {
           <Route path="errorbook" element={<ErrorBookScreen topBar={topBar} />} />
           <Route path="review" element={<ReviewScreen topBar={topBar} />} />
           <Route path="course/:id" element={<CourseScreen topBar={topBar} />} />
+          {/* 042：/learn 路由——学科知识浏览/挑战/再挑战/历史（不入 4 tab）。 */}
+          <Route path="learn" element={<LearnScreen topBar={topBar} />} />
           <Route path="rewards" element={<RewardsScreen user={user} data={data} topBar={topBar} onRedeemed={playComplete} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

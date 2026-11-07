@@ -8,6 +8,7 @@ package store_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +21,27 @@ func recordEvent(t *testing.T, s *store.Store, userID int64, verb string, kcIDs 
 	t.Helper()
 	ctxJSON, _ := json.Marshal(map[string]any{"kc_ids": kcIDs})
 	resultJSON, _ := json.Marshal(map[string]any{"success": success})
+	e, err := s.RecordLearnerEvent(context.Background(), store.LearnerEventInput{
+		UserID:      userID,
+		Verb:        verb,
+		ObjectType:  model.EventObjectErrorItem,
+		ObjectID:    1,
+		ResultJSON:  string(resultJSON),
+		ContextJSON: string(ctxJSON),
+	})
+	if err != nil {
+		t.Fatalf("RecordLearnerEvent: %v", err)
+	}
+	return e
+}
+
+// recordSkipEvent appends the manual/self round's frozen result shape —
+// {"success":false,"skipped":true} — which the rollup must treat as "no
+// verdict" (not a wrong answer).
+func recordSkipEvent(t *testing.T, s *store.Store, userID int64, verb string, kcIDs []int64) *model.LearnerEvent {
+	t.Helper()
+	ctxJSON, _ := json.Marshal(map[string]any{"kc_ids": kcIDs})
+	resultJSON, _ := json.Marshal(map[string]any{"success": false, "skipped": true})
 	e, err := s.RecordLearnerEvent(context.Background(), store.LearnerEventInput{
 		UserID:      userID,
 		Verb:        verb,
@@ -102,6 +124,89 @@ func TestRecordLearnerEventAppendsAndRollsUp(t *testing.T) {
 	// The weakest-first ordering puts tagA (0.4) before tagB (0.75).
 	if stats[0].TagID != tagA {
 		t.Fatalf("weakest-first ordering broken: first = tag %d", stats[0].TagID)
+	}
+}
+
+// TestBumpKCMasterySkipsSkippedEvents pins the skip semantics: a
+// manual/self round's event ({"success":false,"skipped":true}) leaves
+// the rollup untouched — same mastery/correct/total before and after —
+// while a real wrong answer (success=false, no skipped flag) still
+// counts against the KC.
+func TestBumpKCMasterySkipsSkippedEvents(t *testing.T) {
+	s := setupStore(t)
+	ctx := context.Background()
+	kid := createTestUser(t, s, "小跳", "child")
+	tag, err := s.FindOrCreateKnowledgeTag(ctx, "有理数的分类", "math", nil)
+	if err != nil {
+		t.Fatalf("tag: %v", err)
+	}
+
+	// Baseline: one right, one wrong → (1+1)/(2+2) = 0.5.
+	recordEvent(t, s, kid.ID, model.EventVerbAnswered, []int64{tag}, true)
+	recordEvent(t, s, kid.ID, model.EventVerbAnswered, []int64{tag}, false)
+	masteryOf := func() store.KCMasteryStat {
+		stats, err := s.ListKCMastery(ctx, kid.ID)
+		if err != nil {
+			t.Fatalf("ListKCMastery: %v", err)
+		}
+		for _, st := range stats {
+			if st.TagID == tag {
+				return st
+			}
+		}
+		t.Fatalf("tag %d missing from rollup", tag)
+		return store.KCMasteryStat{}
+	}
+	before := masteryOf()
+	if before.CorrectCount != 1 || before.TotalCount != 2 {
+		t.Fatalf("baseline counts = %d/%d, want 1/2", before.CorrectCount, before.TotalCount)
+	}
+	if before.Mastery < 0.49 || before.Mastery > 0.51 {
+		t.Fatalf("baseline mastery = %.3f, want 0.5", before.Mastery)
+	}
+
+	// A manual/self round (skipped=true): the rollup must not move.
+	recordSkipEvent(t, s, kid.ID, model.EventVerbAnswered, []int64{tag})
+	afterSkip := masteryOf()
+	if afterSkip.CorrectCount != before.CorrectCount || afterSkip.TotalCount != before.TotalCount {
+		t.Fatalf("skip changed counts: %d/%d, want unchanged %d/%d",
+			afterSkip.CorrectCount, afterSkip.TotalCount, before.CorrectCount, before.TotalCount)
+	}
+	if afterSkip.Mastery != before.Mastery {
+		t.Fatalf("skip changed mastery: %.6f, want unchanged %.6f", afterSkip.Mastery, before.Mastery)
+	}
+
+	// A reviewed-skip round (same frozen shape, reviewed verb) is also
+	// not a wrong answer.
+	recordSkipEvent(t, s, kid.ID, model.EventVerbReviewed, []int64{tag})
+	if st := masteryOf(); st.TotalCount != 2 || st.Mastery != before.Mastery {
+		t.Fatalf("reviewed skip changed the rollup: %d/%d %.6f, want 2 total %.6f",
+			st.CorrectCount, st.TotalCount, st.Mastery, before.Mastery)
+	}
+
+	// A real wrong answer still counts: (1+1)/(3+2) ≈ 0.4.
+	recordEvent(t, s, kid.ID, model.EventVerbAnswered, []int64{tag}, false)
+	afterWrong := masteryOf()
+	if afterWrong.CorrectCount != 1 || afterWrong.TotalCount != 3 {
+		t.Fatalf("counts after a real wrong = %d/%d, want 1/3", afterWrong.CorrectCount, afterWrong.TotalCount)
+	}
+	if afterWrong.Mastery < 0.39 || afterWrong.Mastery > 0.41 {
+		t.Fatalf("mastery after a real wrong = %.3f, want 0.4", afterWrong.Mastery)
+	}
+
+	// The skipped event itself is still in the append-only stream.
+	events, err := s.ListLearnerEvents(ctx, kid.ID, 0)
+	if err != nil {
+		t.Fatalf("ListLearnerEvents: %v", err)
+	}
+	skips := 0
+	for _, e := range events {
+		if strings.Contains(e.ResultJSON, `"skipped":true`) {
+			skips++
+		}
+	}
+	if skips != 2 {
+		t.Fatalf("skipped events in the stream = %d, want 2 (append-only, never dropped)", skips)
 	}
 }
 

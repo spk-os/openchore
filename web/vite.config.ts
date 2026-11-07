@@ -27,25 +27,36 @@ function preloadFonts(): Plugin {
 
 // https://vitejs.dev/config/
 // VITE_API_TARGET lets parallel e2e runs point at their own API server.
-const apiTarget = process.env.VITE_API_TARGET || 'http://localhost:8080'
+// VITE_PREVIEW_API_TARGET (falling back to VITE_API_TARGET, then
+// http://localhost:8080) is the one `vite preview` uses: the production
+// bundle is served by `preview` too, and its /api requests still need to
+// reach the Go server — `import.meta.env` can't do that at runtime.
+const apiTarget = process.env.VITE_PREVIEW_API_TARGET || process.env.VITE_API_TARGET || 'http://localhost:8080'
+
+// Same-origin paths that must reach the Go API from both the dev server
+// and the production `vite preview` server.
+const apiProxy = {
+  '/api': {
+    target: apiTarget,
+    changeOrigin: true,
+  },
+  '/uploads': {
+    target: apiTarget,
+    changeOrigin: true,
+  },
+  '/tts': {
+    target: apiTarget,
+    changeOrigin: true,
+  },
+}
 
 export default defineConfig({
   plugins: [react(), preloadFonts()],
   server: {
-    proxy: {
-      '/api': {
-        target: apiTarget,
-        changeOrigin: true,
-      },
-      '/uploads': {
-        target: apiTarget,
-        changeOrigin: true,
-      },
-      '/tts': {
-        target: apiTarget,
-        changeOrigin: true,
-      }
-    }
+    proxy: apiProxy,
+  },
+  preview: {
+    proxy: apiProxy,
   },
   test: {
     globals: true,

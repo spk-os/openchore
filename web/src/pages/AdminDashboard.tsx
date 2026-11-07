@@ -21,10 +21,12 @@ import { CoursesTab } from '../components/admin/CoursesTab';
 import { ProfileTab } from '../components/admin/ProfileTab';
 import { ErrorbookTab } from '../components/admin/ErrorbookTab';
 import { MeasuresTab } from '../components/admin/MeasuresTab';
+// 042：十学科知识工作区（学习分组，画像/错题/措施之后）。
+import { TaxonomyTab } from '../components/admin/TaxonomyTab';
 import { MediaTab } from '../components/admin/MediaTab';
 import { LanguageSelector } from '../components/LanguageSelector/LanguageSelector';
 
-type Tab = 'kids-status' | 'approvals' | 'media' | 'chores' | 'templates' | 'courses' | 'profile' | 'errorbook' | 'measures' | 'rewards' | 'points' | 'activity' | 'users' | 'settings';
+type Tab = 'kids-status' | 'approvals' | 'media' | 'chores' | 'templates' | 'courses' | 'profile' | 'errorbook' | 'measures' | 'taxonomy' | 'rewards' | 'points' | 'activity' | 'users' | 'settings';
 
 const TABS: { id: Tab; label: string; icon?: IconName }[] = [
   { id: 'kids-status', label: 'admin.dashboard.tabKids', icon: 'home' },
@@ -40,6 +42,8 @@ const TABS: { id: Tab; label: string; icon?: IconName }[] = [
   // into (measures) sit together after the learning tabs.
   { id: 'errorbook', label: 'admin.dashboard.tabErrorbook', icon: 'book' },
   { id: 'measures', label: 'admin.dashboard.tabMeasures', icon: 'spark' },
+  // 042：十学科知识工作区——#tab=taxonomy 深链（学习措施/画像「接着去哪」用）。
+  { id: 'taxonomy', label: 'admin.dashboard.tabTaxonomy', icon: 'spark' },
   { id: 'rewards', label: 'admin.dashboard.tabRewards', icon: 'gift' },
   { id: 'points', label: 'admin.dashboard.tabPoints', icon: 'star' },
   { id: 'activity', label: 'admin.dashboard.tabLog', icon: 'clock' },
@@ -55,7 +59,7 @@ const NAV_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'admin.dashboard.groupOverview', tabs: ['kids-status'] },
   { label: 'admin.dashboard.groupTodo', tabs: ['approvals', 'media'] },
   { label: 'admin.dashboard.groupTasks', tabs: ['chores', 'templates', 'courses'] },
-  { label: 'admin.dashboard.groupLearning', tabs: ['profile', 'errorbook', 'measures'] },
+  { label: 'admin.dashboard.groupLearning', tabs: ['profile', 'errorbook', 'measures', 'taxonomy'] },
   { label: 'admin.dashboard.groupRewards', tabs: ['rewards', 'points'] },
   { label: 'admin.dashboard.groupFamily', tabs: ['activity', 'users', 'settings'] },
 ];
@@ -268,6 +272,7 @@ export const AdminDashboard: React.FC = () => {
           {tab === 'profile' && <ProfileTab />}
           {tab === 'errorbook' && <ErrorbookTab />}
           {tab === 'measures' && <MeasuresTab />}
+          {tab === 'taxonomy' && <TaxonomyTab />}
           {tab === 'approvals' && <ApprovalsTab onCountChange={setPendingCount} />}
           {tab === 'media' && <MediaTab />}
           {tab === 'users' && <UsersTab />}

@@ -8,14 +8,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api';
 import type { AnalysisQuestion, ErrorItem, PaperAnalysis } from '../../types';
+import { subjectOptionLabel } from '../../subjects';
+import { useSubjects } from '../../hooks/useSubjects';
 import { MathText } from '../MathText';
 import { Icon } from '../../design';
 import Modal from '../Modal/Modal';
 import ui from './ui.module.css';
 import s from './PaperAnalysisCard.module.css';
-
-/** The subjects the analysis can be tagged with. */
-const SUBJECTS = ['math', 'chinese', 'english', 'physics', 'chemistry'] as const;
 
 const errorTypeLabel = (t: (k: string) => string, type?: string) => {
   switch (type) {
@@ -519,7 +518,13 @@ interface PaperAnalysisModalProps {
 export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completionId, initialAnalysis, onClose, onToast }) => {
   const { t } = useTranslation();
   const [analysis, setAnalysis] = useState<PaperAnalysis | null>(initialAnalysis ?? null);
-  const [subject, setSubject] = useState<string>('math');
+  // 服务端 subjects 表驱动（GET /api/taxonomy/subjects）：下拉顺序即服务端
+  // sort_order 顺序，空串起手不默认 math——launch 前由家长自己选学科。
+  // R2：消费 loading/error/retry——加载中/失败时禁用开始并显示可见状态与
+  // 重试（与 subjects.length 解耦，stale 快照在场时错误同样可见）；成功
+  // 空数组（服务端一个学科都没有）显示真空态且不可空 subject 开始。
+  const { subjects, loading: subjectsLoading, error: subjectsError, retry: retrySubjects } = useSubjects();
+  const [subject, setSubject] = useState<string>('');
   // The parent's free-text focus for this parse (问题③): rides the start
   // request and lands in both stage prompts server-side.
   const [instructions, setInstructions] = useState('');
@@ -591,9 +596,11 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
             </div>
             <label className={s.subjectRow}>
               <span>{t('admin.analysis.subjectLabel')}</span>
-              <select value={subject} onChange={e => setSubject(e.target.value)}>
-                {SUBJECTS.map(sub => (
-                  <option key={sub} value={sub}>{t(`admin.analysis.subject_${sub}`)}</option>
+              <select value={subject} onChange={e => setSubject(e.target.value)} data-test="pa-subject-select">
+                {subjects.map(sub => (
+                  <option key={sub.id} value={sub.id}>
+                    {subjectOptionLabel(t, sub.id, sub.id, sub.name)}
+                  </option>
                 ))}
               </select>
             </label>
@@ -611,8 +618,34 @@ export const PaperAnalysisModal: React.FC<PaperAnalysisModalProps> = ({ completi
                 data-test="pa-instructions"
               />
             </label>
+            {/* R2：学科清单加载失败/加载中 → 可见状态 + 禁用开始（不静默
+                呈现空清单让家长误以为无学科可选后失败）。成功空数组是真空态。
+                词条复用 errorbookTab.loadFailed / kidsStatusTab.refreshLabel /
+                common.loading / errorbookTab.empty，不新增 i18n。 */}
+            {subjectsError != null && (
+              <p className={ui.msgError} role="alert" data-test="pa-subjects-error">
+                {t('admin.errorbookTab.loadFailed')}{' '}
+                <button type="button" className={ui.btnGhost} onClick={retrySubjects} data-test="pa-subjects-retry">
+                  {t('admin.kidsStatusTab.refreshLabel')}
+                </button>
+              </p>
+            )}
+            {subjectsError == null && subjectsLoading && subjects.length === 0 && (
+              <p className={ui.emptyInline} data-test="pa-subjects-loading">{t('common.loading')}</p>
+            )}
+            {subjectsError == null && !subjectsLoading && subjects.length === 0 && (
+              <p className={ui.emptyInline} data-test="pa-subjects-empty">{t('admin.errorbookTab.empty')}</p>
+            )}
             {error && <p className={ui.msgError} role="alert">{error}</p>}
-            <button type="button" className={ui.btnPrimary} data-test="pa-launch-btn" onClick={start} disabled={busy}>
+            <button
+              type="button"
+              className={ui.btnPrimary}
+              data-test="pa-launch-btn"
+              onClick={start}
+              // R2：清单在途/失败（保 stale 快照时也算失败态）禁用开始——
+              // 成功空数组无学科可选同样不可空 subject 开始。
+              disabled={busy || subjectsLoading || subjectsError != null || subjects.length === 0}
+            >
               <Icon name="spark" /> {busy ? t('admin.analysis.starting') : t('admin.analysis.startBtn')}
             </button>
           </>

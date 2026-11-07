@@ -82,9 +82,15 @@ describe('ReviewScreen', () => {
 
     // Flip: the answer and the two buttons appear.
     fireEvent.click(flip);
-    expect(q(container, '[data-test="rv-back"]')).toBeTruthy();
-    expect(q(container, '[data-test="rv-again"]')).toBeTruthy();
-    expect(q(container, '[data-test="rv-good"]')).toBeTruthy();
+    // The flip's re-render may commit only after fireEvent returns: the
+    // act queue can drain on a follow-up task, and a full parallel run's
+    // CPU load widens that window. Wait for the back face (one commit
+    // carries all three hooks) instead of querying synchronously.
+    await waitFor(() => {
+      expect(q(container, '[data-test="rv-back"]')).toBeTruthy();
+      expect(q(container, '[data-test="rv-again"]')).toBeTruthy();
+      expect(q(container, '[data-test="rv-good"]')).toBeTruthy();
+    });
     expect(api.review.today).toHaveBeenCalledOnce();
   });
 

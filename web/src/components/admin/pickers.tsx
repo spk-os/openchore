@@ -6,6 +6,10 @@ import {
   resolveChoreIcon, type Cat, type IconName, type PersonColor, type Skin,
 } from '../../design';
 import type { User } from '../../types';
+// 042→taxonomy：学科词表改由服务端 subjects 表驱动（useSubjects），
+// 文案沿用现有 subject_* 词条族（词条缺失回退学科 key，subjects.ts 纯函数）。
+import { subjectOptionLabel } from '../../subjects';
+import { useSubjects } from '../../hooks/useSubjects';
 import styles from './pickers.module.css';
 
 /** UI glyphs that make no sense as a chore or reward icon. */
@@ -150,34 +154,66 @@ export function CategoryLabel({ category }: { category: string }) {
 
 /* ---------------- SubjectPicker ---------------- */
 
-/** The five school subjects a chore can carry (036); '' = unclassified. */
-export const CHORE_SUBJECTS = ['', 'math', 'chinese', 'english', 'physics', 'chemistry'] as const;
-export type ChoreSubject = (typeof CHORE_SUBJECTS)[number];
+// 042→taxonomy：学科清单改由服务端 subjects 表驱动（useSubjects），不再持有
+// 本地静态词表；类型保持开放 string——服务端可增学科，前端不得封死取值域。
+export type ChoreSubject = string;
 
 /**
  * The school-subject select for a chore. The subject is what the media
  * library (and the error book) group by, so it shares the
  * admin.analysis.subject_* labels; '' keeps a chore out of every subject
- * bucket.
+ * bucket. Options come from the server's subjects table (useSubjects) in
+ * server order — '' (unclassified) always stays, and there is no static
+ * fallback list: while loading or after a failure the select is disabled
+ * and a status / error + retry line shows instead of a fake vocabulary.
  */
 export function SubjectPicker({ value, onChange, label }: { value: string; onChange: (s: ChoreSubject) => void; label: string }) {
   const { t } = useTranslation();
+  const { subjects, loading, error, retry } = useSubjects();
+  const selectId = useId();
+
+  // 服务端顺序；''（未分类）始终在列。value 不在服务端清单时也保留为选项：
+  // 受控 select 的显示必须与 value 一致，绝不能静默显示成「未分类」。
+  // R2：文案优先服务端 SubjectRow.name（subjectOptionLabel 第 4 参），
+  // 缺 name 再走 subject_* 词条 / 原始 key。
+  const byId = new Map(subjects.map((row) => [row.id, row.name]));
+  const serverIds = subjects.map((row) => row.id).filter((id) => id !== '');
+  const options = value && !serverIds.includes(value) ? ['', ...serverIds, value] : ['', ...serverIds];
+
+  // 状态行放 <label> 外：label 的隐式控件是 select，里面再嵌 button 会把
+  // 可点击目标也拉进 label 的激活区（点击歧义 + 可访问性问题）。
   return (
-    <label className={styles.fieldset}>
-      <span className={styles.label}>{label}</span>
+    <div className={styles.fieldset}>
+      <label className={styles.subjectLabelBlock} htmlFor={selectId}>
+        <span className={styles.label}>{label}</span>
+      </label>
       <select
+        id={selectId}
         className={styles.subjectSelect}
         value={value}
-        onChange={(e) => onChange(e.target.value as ChoreSubject)}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={loading || error != null}
         data-test="chore-subject-select"
       >
-        {CHORE_SUBJECTS.map((s) => (
+        {options.map((s) => (
           <option key={s || 'none'} value={s}>
-            {s === '' ? t('admin.editChore.subjectNone') : t(`admin.analysis.subject_${s}`)}
+            {subjectOptionLabel(t, s, 'admin.editChore.subjectNone', byId.get(s))}
           </option>
         ))}
       </select>
-    </label>
+      {loading && (
+        <span data-test="chore-subject-loading" role="status">{t('common.loading')}</span>
+      )}
+      {error != null && (
+        <span data-test="chore-subject-error" role="alert">
+          {error instanceof Error ? error.message : String(error)}
+          {' '}
+          <button type="button" className={styles.linkBtn} data-test="chore-subject-retry" onClick={retry}>
+            {t('admin.kidsStatusTab.refreshLabel')}
+          </button>
+        </span>
+      )}
+    </div>
   );
 }
 

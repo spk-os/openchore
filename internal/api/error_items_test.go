@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -73,6 +74,11 @@ func setupPaperTest(t *testing.T) (*testEnv, *fakePaperAI) {
 	t.Helper()
 	t.Chdir(t.TempDir())
 	env := setupTest(t)
+	// 042 之后 startAnalysis 的 math 走 subjects 表校验（validSubject）；
+	// 夹具必须和线上启动一样先导入学科词表，否则空表会把合法学科判成 400。
+	// seedSubjects 走真 DB 的 ImportPack，不是 mock（见
+	// subject_validation_test.go 的同名 helper）。
+	seedSubjects(t, env)
 	f := newFakePaperAI(t)
 	f.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
@@ -424,7 +430,6 @@ func TestAutoPaperAnalysisOffByDefault(t *testing.T) {
 	}
 }
 
-
 // TestErrorItemsSurviveCompletionDelete locks the 035 migration's contract:// deleting the chore (which cascades schedules → completions) must keep the
 // kid's extracted error items — the error book is a learning asset that
 // outlives the task that produced it. Regression guard for the silent
@@ -648,5 +653,313 @@ func TestCorrectionTaskIdempotent(t *testing.T) {
 	}
 	if n != 1 {
 		t.Fatalf("expected exactly 1 schedule on the reused chore, found %d", n)
+	}
+}
+
+// TestPaperAnalysisSubjectEmptyAndUnknown pins StartPaperAnalysis' 042
+// contract: an omitted subject is 201 and saved as "" (not the column's
+// legacy 'math' default), while a non-empty value outside the seeded word
+// list is a 400 that creates no job row.
+func TestPaperAnalysisSubjectEmptyAndUnknown(t *testing.T) {
+	env, _ := setupPaperTest(t) // seeds the ten-subject word list in the real DB
+	_, completionID := completePhotoChore(t, env)
+
+	resp := env.expectStatus(t, "POST", "/api/admin/analyses",
+		map[string]any{"completion_id": completionID}, adminHeaders(), http.StatusCreated)
+	var created struct {
+		ID      int64  `json:"id"`
+		Subject string `json:"subject"`
+	}
+	decodeBody(t, resp, &created)
+	if created.Subject != "" {
+		t.Fatalf("omitted subject must stay empty on the response, got %q", created.Subject)
+	}
+	var dbSubject string
+	if err := env.db.QueryRow(`SELECT subject FROM paper_analyses WHERE id = ?`, created.ID).Scan(&dbSubject); err != nil {
+		t.Fatalf("read analysis subject: %v", err)
+	}
+	if dbSubject != "" {
+		t.Fatalf("omitted subject must be saved as empty, got %q", dbSubject)
+	}
+	// Snapshot every knowledge tag before the run so the final count proves
+	// the empty-subject path created none at all.
+	tagsBefore := countAllKnowledgeTags(t, env)
+
+	env.chores.WaitForAnalyses()
+	_ = env.waitForAnalysisDone(t, created.ID)
+
+	// Empty-subject items stay in the book (legal) but the auto KC binding
+	// must import them under subject='' (a garbage tag) or default them to
+	// math. Both are on-disk checks against the real migrations.
+	var emptyItems, mathItems int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM error_items WHERE subject = ''`).Scan(&emptyItems); err != nil {
+		t.Fatalf("count empty-subject error items: %v", err)
+	}
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM error_items WHERE subject = 'math'`).Scan(&mathItems); err != nil {
+		t.Fatalf("count math error items: %v", err)
+	}
+	if emptyItems == 0 {
+		t.Fatalf("an empty-subject analysis must still record its wrong questions (subject=''), found none")
+	}
+	if mathItems != 0 {
+		t.Fatalf("empty subject must not default to math, found %d math error items", mathItems)
+	}
+	var emptyTags int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM knowledge_tags WHERE subject = ''`).Scan(&emptyTags); err != nil {
+		t.Fatalf("count subject='' knowledge tags: %v", err)
+	}
+	if emptyTags != 0 {
+		t.Fatalf("auto KC binding must not create subject='' knowledge tags, found %d", emptyTags)
+	}
+	name := "整数加法" // the fake judge's knowledge point must not leak a tag
+	var leaked int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM knowledge_tags WHERE name = ?`, name).Scan(&leaked); err != nil {
+		t.Fatalf("count %q knowledge tags: %v", name, err)
+	}
+	if leaked != 0 {
+		t.Fatalf("auto KC binding must not create a tag for %q on an empty-subject analysis", name)
+	}
+	var emptyLinks int
+	if err := env.db.QueryRow(
+		`SELECT COUNT(*) FROM error_item_tags eit JOIN error_items ei ON ei.id = eit.error_item_id WHERE ei.subject = ''`).
+		Scan(&emptyLinks); err != nil {
+		t.Fatalf("count tag links of empty-subject items: %v", err)
+	}
+	if emptyLinks != 0 {
+		t.Fatalf("empty-subject error items must carry no auto-bound tags, found %d links", emptyLinks)
+	}
+	if got := countAllKnowledgeTags(t, env); got != tagsBefore {
+		t.Fatalf("empty-subject analysis changed knowledge_tags count: before %d, after %d", tagsBefore, got)
+	}
+
+	env.expectStatus(t, "POST", "/api/admin/analyses",
+		map[string]any{"completion_id": completionID, "subject": "gym"}, adminHeaders(), http.StatusBadRequest)
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM paper_analyses`).Scan(&n); err != nil {
+		t.Fatalf("count analyses: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("a rejected subject must not create an analysis, found %d rows", n)
+	}
+}
+
+func countAllKnowledgeTags(t *testing.T, env *testEnv) int {
+	t.Helper()
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM knowledge_tags`).Scan(&n); err != nil {
+		t.Fatalf("count knowledge_tags: %v", err)
+	}
+	return n
+}
+
+// TestPaperAnalysisSubjectDisabled pins the enabled flag: math switched
+// off before the handler's first vocabulary lookup is a 400, while the
+// other seeded subjects still start a job.
+func TestPaperAnalysisSubjectDisabled(t *testing.T) {
+	env, _ := setupPaperTest(t)
+	// Flip before any validSubject call so the handler's lazy cache sees
+	// the disabled row (restart semantics, same trick as
+	// subject_validation_test.go's disabled-case tests).
+	env.mustExec(t, `UPDATE subjects SET enabled = 0 WHERE key = 'math'`)
+	_, completionID := completePhotoChore(t, env)
+
+	env.expectStatus(t, "POST", "/api/admin/analyses",
+		map[string]any{"completion_id": completionID, "subject": "english"}, adminHeaders(), http.StatusCreated)
+	env.expectStatus(t, "POST", "/api/admin/analyses",
+		map[string]any{"completion_id": completionID, "subject": "math"}, adminHeaders(), http.StatusBadRequest)
+	env.chores.WaitForAnalyses()
+
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM paper_analyses`).Scan(&n); err != nil {
+		t.Fatalf("count analyses: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("only the enabled subject must create an analysis, found %d rows", n)
+	}
+}
+
+// TestErrorItemUpdateSubjectValidation pins UpdateErrorItem's write gate:
+// an empty/omitted subject keeps the stored value, every one of the ten
+// seeded subjects can be switched to, and junk is a 400 that leaves the
+// row untouched. Frozen R2 contract: a subject change without
+// knowledge_tag_ids is only legal when the item's current tags already
+// share the new subject (an empty tag set trivially does). So the
+// per-subject switch here either clears the old tags in the same body
+// (knowledge_tag_ids: []) or explicitly resends compatible tags.
+func TestErrorItemUpdateSubjectValidation(t *testing.T) {
+	env, _ := setupPaperTest(t)
+	kidID, completionID := completePhotoChore(t, env)
+	analysisID := env.startAnalysis(t, completionID) // subject=math, word list seeded
+	env.chores.WaitForAnalyses()
+	_ = env.waitForAnalysisDone(t, analysisID)
+
+	resp := env.expectStatus(t, "GET", "/api/error-items", nil, childHeaders(kidID), http.StatusOK)
+	var items []errorItemResp
+	decodeBody(t, resp, &items)
+	if len(items) == 0 {
+		t.Fatal("expected error items to exist")
+	}
+	id := items[0].ID
+	path := fmt.Sprintf("/api/admin/error-items/%d", id)
+
+	// countTagLinks is the on-disk truth for every assertion below.
+	countTagLinks := func() []int64 {
+		t.Helper()
+		rows, err := env.db.Query(`SELECT tag_id FROM error_item_tags WHERE error_item_id = ? ORDER BY tag_id`, id)
+		if err != nil {
+			t.Fatalf("read error_item_tags: %v", err)
+		}
+		defer rows.Close()
+		var out []int64
+		for rows.Next() {
+			var tid int64
+			if err := rows.Scan(&tid); err != nil {
+				t.Fatalf("scan tag link: %v", err)
+			}
+			out = append(out, tid)
+		}
+		return out
+	}
+	dbSubject := func() string {
+		t.Helper()
+		var s string
+		if err := env.db.QueryRow(`SELECT subject FROM error_items WHERE id = ?`, id).Scan(&s); err != nil {
+			t.Fatalf("read error item subject: %v", err)
+		}
+		return s
+	}
+
+	// Case A: the analysed item carries auto-created math tags in practice.
+	// Switch to chinese WITHOUT knowledge_tag_ids: the old math tags are
+	// cross-subject, so the frozen contract must reject the whole request
+	// and leave subject and links untouched (this is the R2 guard — do not
+	// drop it just because the old fixture assumed 200).
+	if links := countTagLinks(); len(links) > 0 {
+		env.expectStatus(t, "PUT", path, map[string]any{"subject": "chinese", "question_text": "跨学科应被拒"},
+			adminHeaders(), http.StatusBadRequest)
+		if got := dbSubject(); got != "math" {
+			t.Fatalf("rejected cross-subject switch must keep subject math, got %q", got)
+		}
+		after := countTagLinks()
+		if len(after) != len(links) {
+			t.Fatalf("rejected cross-subject switch must keep %d tag links, got %d", len(links), len(after))
+		}
+		var qt string
+		if err := env.db.QueryRow(`SELECT question_text FROM error_items WHERE id = ?`, id).Scan(&qt); err != nil {
+			t.Fatalf("read question_text: %v", err)
+		}
+		if qt == "跨学科应被拒" {
+			t.Fatal("rejected switch must not write the other fields either")
+		}
+	} else {
+		// No tags: the guard has nothing to reject, the switch is legal.
+		env.expectStatus(t, "PUT", path, map[string]any{"subject": "chinese"}, adminHeaders(), http.StatusOK)
+		env.expectStatus(t, "PUT", path, map[string]any{"subject": "math"}, adminHeaders(), http.StatusOK)
+	}
+
+	// Explicit "" and an omitted subject both keep the original value,
+	// even while another field is being corrected.
+	for _, body := range []map[string]any{{"subject": ""}, {"analysis": "家长补充"}} {
+		resp = env.expectStatus(t, "PUT", path, body, adminHeaders(), http.StatusOK)
+		var item errorItemResp
+		decodeBody(t, resp, &item)
+		if item.Subject != "math" {
+			t.Fatalf("empty/omitted subject must keep math, got %q (%v)", item.Subject, body)
+		}
+	}
+	if got := dbSubject(); got != "math" {
+		t.Fatalf("db subject after empty updates = %q, want math", got)
+	}
+
+	// Every seeded subject switches through with an explicit tag list in
+	// the same body: [] clears the old subject's tags (first switch), then
+	// each further switch is field-only (math tag re-attached when we come
+	// back to math so the next [] clear is a real cross-subject clear).
+	mustMathTag, err := env.store.FindOrCreateKnowledgeTag(t.Context(), "整数加法", "math", nil)
+	if err != nil {
+		t.Fatalf("FindOrCreateKnowledgeTag(math): %v", err)
+	}
+	for _, subject := range []string{"math", "chinese", "english", "physics", "chemistry",
+		"biology", "science", "morality", "history", "geography"} {
+		body := map[string]any{"subject": subject}
+		if subject == "math" {
+			body["knowledge_tag_ids"] = []int64{mustMathTag}
+		} else if len(countTagLinks()) > 0 {
+			body["knowledge_tag_ids"] = []int64{}
+		}
+		resp = env.expectStatus(t, "PUT", path, body, adminHeaders(), http.StatusOK)
+		var item errorItemResp
+		decodeBody(t, resp, &item)
+		if item.Subject != subject {
+			t.Fatalf("switch to %s: got subject %q", subject, item.Subject)
+		}
+		if got := dbSubject(); got != subject {
+			t.Fatalf("switch to %s: db subject = %q", subject, got)
+		}
+	}
+	links := countTagLinks()
+	if len(links) != 0 {
+		t.Fatalf("the [] clears along the way must leave no links for a non-math subject, got %v", links)
+	}
+
+	// FSRS state must survive a field-only PUT: mastery_level / next_review_at
+	// (the denormalized scheduling columns the PUT writes back from its read)
+	// and the L4 card itself are owned by the review flow, not by a parent's
+	// edit of the question text.
+	if _, err := env.db.Exec(`UPDATE error_items SET mastery_level = 1, next_review_at = '2027-01-02T03:04:05Z' WHERE id = ?`, id); err != nil {
+		t.Fatalf("seed FSRS state: %v", err)
+	}
+	type reviewCard struct {
+		Front, State, LastReview string
+		Due                      string
+		Reps, Lapses             int64
+		Stability, Difficulty    float64
+	}
+	readCard := func() (reviewCard, bool) {
+		t.Helper()
+		var c reviewCard
+		var last sql.NullString
+		err := env.db.QueryRow(`SELECT front_text, state, COALESCE(last_review,''), due, reps, lapses, stability, difficulty
+			FROM review_items WHERE source_type = 'error_item' AND source_id = ?`, id).
+			Scan(&c.Front, &c.State, &last, &c.Due, &c.Reps, &c.Lapses, &c.Stability, &c.Difficulty)
+		if err == sql.ErrNoRows {
+			return reviewCard{}, false
+		}
+		if err != nil {
+			t.Fatalf("read review card: %v", err)
+		}
+		c.LastReview = last.String
+		return c, true
+	}
+	cardBefore, hadCard := readCard()
+	env.expectStatus(t, "PUT", path, map[string]any{"subject": "geography", "question_text": "FSRS 不应重置"},
+		adminHeaders(), http.StatusOK)
+	var gotMastery int
+	var gotNext sql.NullString
+	if err := env.db.QueryRow(`SELECT mastery_level, next_review_at FROM error_items WHERE id = ?`, id).
+		Scan(&gotMastery, &gotNext); err != nil {
+		t.Fatalf("re-read FSRS columns: %v", err)
+	}
+	if gotMastery != 1 || !gotNext.Valid || !strings.HasPrefix(gotNext.String, "2027-01-02T03:04:05") {
+		t.Fatalf("PUT reset FSRS columns: mastery=%d next_review_at=%v", gotMastery, gotNext)
+	}
+	if !hadCard {
+		t.Log("该夹具没有 L4 复习卡，只校验 error_items 上的 FSRS 列")
+	}
+	cardAfter, hasCard := readCard()
+	if hadCard != hasCard {
+		t.Fatalf("PUT created/removed the review card: before=%v after=%v", hadCard, hasCard)
+	}
+	if hadCard && cardAfter != cardBefore {
+		t.Fatalf("PUT mutated the FSRS review card:\nbefore %+v\nafter  %+v", cardBefore, cardAfter)
+	}
+
+	// Junk subject is a 400 that leaves the row untouched.
+	env.expectStatus(t, "PUT", path, map[string]any{"subject": "gym"}, adminHeaders(), http.StatusBadRequest)
+	resp = env.expectStatus(t, "GET", fmt.Sprintf("/api/error-items/%d", id), nil, adminHeaders(), http.StatusOK)
+	var after errorItemResp
+	decodeBody(t, resp, &after)
+	if after.Subject != "geography" {
+		t.Fatalf("a 400 must not rewrite the stored subject, got %q", after.Subject)
 	}
 }

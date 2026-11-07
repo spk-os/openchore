@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import i18n from '../../i18n';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 // The API client is mocked at the module level: the screen must only
 // talk to api.courses.get / api.courses.outcomes / api.courses.reportProgress.
@@ -93,8 +93,26 @@ const topBar = <div data-test="topbar" />;
 // The components use data-test (not data-testid): query through the container.
 const q = (root: HTMLElement, sel: string) => root.querySelector(sel)!;
 
+// The real host route is /course/:id (KidApp); here the screen reads :id so the
+// deep-link tests below carry the course id the URL says.
+// The URL is the "id" input (kid CourseScreen reads only :id, never the tree),
+// so the string can carry non-safe / negative shapes tsc would reject as number.
+const renderAt = (courseId: string | number) => render(
+  <MemoryRouter key={String(courseId)} initialEntries={[`/course/${courseId}`]}>
+    <Routes>
+      <Route path="/course/:id" element={<CourseScreen topBar={topBar} />} />
+    </Routes>
+  </MemoryRouter>,
+);
+
 beforeAll(async () => { await i18n.changeLanguage('en'); });
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+// pending 的 mockResolvedValue 响应会在用例间重放（同一 tree 被下一用例读到），
+// 因此每个用例结束必须 reset 实现，而不只是清调用记录。
+afterEach(() => {
+  cleanup();
+  vi.resetAllMocks();
+  vi.mocked(api.courses.list).mockResolvedValue([]);
+});
 
 describe('CourseScreen', () => {
   it('renders the course card, the unit path with its three states, and the lock bubble', async () => {
@@ -222,6 +240,109 @@ describe('CourseScreen', () => {
     );
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(container.querySelector('[data-test="kid-course-page"]')).toBeTruthy();
+  });
+});
+
+describe('course practice deep link (TX-COURSE-DEEPLINK)', () => {
+  // A generated practice resource pointing at a taxonomy knowledge tag by its
+  // stable external_ref: the kid goes straight into that topic's practice with
+  // the course progress context.
+  const practiceRes = (over: Partial<ResourceView> = {}) => res({
+    id: 501, resource_type: 'practice', completion_type: 'min_score', min_score: 80,
+    content_ref: 'cnm_p001', ...over,
+  });
+  const withRes = (r: ResourceView) => tree({
+    units: [unit({ id: 2, state: 'started', resources: [r], total_resources: 1 })],
+  });
+
+  const linkHref = async (container: HTMLElement): Promise<string | null> => {
+    const el = await waitFor(() => {
+      const found = container.querySelector('[data-test="kc-practice-link"]');
+      expect(found).toBeTruthy();
+      return found as HTMLAnchorElement;
+    });
+    return el.getAttribute('href');
+  };
+
+  it('practice resource with an external_ref links to /learn with topic + resourceId + courseId', async () => {
+    vi.mocked(api.courses.get).mockResolvedValue(withRes(practiceRes()));
+    vi.mocked(api.courses.outcomes).mockResolvedValue([]);
+    const { container } = renderAt(9);
+
+    const href = await linkHref(container);
+    expect(href).toBe('/learn?topic=cnm_p001&resourceId=501&courseId=9');
+    // The link is a router Link, not a button that reports progress on click.
+    fireEvent.click(q(container, '[data-test="kc-practice-link"]'));
+    expect(api.courses.reportProgress).not.toHaveBeenCalled();
+  });
+
+  // 生产契约：courseId 取自已加载的课程树（course.id），而不是 URL 的 :id；
+  // 这里让 URL(:id) 与树 id 不同，断言链接带的是树的 id（即服务端确认过的课程）。
+  it('the courseId in the link is the loaded course id (server-confirmed), not the raw URL :id', async () => {
+    vi.mocked(api.courses.get).mockResolvedValue(withRes(practiceRes()));
+    vi.mocked(api.courses.outcomes).mockResolvedValue([]);
+    const { container } = renderAt(42);
+    expect(await screen.findByText('Science · Water')).toBeTruthy();
+    expect(api.courses.get).toHaveBeenCalledWith(42);
+    const href = await linkHref(container);
+    expect(href).toBe('/learn?topic=cnm_p001&resourceId=501&courseId=9');
+    expect(href).not.toContain('courseId=42');
+  });
+
+  // external_ref 走 encodeURIComponent；'.' 是允许出现在 topic 里的字符，原样保留。
+  it('the external_ref is URI-encoded in the link', async () => {
+    vi.mocked(api.courses.get).mockResolvedValue(withRes(practiceRes({ content_ref: 'cnm:p.001' })));
+    vi.mocked(api.courses.outcomes).mockResolvedValue([]);
+    const { container } = renderAt(9);
+    const href = await linkHref(container);
+    expect(href).toBe('/learn?topic=cnm%3Ap.001&resourceId=501&courseId=9');
+  });
+
+  it.each([
+    ['numeric local id', { content_ref: '123' }],
+    ['empty content_ref', { content_ref: '' }],
+    ['whitespace-only content_ref', { content_ref: '   ' }],
+    ['null content_ref', { content_ref: null as unknown as string }],
+    ['ref starting with a digit', { content_ref: '1cnm_p001' }],
+    ['ref with a space', { content_ref: 'cnm p001' }],
+    ['non-safe resource id', { id: Number.MAX_SAFE_INTEGER + 1 }],
+    ['zero resource id', { id: 0 }],
+    ['negative resource id', { id: -1 }],
+    ['non-integer resource id', { id: 1.5 }],
+  ])('no deep link for %s: falls back to the score control, never a /learn link', async (_label, over) => {
+    vi.mocked(api.courses.get).mockResolvedValue(withRes(practiceRes(over)));
+    vi.mocked(api.courses.outcomes).mockResolvedValue([]);
+    const { container } = renderAt(9);
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-test="kc-score-input"]')).toBeTruthy();
+    });
+    expect(container.querySelector('[data-test="kc-practice-link"]')).toBeNull();
+    // No link anywhere pointing at /learn.
+    expect(Array.from(container.querySelectorAll('a')).some((a) => (a.getAttribute('href') ?? '').startsWith('/learn'))).toBe(false);
+  });
+
+  // URL 里的 :id 形状不安全时，屏幕仍只信任服务端返回的课程树 id，
+  // 因此链接依旧只带 tree.id（URL 的非法值不会渗进深链）。
+  it('a non-safe / non-positive course id in the URL never leaks into the /learn link', async () => {
+    vi.mocked(api.courses.get).mockResolvedValue(withRes(practiceRes()));
+    vi.mocked(api.courses.outcomes).mockResolvedValue([]);
+    const { container } = renderAt('9007199254740993');
+
+    const href = await linkHref(container);
+    expect(href).toBe('/learn?topic=cnm_p001&resourceId=501&courseId=9');
+    expect(href).not.toContain('9007199254740993');
+  });
+
+  it('a non-practice resource with an external_ref content_ref stays a plain row', async () => {
+    vi.mocked(api.courses.get).mockResolvedValue(withRes(res({ resource_type: 'page', content_ref: 'cnm_p001' })));
+    vi.mocked(api.courses.outcomes).mockResolvedValue([]);
+    const { container } = renderAt(9);
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-test="kc-open-btn"]')).toBeTruthy();
+    });
+    expect(container.querySelector('[data-test="kc-practice-link"]')).toBeNull();
   });
 });
 

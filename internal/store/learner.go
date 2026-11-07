@@ -107,9 +107,13 @@ func (s *Store) bumpKCMastery(ctx context.Context, userID, tagID int64) error {
 		}
 		var result struct {
 			Success *bool `json:"success"`
+			Skipped bool  `json:"skipped"`
 		}
 		if json.Unmarshal([]byte(resultJSON), &result) != nil || result.Success == nil {
 			continue // an event without a verdict carries no signal
+		}
+		if result.Skipped {
+			continue // a skipped round (manual/self) is not a wrong answer
 		}
 		total++
 		if *result.Success {

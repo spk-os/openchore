@@ -419,6 +419,24 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 		existingTitles = append(existingTitles, c.Title)
 	}
 
+	// The subject vocabulary is checked before the transaction opens:
+	// the pool is single-writer (one connection), so a ListSubjects from
+	// inside the apply transaction would block on the connection the
+	// transaction already holds — a deadlock. Same vocabulary check as
+	// Create/Update: the media library's subject chips read the subjects
+	// table (036/042), a junk value would fall into no bucket at all.
+	for _, t := range req.Tasks {
+		ok, err := h.validSubject(r.Context(), t.Subject)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load subjects")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusBadRequest, "subject must be empty or a subject from the subjects list")
+			return
+		}
+	}
+
 	tx, err := h.store.BeginTemplateTx(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to start apply")
@@ -447,13 +465,6 @@ func (h *ChoreHandler) ApplyCopilotDraft(w http.ResponseWriter, r *http.Request)
 		}
 		if category != model.CategoryRequired && category != model.CategoryCore && category != model.CategoryBonus {
 			writeError(w, http.StatusBadRequest, "category must be required, core, or bonus")
-			return
-		}
-		// Same vocabulary check as Create/Update: the media library's
-		// subject chips only know the five, a junk value would fall into
-		// no bucket at all.
-		if !isValidSubject(t.Subject) {
-			writeError(w, http.StatusBadRequest, "subject must be empty, math, chinese, english, physics, or chemistry")
 			return
 		}
 		expiry := t.Expiry

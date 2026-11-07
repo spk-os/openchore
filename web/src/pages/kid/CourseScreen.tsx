@@ -24,6 +24,12 @@ const resourceIcon = (type: string) => {
   }
 };
 
+/** Stable taxonomy external_ref (cnm_p001 / cnk_p001 etc.), never a local DB integer id. */
+const TOPIC_EXTERNAL_REF_RE = /^[A-Za-z][A-Za-z0-9_.:-]*$/;
+function isTaxonomyExternalRef(value: string): boolean {
+  return TOPIC_EXTERNAL_REF_RE.test(value);
+}
+
 /** The completion predicate the kid can read: what "done" means here. */
 function predicateLabel(
   t: ReturnType<typeof useTranslation>['t'],
@@ -40,6 +46,7 @@ function predicateLabel(
 
 interface ResourceRowProps {
   resource: ResourceView;
+  courseId: number;
   onReport: (r: ResourceView, report: { viewed_seconds?: number; score?: number; submitted_ref?: string }) => void;
   busy: boolean;
 }
@@ -47,9 +54,19 @@ interface ResourceRowProps {
 /** One resource row: icon, title, the readable predicate, the action.
  * Task-type resources route to the chore pipeline (photo check-in), the
  * rest report progress straight to the unlock engine. */
-const ResourceRow: React.FC<ResourceRowProps> = ({ resource: r, onReport, busy }) => {
+const ResourceRow: React.FC<ResourceRowProps> = ({ resource: r, courseId, onReport, busy }) => {
   const { t } = useTranslation();
   const [score, setScore] = useState('');
+  // A generated practice resource points at a taxonomy knowledge tag by its
+  // stable external_ref. Send the kid straight into that topic with the course
+  // progress context; numeric content_ref values are local DB ids, never links.
+  const topicRef = (r.content_ref ?? '').trim();
+  const deepLink = r.resource_type === 'practice'
+    && isTaxonomyExternalRef(topicRef)
+    && Number.isSafeInteger(r.id) && r.id > 0
+    && Number.isSafeInteger(courseId) && courseId > 0
+    ? `/learn?topic=${encodeURIComponent(topicRef)}&resourceId=${r.id}&courseId=${courseId}`
+    : null;
 
   // must_view / min_minutes resources complete on open (one tap).
   const open = () => onReport(r, {
@@ -79,7 +96,16 @@ const ResourceRow: React.FC<ResourceRowProps> = ({ resource: r, onReport, busy }
           {r.done ? ` · ${t('kid.course.resDone')}` : ''}
         </div>
       </div>
-      {r.done ? (
+      {deepLink ? (
+        <Link
+          className={s.kcResourceSt}
+          to={deepLink}
+          data-test="kc-practice-link"
+          aria-label={t('kid.course.submitBtn')}
+        >
+          {t('kid.course.submitBtn')}
+        </Link>
+      ) : r.done ? (
         <span className={`${s.kcResourceSt} ${s.kcResourceStOk}`}>✓ {t('kid.course.resDoneShort')}</span>
       ) : r.completion_type === 'min_score' ? (
           <span className={s.kcScoreBox}>
@@ -131,13 +157,14 @@ const ResourceRow: React.FC<ResourceRowProps> = ({ resource: r, onReport, busy }
 
 interface UnitNodeProps {
   unit: UnitView;
+  courseId: number;
   onReport: (r: ResourceView, report: { viewed_seconds?: number; score?: number; submitted_ref?: string }) => void;
   busy: boolean;
 }
 
 /** One unit in the path: done / current (with the resource rows) /
  * locked (with the lock explanation bubble). */
-const UnitNode: React.FC<UnitNodeProps> = ({ unit: u, onReport, busy }) => {
+const UnitNode: React.FC<UnitNodeProps> = ({ unit: u, courseId, onReport, busy }) => {
   const { t } = useTranslation();
   const cls = u.state === 'completed' ? s.kcUnitDone
     : u.state === 'locked' ? s.kcUnitLocked
@@ -169,7 +196,7 @@ const UnitNode: React.FC<UnitNodeProps> = ({ unit: u, onReport, busy }) => {
       {(u.state === 'unlocked' || u.state === 'started') && (
         <div className={s.kcResources} data-test="kc-resources">
           {u.resources.map(r => (
-            <ResourceRow key={r.id} resource={r} onReport={onReport} busy={busy} />
+            <ResourceRow key={r.id} resource={r} courseId={courseId} onReport={onReport} busy={busy} />
           ))}
           {u.resources.length === 0 && (
             <p className={s.kcUnitEmpty}>{t('kid.course.unitNoResources')}</p>
@@ -313,7 +340,7 @@ export function CourseScreen({ topBar }: CourseScreenProps) {
         <div className={s.kcSectionHead}>{t('kid.course.pathTitle')}</div>
         <div className={s.kcPathMap} data-test="kc-path-map">
           {course.units.map(u => (
-            <UnitNode key={u.id} unit={u} onReport={onReport} busy={busy} />
+            <UnitNode key={u.id} unit={u} courseId={course.id} onReport={onReport} busy={busy} />
           ))}
           {course.units.length === 0 && (
             <p className={s.kcUnitEmpty}>{t('kid.course.emptyUnits')}</p>

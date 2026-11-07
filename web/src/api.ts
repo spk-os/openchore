@@ -487,7 +487,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ points, specific_date: specificDate, due_by: dueBy }),
       }),
-    updateErrorItem: (id: number, data: Partial<ErrorItem>) =>
+    // knowledge_tag_ids rides the same PUT: omitted/null keeps the stored
+    // tags, [] clears them, a non-empty slice replaces them (server-side
+    // same-subject validation; 400 rolls fields + tags back together).
+    updateErrorItem: (id: number, data: Partial<ErrorItem> & { knowledge_tag_ids?: number[] }) =>
       fetchWithAuth<ErrorItem>(`/admin/error-items/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),

@@ -8,15 +8,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api';
 import type { ReviewItem, ReviewToday } from '../../types';
+// 042：学科词表由共享 subjects.ts 表驱动（十学科 + 未分类）。
+import { subjectOptionLabel } from '../../subjects';
 import { MathText } from '../../components/MathText';
 import { Icon } from '../../design';
 import s from './kid.module.css';
 
-/** A subject's display name: the known five translate, the rest stay as-is. */
-const subjectLabel = (t: (k: string) => string, subject: string) => {
-  const known = ['math', 'chinese', 'english', 'physics', 'chemistry'];
-  return known.includes(subject) ? t(`admin.analysis.subject_${subject}`) : subject;
-};
+/** A subject's display name: the ten shared vocabulary translate, the rest stay as-is. */
+const subjectLabel = (t: (k: string) => string, subject: string) =>
+  subjectOptionLabel(t, subject, subject);
 
 /** "今天" / "3 天后" style relative label for a card's due date. */
 function dueWhen(t: ReturnType<typeof useTranslation>['t'], iso: string): string {

@@ -26,6 +26,13 @@ type ChoreHandler struct {
 	analyses    sync.WaitGroup // in-flight background paper analyses (L1)
 	spaced      *ReviewHandler // L4 hook target (T+0 card creation), may be nil
 	LearnerHook                // L3 append-only learner event stream
+
+	// Subject-vocabulary cache (042): the enabled rows of the subjects
+	// table, loaded once and reused by Create/Update/apply. A mutex (not
+	// sync.Once) so a failed load is retried on the next request and a
+	// table seeded after startup is picked up without a restart.
+	subjectMu    sync.Mutex
+	subjectAllow map[string]struct{}
 }
 
 // bonusDropEnabledSetting gates the surprise bonus on completion
@@ -159,11 +166,18 @@ func (h *ChoreHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Same vocabulary check as Update: the media library's subject filter
-	// only knows the five (036), so a junk subject on create would fall
-	// into no bucket at all.
-	if req.Subject != nil && !isValidSubject(*req.Subject) {
-		writeError(w, http.StatusBadRequest, "subject must be empty, math, chinese, english, physics, or chemistry")
-		return
+	// reads the subjects table (036/042), so a junk subject on create
+	// would fall into no bucket at all.
+	if req.Subject != nil {
+		ok, err := h.validSubject(r.Context(), *req.Subject)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load subjects")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusBadRequest, "subject must be empty or a subject from the subjects list")
+			return
+		}
 	}
 
 	user := UserFromContext(r.Context())
@@ -263,8 +277,13 @@ func (h *ChoreHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Same protocol for the school subject: omitted keeps it, an explicit
 	// value (including "") reclassifies or clears it.
 	if req.Subject != nil {
-		if !isValidSubject(*req.Subject) {
-			writeError(w, http.StatusBadRequest, "subject must be empty, math, chinese, english, physics, or chemistry")
+		ok, err := h.validSubject(r.Context(), *req.Subject)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load subjects")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusBadRequest, "subject must be empty or a subject from the subjects list")
 			return
 		}
 		existing.Subject = *req.Subject
@@ -1310,14 +1329,42 @@ func completerFor(caller *model.User, schedule *model.ChoreSchedule, requested i
 	return requested, nil
 }
 
-// isValidSubject checks the school-subject vocabulary (036). The media
-// library and the error book share these five; empty means "not school
-// work" and is always allowed.
-func isValidSubject(subject string) bool {
-	switch subject {
-	case "", "math", "chinese", "english", "physics", "chemistry":
-		return true
-	default:
-		return false
+// validSubject checks the school-subject vocabulary against the enabled
+// rows of the subjects table (042) — the word list is table-driven, so a
+// household disabling a subject stops new chores from using it. Empty
+// means "not school work" and is always allowed. The loaded set is
+// cached on the handler; an empty vocabulary (table not seeded yet, or
+// every row disabled) is deliberately NOT cached — caching it would
+// either lock junk in as valid forever or, worse, keep rejecting after
+// the seed lands. A failed load returns the error so the caller can 500
+// instead of silently treating the vocabulary as empty.
+func (h *ChoreHandler) validSubject(ctx context.Context, subject string) (bool, error) {
+	if subject == "" {
+		return true, nil
 	}
+	h.subjectMu.Lock()
+	cached := h.subjectAllow
+	h.subjectMu.Unlock()
+	if cached != nil {
+		_, ok := cached[subject]
+		return ok, nil
+	}
+	subs, err := h.store.ListSubjects(ctx)
+	if err != nil {
+		return false, err
+	}
+	allow := make(map[string]struct{}, len(subs))
+	for _, sub := range subs {
+		if !sub.Enabled {
+			continue
+		}
+		allow[sub.Key] = struct{}{}
+	}
+	if len(allow) > 0 {
+		h.subjectMu.Lock()
+		h.subjectAllow = allow
+		h.subjectMu.Unlock()
+	}
+	_, ok := allow[subject]
+	return ok, nil
 }

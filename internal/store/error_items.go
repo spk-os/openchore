@@ -350,6 +350,98 @@ func (s *Store) AttachErrorItemTag(ctx context.Context, errorItemID, tagID int64
 	return err
 }
 
+// ErrKnowledgeTagMismatch is ReplaceErrorItemTags's rejection sentinel: a
+// requested tag id does not exist or belongs to another subject than the
+// error item. Callers detect it with errors.Is, never string matching.
+var ErrKnowledgeTagMismatch = errors.New("knowledge tag missing or from another subject")
+
+// ReplaceErrorItemTags atomically swaps an error item's knowledge-tag
+// links for tagIDs. nil and an empty slice both mean "clear the links" —
+// whether the HTTP layer can leave the field absent is the API pointer's
+// job, not this DAO's. One short transaction holds the whole swap:
+//   - the item must exist (sql.ErrNoRows propagates as-is, the caller's
+//     404 signal) and its subject is the tag-membership constraint;
+//   - duplicate ids collapse (the composite PK never trips) and ids <= 0
+//     cannot exist (AUTOINCREMENT starts at 1), so they take the same
+//     ErrKnowledgeTagMismatch instead of being silently dropped;
+//   - any tag that is missing or from another subject rolls the whole
+//     swap back — the item keeps its previous links;
+//   - success deletes this item's links then batch-inserts the new set.
+//
+// Every statement rides the transaction: the pool is single-connection
+// (MaxOpenConns=1), so an s.db / GetKnowledgeTag / TagsForItem call in
+// here would wait on the pool it is already holding. knowledge_tags and
+// error_items rows themselves are never modified.
+func (s *Store) ReplaceErrorItemTags(ctx context.Context, itemID int64, tagIDs []int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// The item must exist; its subject decides which tags may attach.
+	var subject string
+	if err := tx.QueryRowContext(ctx,
+		`SELECT subject FROM error_items WHERE id = ?`, itemID).Scan(&subject); err != nil {
+		return err
+	}
+
+	// Deduplicate while keeping input order. Ids <= 0 cannot match a row,
+	// so they fail closed through the mismatch sentinel.
+	seen := make(map[int64]struct{}, len(tagIDs))
+	ids := make([]int64, 0, len(tagIDs))
+	for _, id := range tagIDs {
+		if id <= 0 {
+			return ErrKnowledgeTagMismatch
+		}
+		if _, dup := seen[id]; dup {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+
+	// Membership check inside the same transaction: every id must exist
+	// and share the item's subject.
+	for _, id := range ids {
+		var tagSubject string
+		err := tx.QueryRowContext(ctx,
+			`SELECT subject FROM knowledge_tags WHERE id = ?`, id).Scan(&tagSubject)
+		if err == sql.ErrNoRows {
+			return ErrKnowledgeTagMismatch
+		}
+		if err != nil {
+			return err
+		}
+		if tagSubject != subject {
+			return ErrKnowledgeTagMismatch
+		}
+	}
+
+	// The swap: drop this item's links, then batch-insert the new set.
+	// Duplicates are already collapsed, so the (error_item_id, tag_id)
+	// PK cannot trip; any failure rolls the whole swap back.
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM error_item_tags WHERE error_item_id = ?`, itemID); err != nil {
+		return err
+	}
+	if len(ids) > 0 {
+		q := `INSERT INTO error_item_tags (error_item_id, tag_id) VALUES `
+		args := make([]any, 0, len(ids)*2)
+		for i, id := range ids {
+			if i > 0 {
+				q += ", "
+			}
+			q += "(?, ?)"
+			args = append(args, itemID, id)
+		}
+		if _, err := tx.ExecContext(ctx, q, args...); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 // listTagsForItem loads one item's tags.
 func (s *Store) listTagsForItem(ctx context.Context, errorItemID int64) ([]model.KnowledgeTag, error) {
 	rows, err := s.db.QueryContext(ctx,

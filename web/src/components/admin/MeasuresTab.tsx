@@ -7,6 +7,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { api } from '../../api';
+import { useSubjects } from '../../hooks/useSubjects';
+import { subjectOptionLabel } from '../../subjects';
 import type { LearningMeasure, User } from '../../types';
 import ui from './ui.module.css';
 import s from './ErrorbookTab.module.css';
@@ -128,17 +130,22 @@ const MeasureCard: React.FC<{
   );
 };
 
-/** The hand-written measure form (OD createTitle family). */
+/** The hand-written measure form (OD createTitle family). 学科下拉走
+ *  useSubjects（服务端 subjects 表驱动），不迭代任何前端静态词表；
+ *  加载中/失败时学科选择项为空（不静默回退 math），重试走共享 hook。 */
 const CreateForm: React.FC<{
   kidId: number;
   onToast: (msg: string) => void;
   onChanged: () => void;
 }> = ({ kidId, onToast, onChanged }) => {
   const { t } = useTranslation();
+  const { subjects, loading: subjectsLoading, error: subjectsError, retry: retrySubjects } = useSubjects();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
-  const [subject, setSubject] = useState('math');
+  // '' = 无学科措施（后端允许且与 chores 一致）；不默认 math——未知学科
+  // 必须来自服务端清单，前端不静默替换。
+  const [subject, setSubject] = useState('');
   const [priority, setPriority] = useState<1 | 2 | 3>(2);
   const [types, setTypes] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -178,12 +185,30 @@ const CreateForm: React.FC<{
       <h3 className={ui.sectionTitle}>{t('admin.measuresTab.createTitle')}</h3>
       <label className={ui.field}>
         <span className={ui.label}>{t('admin.measuresTab.createSubject')}</span>
-        <select className={ui.input} value={subject} onChange={e => setSubject(e.target.value)}>
-          {['math', 'chinese', 'english', 'physics', 'chemistry'].map(x => (
-            <option key={x} value={x}>{t(`admin.analysis.subject_${x}`)}</option>
+        {/* 学科清单来自服务端（subjects 表，useSubjects 共享缓存），前端
+            不迭代任何静态词表；'' 是合法的无学科措施，未知/停用学科由
+            后端 400 拒绝，这里不静默替换。 */}
+        <select className={ui.input} value={subject} onChange={e => setSubject(e.target.value)} data-test="pm-create-subject">
+          <option value="">{t('admin.editChore.subjectNone')}</option>
+          {subjects.map(row => (
+            <option key={row.id} value={row.id}>{subjectOptionLabel(t, row.id, row.id, row.name)}</option>
           ))}
         </select>
       </label>
+      {/* 提示放 label 外（label 内不得再嵌 button 这类 labelable 元素）。
+          R2：只要 subjectsError != null 就报错 + 重试，与 subjects.length 解耦
+          ——stale 快照在场（失败前有旧清单）时错误同样可见，不因旧数据隐藏。 */}
+      {subjectsError != null && (
+        <p className={ui.msgError} role="alert" data-test="pm-create-subject-error">
+          {t('admin.measuresTab.loadFailed')}{' '}
+          <button type="button" className={ui.btnGhost} onClick={retrySubjects} data-test="pm-create-subject-retry">
+            {t('admin.kidsStatusTab.refreshLabel')}
+          </button>
+        </p>
+      )}
+      {subjectsLoading && subjects.length === 0 && subjectsError == null && (
+        <p className={ui.emptyInline}>{t('common.loading')}</p>
+      )}
       <label className={ui.field}>
         <span className={ui.label}>{t('admin.measuresTab.createTitleLabel')}</span>
         <input className={ui.input} value={title} onChange={e => setTitle(e.target.value)} required />

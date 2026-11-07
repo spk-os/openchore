@@ -7,6 +7,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api';
 import type { ErrorItem } from '../../types';
+// 042：学科词表由共享 subjects.ts 表驱动（十学科 + 未分类）。
+import { subjectOptionLabel } from '../../subjects';
 import { MathText } from '../../components/MathText';
 import { Icon } from '../../design';
 import s from './kid.module.css';
@@ -34,11 +36,9 @@ const causeSuffix = (type?: string) => {
   }
 };
 
-/** A subject's display name: the known five translate, the rest stay as-is. */
-const subjectLabel = (t: (k: string) => string, subject: string) => {
-  const known = ['math', 'chinese', 'english', 'physics', 'chemistry'];
-  return known.includes(subject) ? t(`admin.analysis.subject_${subject}`) : subject;
-};
+/** A subject's display name: the ten shared vocabulary translate, the rest stay as-is. */
+const subjectLabel = (t: (k: string) => string, subject: string) =>
+  subjectOptionLabel(t, subject, subject);
 
 /** The mastery badge: 🆕 / 🔁 / ✅ — the card's most scannable signal. */
 const masteryClass = (m: number) =>

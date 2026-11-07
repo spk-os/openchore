@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -35,12 +37,12 @@ func NewCourseHandler(s *store.Store) *CourseHandler {
 // resources (with the kid's attempt merged in), and the computed state.
 type unitView struct {
 	model.CourseUnit
-	PrerequisiteUnitIDs []int64            `json:"prerequisite_unit_ids"`
-	State               string             `json:"state"` // locked/unlocked/started/completed
-	LockExplanation     string             `json:"lock_explanation,omitempty"`
-	Resources           []resourceView     `json:"resources"`
-	CompletedResources  int                `json:"completed_resources"`
-	TotalResources      int                `json:"total_resources"`
+	PrerequisiteUnitIDs []int64        `json:"prerequisite_unit_ids"`
+	State               string         `json:"state"` // locked/unlocked/started/completed
+	LockExplanation     string         `json:"lock_explanation,omitempty"`
+	Resources           []resourceView `json:"resources"`
+	CompletedResources  int            `json:"completed_resources"`
+	TotalResources      int            `json:"total_resources"`
 }
 
 // resourceView is one resource as the kid sees it: the resource plus
@@ -54,16 +56,16 @@ type resourceView struct {
 // preview: identical shape, same engine).
 type courseTreeResponse struct {
 	model.Course
-	Units    []unitView  `json:"units"`
+	Units    []unitView    `json:"units"`
 	Outcomes []outcomeView `json:"outcomes,omitempty"`
 }
 
 // outcomeView is one mastery line with the kid's rollup applied.
 type outcomeView struct {
 	model.CourseOutcome
-	Score        *int   `json:"score,omitempty"`        // the rolled-up score, nil when no assessments yet
-	Mastered     bool   `json:"mastered"`               // score >= mastery_points
-	Assessments  int    `json:"assessments"`            // how many score events fed the rollup
+	Score       *int `json:"score,omitempty"` // the rolled-up score, nil when no assessments yet
+	Mastered    bool `json:"mastered"`        // score >= mastery_points
+	Assessments int  `json:"assessments"`     // how many score events fed the rollup
 }
 
 // --- Kid side ---
@@ -150,6 +152,13 @@ func (h *CourseHandler) ReportProgress(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	// practice 分数的范围校验先于一切写入（0-100 的百分制，与
+	// CreateAssessmentAdmin 同一口径）：越界分数既不该落 attempt 也不该
+	// 触发后续 assessment 追加。
+	if msg := h.validateProgressRequest(&req); msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
+		return
+	}
 	res, err := h.store.GetResource(r.Context(), id)
 	if err != nil || res == nil {
 		writeError(w, http.StatusNotFound, "resource not found")
@@ -226,6 +235,17 @@ func (h *CourseHandler) ReportProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// practice 带分数：把这次成绩追加为本课程对应 outcome 的一条
+	// assessment（self 评定，artifact 指向该 resource）。content_ref 先映
+	// 到本机 knowledge tag，再只匹配当前 course 的 outcome——跳过分支
+	// （非 practice/无分数/空或未知 ref/无匹配 outcome）是正常路径；真实
+	// DB 错误必须 500，不能吞掉后假装成绩已落。
+	if err := h.appendPracticeOutcomeAssessment(r.Context(), res, course, user.ID, &req); err != nil {
+		log.Printf("outcome assessment for resource %d: %v", res.ID, err)
+		writeError(w, http.StatusInternalServerError, "failed to record assessment")
+		return
+	}
+
 	// L3 事件流：一次进度上报即一次「尝试」（xAPI attempted）。完成谓词
 	// 通过才算 success——画像里「课程完成率」的直接数据源。
 	h.LearnerHook.recordLearnerEventSafe(r.Context(), user.ID, model.EventVerbAttempted,
@@ -274,6 +294,64 @@ func (h *CourseHandler) ReportProgress(w http.ResponseWriter, r *http.Request) {
 		"attempt": attempt,
 		"unit":    sv,
 	})
+}
+
+// validateProgressRequest gates the score range up front: practice scores
+// ride the same 0-100 percent scale as every other score write in the
+// system, so an out-of-range score must 400 before anything is stored.
+func (h *CourseHandler) validateProgressRequest(req *progressRequest) string {
+	if req.Score != nil && (*req.Score < 0 || *req.Score > 100) {
+		return "score must be 0-100"
+	}
+	return ""
+}
+
+// appendPracticeOutcomeAssessment banks one practice score into the
+// course's mastery line (TX-COURSE-OUTCOME-V2). The skip branches are
+// normal and return nil — not the request's problem:
+//
+//	resource_type != practice, no score, empty content_ref, an unknown
+//	ref (no local tag), or no outcome of THIS course linked to that tag.
+//
+// Real DB failures are returned instead of being swallowed: the caller
+// must 500 rather than pretend the score was banked. Rows are appended
+// (never deduplicated): repeat reports are extra score events, so a
+// client that retries after a 500 is safe.
+func (h *CourseHandler) appendPracticeOutcomeAssessment(ctx context.Context, res *model.UnitResource, course *model.Course, userID int64, req *progressRequest) error {
+	if res.ResourceType != model.ResourceTypePractice || req.Score == nil {
+		return nil
+	}
+	if res.ContentRef == "" {
+		return nil
+	}
+	tagID, err := h.store.TagIDByExternalRef(ctx, res.ContentRef)
+	if err != nil {
+		return fmt.Errorf("resolve content_ref %q: %w", res.ContentRef, err)
+	}
+	if tagID == 0 {
+		return nil
+	}
+	outcomes, err := h.store.ListOutcomes(ctx, course.ID)
+	if err != nil {
+		return fmt.Errorf("list outcomes for course %d: %w", course.ID, err)
+	}
+	for _, o := range outcomes {
+		if o.KnowledgeTagID == nil || *o.KnowledgeTagID != tagID {
+			continue
+		}
+		a := &model.OutcomeAssessment{
+			OutcomeID:      o.ID,
+			UserID:         userID,
+			Score:          *req.Score,
+			AssessmentType: model.AssessmentTypeSelf,
+			ArtifactType:   "resource",
+			ArtifactID:     &res.ID,
+		}
+		if err := h.store.CreateAssessment(ctx, a); err != nil {
+			return fmt.Errorf("append assessment for outcome %d: %w", o.ID, err)
+		}
+	}
+	return nil
 }
 
 // ListCourseOutcomes serves GET /api/courses/{id}/outcomes — the mastery
@@ -755,7 +833,7 @@ func (h *CourseHandler) GetCourseAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	type adminUnit struct {
 		model.CourseUnit
-		PrerequisiteUnitIDs []int64             `json:"prerequisite_unit_ids"`
+		PrerequisiteUnitIDs []int64              `json:"prerequisite_unit_ids"`
 		Resources           []model.UnitResource `json:"resources"`
 	}
 	unitViews := make([]adminUnit, 0, len(units))
@@ -843,13 +921,13 @@ func (h *CourseHandler) DeleteCourseAdmin(w http.ResponseWriter, r *http.Request
 
 // unitRequest is the admin's create/update unit payload.
 type unitRequest struct {
-	Title                    string     `json:"title"`
-	Position                 int        `json:"position"`
-	PrerequisiteUnitIDs      []int64    `json:"prerequisite_unit_ids"`
-	RequirementType          string     `json:"requirement_type"`
-	RequireSequentialProgress bool      `json:"require_sequential_progress"`
-	UnlockAt                 *time.Time `json:"unlock_at"`
-	Published                bool       `json:"published"`
+	Title                     string     `json:"title"`
+	Position                  int        `json:"position"`
+	PrerequisiteUnitIDs       []int64    `json:"prerequisite_unit_ids"`
+	RequirementType           string     `json:"requirement_type"`
+	RequireSequentialProgress bool       `json:"require_sequential_progress"`
+	UnlockAt                  *time.Time `json:"unlock_at"`
+	Published                 bool       `json:"published"`
 }
 
 // encodeIDs is decodeIDs's inverse.
@@ -1355,11 +1433,11 @@ func (h *CourseHandler) CreateAssessmentAdmin(w http.ResponseWriter, r *http.Req
 		return
 	}
 	a := model.OutcomeAssessment{
-		OutcomeID:       outcomeID,
-		UserID:          req.UserID,
-		Score:           req.Score,
-		AssessmentType:  model.AssessmentTypeParent,
-		Comments:        req.Comment,
+		OutcomeID:      outcomeID,
+		UserID:         req.UserID,
+		Score:          req.Score,
+		AssessmentType: model.AssessmentTypeParent,
+		Comments:       req.Comment,
 	}
 	if err := h.store.CreateAssessment(r.Context(), &a); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to record assessment")

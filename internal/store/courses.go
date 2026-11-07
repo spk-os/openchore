@@ -529,10 +529,14 @@ func (s *Store) CreateOutcome(ctx context.Context, o *model.CourseOutcome) error
 	if o.CalcInt != nil {
 		calcInt = *o.CalcInt
 	}
+	var knowledgeTagID any
+	if o.KnowledgeTagID != nil {
+		knowledgeTagID = *o.KnowledgeTagID
+	}
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO course_outcomes (course_id, title, mastery_points, calculation_method, calc_int, ratings_json)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		o.CourseID, o.Title, mastery, method, calcInt, ratings)
+		`INSERT INTO course_outcomes (course_id, title, mastery_points, calculation_method, calc_int, ratings_json, knowledge_tag_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		o.CourseID, o.Title, mastery, method, calcInt, ratings, knowledgeTagID)
 	if err != nil {
 		return err
 	}
@@ -546,7 +550,7 @@ func (s *Store) CreateOutcome(ctx context.Context, o *model.CourseOutcome) error
 // ListOutcomes returns a course's mastery lines.
 func (s *Store) ListOutcomes(ctx context.Context, courseID int64) ([]model.CourseOutcome, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, course_id, title, mastery_points, calculation_method, calc_int, ratings_json
+		`SELECT id, course_id, title, mastery_points, calculation_method, calc_int, ratings_json, knowledge_tag_id
 		 FROM course_outcomes WHERE course_id = ? ORDER BY id`, courseID)
 	if err != nil {
 		return nil, err
@@ -556,12 +560,17 @@ func (s *Store) ListOutcomes(ctx context.Context, courseID int64) ([]model.Cours
 	for rows.Next() {
 		o := &model.CourseOutcome{}
 		var calcInt sql.NullInt64
-		if err := rows.Scan(&o.ID, &o.CourseID, &o.Title, &o.MasteryPoints, &o.CalculationMethod, &calcInt, &o.RatingsJSON); err != nil {
+		var knowledgeTagID sql.NullInt64
+		if err := rows.Scan(&o.ID, &o.CourseID, &o.Title, &o.MasteryPoints, &o.CalculationMethod, &calcInt, &o.RatingsJSON, &knowledgeTagID); err != nil {
 			return nil, err
 		}
 		if calcInt.Valid {
 			v := int(calcInt.Int64)
 			o.CalcInt = &v
+		}
+		if knowledgeTagID.Valid {
+			v := knowledgeTagID.Int64
+			o.KnowledgeTagID = &v
 		}
 		out = append(out, *o)
 	}
@@ -744,4 +753,35 @@ func decodePrereqIDs(raw string) ([]int64, error) {
 		return nil, fmt.Errorf("prerequisite_unit_ids: %w", err)
 	}
 	return ids, nil
+}
+
+// --- Unit ↔ knowledge tags (042) ---
+
+// AttachUnitKnowledgeTag links a course unit to a knowledge point
+// (idempotent on the composite PK).
+func (s *Store) AttachUnitKnowledgeTag(ctx context.Context, unitID, tagID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO unit_knowledge_tags (unit_id, tag_id) VALUES (?, ?)
+		 ON CONFLICT(unit_id, tag_id) DO NOTHING`, unitID, tagID)
+	return err
+}
+
+// ListUnitKnowledgeTags returns the tag ids one unit covers.
+// Always non-nil.
+func (s *Store) ListUnitKnowledgeTags(ctx context.Context, unitID int64) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT tag_id FROM unit_knowledge_tags WHERE unit_id = ? ORDER BY tag_id`, unitID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]int64, 0, 4)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
 }

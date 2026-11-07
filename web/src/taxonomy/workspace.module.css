@@ -1,0 +1,892 @@
+/* 学科知识工作区（卡 TX-FE-CODER）。
+ * 双端复用：孩子端（KnowledgeWorkspace 视角 kid）与家长端（视角 parent）。
+ * 移动优先：可点击元素 ≥44px 命中区；@media print 三视图（诊断报告/盲区/学习路径）。
+ * 设计 token 沿用仓库 design-system（var(--ink) 等），不引第三方 UI 库。 */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.screenHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted, #6b7280);
+}
+
+/* ---------- 状态（loading / empty / error） ---------- */
+
+.loading,
+.empty,
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ink-muted, #6b7280);
+  font-size: 14px;
+}
+
+.error {
+  color: #b3261e;
+}
+
+.retry {
+  min-height: 44px;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  background: var(--surface, #fff);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--surface-2, #f3f4f6);
+}
+
+/* ---------- 学科浏览 ---------- */
+
+.subjectChips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.subjectChip {
+  flex: none;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  background: var(--surface, #fff);
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.subjectChip[aria-pressed='true'] {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.subjectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.subjectCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  background: var(--surface, #fff);
+  cursor: pointer;
+}
+
+.subjectCard:hover {
+  border-color: var(--accent, #2563eb);
+}
+
+.subjectCardName {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.subjectCardMeta {
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+}
+
+/* ---------- 筛选行 ---------- */
+
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filterSelect,
+.filterInput {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  background: var(--surface, #fff);
+  font-size: 14px;
+}
+
+.filterInput {
+  flex: 1;
+  min-width: 160px;
+}
+
+/* ---------- 章节/知识点列表 ---------- */
+
+.chapterGroup {
+  border: 1px solid var(--hairline, #e5e7eb);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.chapterGroup + .chapterGroup {
+  margin-top: 10px;
+}
+
+.chapterSummaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 0;
+  background: var(--surface, #fff);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.chapterSummaryRow:hover {
+  background: var(--surface-2, #f3f4f6);
+}
+
+.chapterCount {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+}
+
+.chapterBody {
+  border-top: 1px solid var(--hairline, #e5e7eb);
+}
+
+.topicLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.topicLink + .topicLink {
+  border-top: 1px solid var(--hairline, #e5e7eb);
+}
+
+.topicLink:hover {
+  background: var(--surface-2, #f3f4f6);
+}
+
+.topicName {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topicMeta {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+}
+
+.loadMore {
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  background: var(--surface, #fff);
+  font-size: 14px;
+  cursor: pointer;
+  align-self: center;
+}
+
+/* ---------- 详情视图 ---------- */
+
+.detailCard {
+  border: 1px solid var(--hairline, #e5e7eb);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface, #fff);
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-2, #f3f4f6);
+  color: var(--ink-muted, #6b7280);
+}
+
+.pillStageP { background: #e0f2fe; color: #075985; }
+.pillStageJ { background: #fef3c7; color: #92400e; }
+.pillStageH { background: #ede9fe; color: #5b21b6; }
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.metaGrid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaGrid dt {
+  color: var(--ink-muted, #6b7280);
+  font-size: 12px;
+}
+
+.metaGrid dd {
+  margin: 0;
+}
+
+.desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.critList {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.sectionTitle {
+  margin: 12px 0 6px;
+  font-size: 15px;
+}
+
+.relRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.relRow:hover {
+  background: var(--surface-2, #f3f4f6);
+}
+
+.relRow + .relRow {
+  margin-top: 2px;
+}
+
+.relName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relWhere {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+}
+
+.badgeHard,
+.badgeSoft {
+  flex: none;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.badgeHard { background: #dbeafe; color: #1d4ed8; }
+.badgeSoft { background: #f3e8ff; color: #7e22ce; }
+
+.stdItem {
+  padding: 8px 0;
+  border-top: 1px solid var(--hairline, #e5e7eb);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.stdItem:first-of-type { border-top: 0; }
+
+.stdId {
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+  font-family: var(--font-mono, monospace);
+}
+
+/* ---------- 局部先修图 ---------- */
+
+.graphWrap {
+  border: 1px solid var(--hairline, #e5e7eb);
+  border-radius: 12px;
+  overflow-x: auto;
+  padding: 12px;
+  background: var(--surface, #fff);
+}
+
+.graphSvg {
+  display: block;
+  min-width: 100%;
+}
+
+.graphNode {
+  cursor: pointer;
+}
+
+/* 键盘聚焦可见（g[tabindex] 焦点环画在 rect 上） */
+.graphNode:focus {
+  outline: none;
+}
+
+.graphNode:focus rect {
+  stroke-width: 3;
+  stroke-dasharray: 4 2;
+}
+
+.graphNode rect {
+  rx: 8;
+  stroke-width: 2;
+}
+
+.graphNodeCurrent rect { stroke-width: 3; }
+
+.graphNodeP rect { fill: #f0f9ff; stroke: #0284c7; }
+.graphNodeJ rect { fill: #fffbeb; stroke: #d97706; }
+.graphNodeH rect { fill: #f5f3ff; stroke: #7c3aed; }
+.graphNodeCurrent rect { fill: #dcfce7; stroke: #16a34a; }
+
+.graphNodeText {
+  font-size: 12px;
+  fill: var(--ink, #111827);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.graphGradeLabel {
+  font-size: 11px;
+  fill: var(--ink-muted, #6b7280);
+}
+
+.legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+}
+
+/* ---------- 家长端邻域图谱（KnowledgeGraphPanel，卡 TX-GRAPH-PARENT-UI） ---------- */
+
+/* 掌握度着色：mastery null（无记录）与 0 必须可区分 ——
+ * null = 灰（未测），0 = 红（薄弱），色板与盲区四态一致。 */
+.graphMasteryMastered rect { fill: #f0fdf4; stroke: #16a34a; }
+.graphMasteryShaky rect { fill: #fff7ed; stroke: #ea580c; }
+.graphMasteryWeak rect { fill: #fef2f2; stroke: #dc2626; }
+.graphMasteryNone rect { fill: #f8fafc; stroke: #94a3b8; stroke-dasharray: 3 2; }
+
+.graphMasteryText {
+  font-size: 10px;
+  fill: var(--ink-muted, #6b7280);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.graphArrowText {
+  color: var(--ink-muted, #6b7280);
+}
+
+.graphDomainOn {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* 图例 pill 的掌握度配色（与节点边框一致）。 */
+.pill.graphMasteryMastered { background: #f0fdf4; color: #15803d; }
+.pill.graphMasteryShaky { background: #fff7ed; color: #c2410c; }
+.pill.graphMasteryWeak { background: #fef2f2; color: #b91c1c; }
+.pill.graphMasteryNone { background: #f1f5f9; color: #475569; }
+
+/* ---------- 题目/练习 ---------- */
+
+.questionCard {
+  border: 1px solid var(--hairline, #e5e7eb);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface, #fff);
+}
+
+.questionMeta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+}
+
+.tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--surface-2, #f3f4f6);
+}
+
+.tagWeak { background: #fee2e2; color: #b91c1c; }
+.tagShaky { background: #ffedd5; color: #c2410c; }
+.tagMastered { background: #dcfce7; color: #15803d; }
+.tagUnknown { background: var(--surface-2, #f3f4f6); color: var(--ink-muted, #6b7280); }
+.tagRoot { background: #fee2e2; color: #991b1b; font-weight: 600; }
+.tagTarget { background: #dbeafe; color: #1d4ed8; }
+
+.progressTrack {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2, #f3f4f6);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent, #2563eb);
+  transition: width 0.2s ease;
+}
+
+.promptText {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.figure {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.figure svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.figureBlocked {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  background: var(--surface, #fff);
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice:hover {
+  border-color: var(--accent, #2563eb);
+}
+
+.choicePicked {
+  border-color: var(--accent, #2563eb);
+  background: #eff6ff;
+}
+
+.choiceKey {
+  flex: none;
+  font-weight: 600;
+  min-width: 20px;
+}
+
+.answerInput {
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.answerTextarea {
+  min-height: 96px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  font-size: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.actionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  background: var(--surface, #fff);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btnPrimary {
+  composes: btn;
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btnGood {
+  composes: btn;
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.btnBad {
+  composes: btn;
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.btnGhost {
+  composes: btn;
+  background: transparent;
+  border-style: dashed;
+}
+
+.btnSmall {
+  composes: btn;
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.verdictOk {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 14px;
+}
+
+.verdictNo {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-2, #f3f4f6);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.notice {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fef9c3;
+  color: #854d0e;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.muted {
+  color: var(--ink-muted, #6b7280);
+  font-size: 13px;
+}
+
+.reasonLine {
+  font-size: 13px;
+  color: var(--ink-muted, #6b7280);
+  line-height: 1.6;
+}
+
+/* ---------- 结果页 ---------- */
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-radius: 10px;
+  background: var(--surface-2, #f3f4f6);
+}
+
+.stat b {
+  font-size: 20px;
+}
+
+.stat span {
+  font-size: 12px;
+  color: var(--ink-muted, #6b7280);
+}
+
+.statWeak b { color: #b91c1c; }
+.statShaky b { color: #c2410c; }
+.statOk b { color: #15803d; }
+
+.pathList {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.chapBar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface-2, #f3f4f6);
+  width: 120px;
+  flex: none;
+}
+
+.segM { background: #86efac; }
+.segS { background: #fdba74; }
+.segW { background: #fca5a5; }
+.segU { background: var(--hairline, #e5e7eb); }
+
+.logTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.logTable th,
+.logTable td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--hairline, #e5e7eb);
+  vertical-align: top;
+}
+
+.logTable select {
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline, #e5e7eb);
+  font-size: 13px;
+  background: var(--surface, #fff);
+}
+
+/* ---------- 分享 ---------- */
+
+.shareRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 14px;
+}
+
+.shareUrl {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--hairline, #e5e7eb);
+  font-size: 13px;
+  word-break: break-all;
+  font-family: var(--font-mono, monospace);
+}
+
+/* ---------- 打印三视图（FR-12c：诊断报告/盲区清单/学习路径） ----------
+ * 三个报告视图复用屏幕 DOM（诊断报告与学习路径都在诊断结果页、盲区清单
+ * 在盲区页），不另造 printView 专用 DOM——屏幕隐藏（display:none）的
+ * .printView 会连带把打印页也藏掉，原死代码已删除。打印态 = 隐藏导航/
+ * 筛选/按钮等交互控件 + 分页控制；背景色走浏览器默认 economy（不打印
+ * 背景），浅底深字的标签在白纸上仍可读，不会「背景吞字」。 */
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    color: #000;
+    background: #fff;
+  }
+
+  /* 交互控件不进打印页：打印按钮自身（.noPrint）、顶部标签导航
+   * （.subjectChips）、筛选、动作按钮行、加载更多、重试，以及散落在
+   * 清单条目里的再测/导出等按钮（composes 不向 DOM 输出多个类，
+   * 按钮类须逐一列出）。 */
+  .noPrint,
+  .subjectChips,
+  .filters,
+  .actionRow,
+  .loadMore,
+  .retry,
+  .btn,
+  .btnPrimary,
+  .btnGood,
+  .btnBad,
+  .btnGhost,
+  .btnSmall {
+    display: none !important;
+  }
+
+  /* 报告主体纵向紧凑排布。 */
+  .screen {
+    gap: 8px;
+  }
+
+  /* 分页：卡片/题目/图谱/章组不跨页断裂。 */
+  .detailCard,
+  .questionCard,
+  .graphWrap,
+  .chapterGroup {
+    border-color: #999;
+    break-inside: avoid;
+  }
+
+  /* 标题不与后续内容分页分离。 */
+  .title,
+  .detailTitle,
+  .sectionTitle {
+    break-after: avoid;
+  }
+
+  /* 长名称解除截断省略：打印页不吞字、不横向溢出。 */
+  .topicName,
+  .relName {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .logTable th,
+  .logTable td {
+    border-bottom-color: #bbb;
+  }
+
+  /* 答题记录的「更正」下拉退化为当前值文本（去掉控件边框/内边距）。 */
+  .logTable select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    min-height: 0;
+    font-size: inherit;
+  }
+}

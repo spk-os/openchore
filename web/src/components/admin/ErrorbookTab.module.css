@@ -86,6 +86,16 @@
 .itemMistake { font-size: 13px; color: var(--oc-text, #2b2a28); }
 .itemTags { font-size: 12px; color: var(--oc-muted, #6f6b64); }
 
+/* 知识点标签编辑器（卡 DEF-ERRORBOOK-TAG-UI-R2-CODER）：候选 chips +
+   清空/取消/保存 的就地面板，沿用 itemBody 的栅格间距。 */
+.tagEditor {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--oc-border, #e3e2df);
+  border-radius: 10px;
+}
+
 .itemActions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* --- The stat strip above the filters --- */

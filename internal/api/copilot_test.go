@@ -326,6 +326,10 @@ func TestApplyCopilotDraft(t *testing.T) {
 	env := setupTest(t)
 	env.createAdmin(t)
 	kid := env.createChild(t, "小言")
+	// The card carries subject="english": seed the word list the way the
+	// production startup (taxonomy pack import) does — the vocabulary is
+	// table-driven (042) and an unseeded table rejects every subject.
+	seedSubjects(t, env)
 
 	resp := env.expectStatus(t, "POST", "/api/admin/copilot/apply",
 		applyBody(kid, "copilot"), adminHeaders(), http.StatusCreated)
@@ -423,6 +427,9 @@ func TestApplyPlannerDraft(t *testing.T) {
 	env := setupTest(t)
 	env.createAdmin(t)
 	kid := env.createChild(t, "小言")
+	// Same as TestApplyCopilotDraft: the default card carries
+	// subject="english", so the word list must be seeded first (042).
+	seedSubjects(t, env)
 
 	resp := env.expectStatus(t, "POST", "/api/admin/copilot/apply",
 		applyBody(kid, "planner"), adminHeaders(), http.StatusCreated)
@@ -479,10 +486,11 @@ func TestApplyCopilotDraftValidates(t *testing.T) {
 	env.expectStatus(t, "POST", "/api/admin/copilot/apply",
 		applyBody(kid, "copilot", map[string]any{"title": "x", "category": "core", "points_value": 99, "days": []string{"daily"}}),
 		adminHeaders(), http.StatusBadRequest)
-	// A subject outside the five-value vocabulary is rejected like a
-	// bad category — the media library's chips only know the five.
+	// A subject outside the ten-value vocabulary is rejected like a
+	// bad category — the media library's chips only know the ten
+	// (042 widened the five).
 	env.expectStatus(t, "POST", "/api/admin/copilot/apply",
-		applyBody(kid, "copilot", map[string]any{"title": "x", "category": "core", "points_value": 5, "subject": "history", "days": []string{"daily"}}),
+		applyBody(kid, "copilot", map[string]any{"title": "x", "category": "core", "points_value": 5, "subject": "gym", "days": []string{"daily"}}),
 		adminHeaders(), http.StatusBadRequest)
 
 	// Atomicity: the second card fails, the first must not land.
@@ -508,6 +516,9 @@ func TestApplyCopilotDraftDedupOnRewrite(t *testing.T) {
 	env := setupTest(t)
 	env.createAdmin(t)
 	kid := env.createChild(t, "小言")
+	// The default card carries subject="english": seed the word list
+	// first (042) like the other apply tests.
+	seedSubjects(t, env)
 
 	type applyOut struct {
 		Applied int      `json:"applied"`

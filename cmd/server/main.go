@@ -111,6 +111,15 @@ func main() {
 
 	router, choreHandler, reportsHandler, coachHandler := api.NewRouter(s, dispatcher, api.Auth{Sessions: sessions, OIDC: oidcSvc})
 
+	// Taxonomy pack import (042): idempotent (external_ref upsert), so a
+	// plain restart re-syncs rather than duplicates. Runs after the
+	// router is built so the handler's in-memory pack is the same one
+	// the endpoints serve. Failure is logged, not fatal — a broken pack
+	// must not take the chores server down with it.
+	if err := importTaxonomyPack(context.Background(), s); err != nil {
+		log.Printf("WARNING: taxonomy pack import failed (retry via POST /api/admin/taxonomy/import): %v", err)
+	}
+
 	// Optional AI and read-aloud audio: off unless a base URL is set, either
 	// in the environment or under Manage → Settings → AI.
 	for _, legacy := range []string{"AI_ENDPOINT", "OLLAMA_ENDPOINT", "TTS_ENDPOINT"} {
@@ -157,5 +166,26 @@ func runMigrations(db *sql.DB) error {
 	}
 
 	log.Println("migrations complete")
+	return nil
+}
+
+// importTaxonomyPack seeds the ten-subject word list and runs the
+// fingerprint-gated embedded-pack import at startup: an unchanged pack
+// (fingerprint match) skips the 13MB parse, a changed one re-imports
+// (called from main; also the retry path behind POST
+// /api/admin/taxonomy/import).
+func importTaxonomyPack(ctx context.Context, s *store.Store) error {
+	h := api.NewTaxonomyHandler(s, nil)
+	counts, skipped, err := h.SyncTaxonomyPack(ctx, false)
+	if err != nil {
+		return err
+	}
+	if skipped {
+		log.Printf("taxonomy pack unchanged (fingerprint match): %d topics, %d prerequisites, %d questions, %d standards",
+			counts.Topics, counts.Prerequisites, counts.Questions, counts.Standards)
+		return nil
+	}
+	log.Printf("taxonomy pack imported: %d topics, %d prerequisites, %d questions, %d standards",
+		counts.Topics, counts.Prerequisites, counts.Questions, counts.Standards)
 	return nil
 }

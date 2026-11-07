@@ -4,6 +4,11 @@ import { api } from '../../api';
 import { Icon } from '../../design';
 import Modal from '../Modal/Modal';
 import type { MediaClassStat, MediaItem, MediaSubjectStat, MimeClass, User } from '../../types';
+// 042：学科清单不再前端硬编码——由 useSubjects（GET /api/taxonomy/subjects，
+// subjects 表驱动、服务端 sort_order 顺序原样渲染）下发；本文件只保留
+// subjectOptionLabel 的单值 → admin.analysis.subject_* 词条映射。
+import { subjectOptionLabel } from '../../subjects';
+import { useSubjects } from '../../hooks/useSubjects';
 import ui from './ui.module.css';
 import styles from './MediaTab.module.css';
 
@@ -12,17 +17,21 @@ import styles from './MediaTab.module.css';
  * up fast once direct recording exists; this tab is the volume answer —
  * every uploaded proof file in one grid, grouped and filtered by subject
  * (the chore's school subject), media class, date and the kid who handed
- * it in. The five-subject vocabulary is the error book's (they share the
- * admin.analysis.subject_* labels).
+ * it in. The subject vocabulary is the error book's (they share the
+ * admin.analysis.subject_* labels), with the list itself served by the
+ * subjects table.
  */
 
-/** The five school subjects a chore can carry; '' stays a separate chip. */
-const SUBJECTS = ['math', 'chinese', 'english', 'physics', 'chemistry'] as const;
+const subjectLabel = (t: (k: string) => string, subject: string, serverName?: string) =>
+  subjectOptionLabel(t, subject, subject, serverName);
 
-const subjectLabel = (t: (k: string) => string, subject: string) =>
-  (SUBJECTS as readonly string[]).includes(subject)
-    ? t(`admin.analysis.subject_${subject}`)
-    : subject;
+/**
+ * R2 内部 API 哨兵（冻结编码）：「未分类」筛选不再与「全部」共用 subject=''。
+ * '' 仍是全部；'__unclassified__' 仅选 COALESCE(chore.subject,'')='' 的行。
+ * 哨兵只存在于本组件的 UI 状态并原样传给 api.chores.listMedia（api.ts 不改，
+ * 服务端 media.go/store 实现该过滤），绝不留在任何持久化数据里。
+ */
+const UNCLASSIFIED = '__unclassified__';
 
 const CLASSES: { id: MimeClass; labelKey: string }[] = [
   { id: 'image', labelKey: 'admin.mediaTab.cls_image' },
@@ -78,6 +87,10 @@ const MediaPreview: React.FC<{ item: MediaItem; onClose: () => void }> = ({ item
 
 export const MediaTab: React.FC = () => {
   const { t, i18n } = useTranslation();
+  // 学科清单：服务端 subjects 表（sort_order 顺序）原样渲染；只要
+  // subjectsError != null 就显示「数据可能过期/加载失败」+ retry（与
+  // subjects.length 解耦——stale 快照在场时错误同样可见，不因旧数据隐藏）。
+  const { subjects: subjectRows, error: subjectsError, retry: retrySubjects } = useSubjects();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [subjects, setSubjects] = useState<MediaSubjectStat[]>([]);
   const [classes, setClasses] = useState<MediaClassStat[]>([]);
@@ -106,6 +119,8 @@ export const MediaTab: React.FC = () => {
     setError('');
     try {
       const res = await api.chores.listMedia({
+        // ''（全部）与 '__unclassified__'（未分类）是两个独立值，原样上送：
+        // 过滤由服务端完成，绝不在客户端 items.filter 冒充。
         subject, cls, from, to,
         user_id: kid || undefined,
       });
@@ -132,7 +147,6 @@ export const MediaTab: React.FC = () => {
     () => (id: string) => subjects.find(s => s.subject === id)?.count ?? 0,
     [subjects]);
   const hasFilter = subject !== '' || cls !== '' || from !== '' || to !== '' || kid !== 0;
-
   const chip = (active: boolean) => `${styles.chip} ${active ? styles.chipOn : ''}`;
 
   return (
@@ -144,20 +158,34 @@ export const MediaTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Subject chips — the five school subjects plus the unclassified
-          bucket, each with its live count under the other filters. All
-          six always render (even at 0): a missing chip reads as "没有
-          做分类", a zero chip reads as "这个科目还没有内容". */}
+      {/* Subject chips — the subjects the server's subjects table lists
+          plus the unclassified bucket, each with its live count under the
+          other filters. 服务端顺序原样渲染（subjects.sort_order）；不迭代
+          任何前端静态词表。R2：全部/未分类是两个独立 UI 哨兵（''=全部，
+          '__unclassified__'=仅 COALESCE(subject,'')=''，服务端过滤），
+          不再同值；subjectError 只要存在就可见 + retry（与快照长度解耦，
+          stale 快照在场时错误不隐藏）。词条复用 errorbookTab.loadFailed /
+          kidsStatusTab.refreshLabel，不加新 i18n。 */}
+      {subjectsError != null && (
+        <p className={ui.msgError} role="alert" data-test="media-subjects-error">
+          {t('admin.errorbookTab.loadFailed')}{' '}
+          <button type="button" className={ui.btnGhost} onClick={retrySubjects} data-test="media-subjects-retry">
+            {t('admin.kidsStatusTab.refreshLabel')}
+          </button>
+        </p>
+      )}
       <div className={styles.filterRow} data-test="media-subject-filter" role="group" aria-label={t('admin.mediaTab.filterSubject')}>
+        {/* 「全部」与「未分类」不带 media-subject- 前缀 data-test：测试的
+            subjectChipSelector 只把服务端学科 chip 计入顺序断言。 */}
         <button type="button" className={chip(subject === '')} onClick={() => setSubject('')}>
           {t('admin.mediaTab.allSubjects')} <b>{total}</b>
         </button>
-        {SUBJECTS.map(subj => (
-          <button key={subj} type="button" className={chip(subject === subj)} data-test={`media-subject-${subj}`} onClick={() => setSubject(subj)}>
-            {subjectLabel(t, subj)} <b>{subjectCount(subj)}</b>
+        {subjectRows.map(row => (
+          <button key={row.id} type="button" className={chip(subject === row.id)} data-test={`media-subject-${row.id}`} onClick={() => setSubject(row.id)}>
+            {subjectLabel(t, row.id, row.name)} <b>{subjectCount(row.id)}</b>
           </button>
         ))}
-        <button type="button" className={chip(subject === '')} onClick={() => setSubject('')}>
+        <button type="button" className={chip(subject === UNCLASSIFIED)} onClick={() => setSubject(UNCLASSIFIED)}>
           {t('admin.mediaTab.noSubject')} <b>{subjectCount('')}</b>
         </button>
       </div>
@@ -191,8 +219,7 @@ export const MediaTab: React.FC = () => {
           <button type="button" className={styles.clearBtn} data-test="media-clear" onClick={() => { setSubject(''); setCls(''); setFrom(''); setTo(''); setKid(0); }}>
             {t('admin.mediaTab.clear')}
           </button>
-        )}
-      </div>
+        )}      </div>
 
       {error && <p className={ui.msgError} role="alert">{error}</p>}
       {loading && <p className={ui.emptyInline}>{t('admin.mediaTab.loading')}</p>}

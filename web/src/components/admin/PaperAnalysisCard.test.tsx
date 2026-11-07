@@ -3,15 +3,14 @@
 // behind the approval card — subject pick + launch, the 2s poll until
 // done, the diagnosis report (stats / error mix / per-question rows) and
 // the one-tap correction task from a wrong question.
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
-import i18n from '../../i18n';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { PaperAnalysis } from '../../types';
+import type { SubjectRow } from '../../taxonomy/types';
 
 // The API client is mocked at the module level: the modal must only talk
 // to api.admin.startPaperAnalysis / getPaperAnalysis / createCorrectionTask
 // and api.errorItems.list (the manual-fix queue).
-const { api } = vi.hoisted(() => ({
+const { api, taxonomyApi } = vi.hoisted(() => ({
   api: {
     admin: {
       startPaperAnalysis: vi.fn(),
@@ -21,10 +20,28 @@ const { api } = vi.hoisted(() => ({
     },
     errorItems: { list: vi.fn() },
   },
+  taxonomyApi: { subjects: vi.fn() },
 }));
 vi.mock('../../api', () => ({ api }));
+// 组件经 useSubjects 读学科清单：按 hook 的 ../taxonomy/client 解析路径提供真实形状的
+// subjects()，避免 jsdom 真实 fetch 与 undefined.then；其余 api mock 原样保留。
+vi.mock('../../taxonomy/client', () => ({ taxonomyApi }));
 
-import { PaperAnalysisModal } from './PaperAnalysisCard';
+const subjectRow = (over: Partial<SubjectRow> = {}): SubjectRow => ({
+  id: 'math',
+  name: '数学',
+  sb_code: 'MATH',
+  topic_count: 3108,
+  question_count: 9000,
+  grades: [1, 2, 3],
+  ...over,
+});
+
+const serverSubjects = (): SubjectRow[] => [
+  subjectRow({ id: 'math', name: '数学', sb_code: 'MATH' }),
+  subjectRow({ id: 'physics', name: '物理', sb_code: 'PHYS', topic_count: 42, question_count: 300, grades: [7, 8, 9] }),
+];
+
 
 const runningAnalysis = (over: Partial<PaperAnalysis> = {}): PaperAnalysis => ({
   id: 5,
@@ -84,8 +101,56 @@ const doneAnalysis = (over: Partial<PaperAnalysis> = {}): PaperAnalysis => runni
   ...over,
 });
 
-beforeAll(async () => { await i18n.changeLanguage('en'); });
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
+// useSubjects 的缓存是模块级单例：逐用例 resetModules + 动态 import 同一份模块图
+// （RTL / i18n / 组件），让每个用例独立从 taxonomyApi.subjects 拿学科，且 React 实例一致。
+type RTL = typeof import('@testing-library/react');
+let rtl: RTL;
+let render: RTL['render'];
+let screen: RTL['screen'];
+let fireEvent: RTL['fireEvent'];
+let waitFor: RTL['waitFor'];
+let act: RTL['act'];
+let PaperAnalysisModal: typeof import('./PaperAnalysisCard').PaperAnalysisModal;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  taxonomyApi.subjects.mockReset();
+  taxonomyApi.subjects.mockResolvedValue({ subjects: serverSubjects() });
+  vi.mocked(api.errorItems.list).mockResolvedValue([]);
+
+  vi.resetModules();
+  vi.doMock('../../api', () => ({ api }));
+  vi.doMock('../../taxonomy/client', () => ({ taxonomyApi }));
+  rtl = await import('@testing-library/react');
+  ({ render, screen, fireEvent, waitFor, act } = rtl);
+  const { default: freshI18n } = await import('../../i18n');
+  await freshI18n.changeLanguage('en');
+  ({ PaperAnalysisModal } = await import('./PaperAnalysisCard'));
+});
+
+afterEach(() => {
+  rtl.cleanup();
+  vi.clearAllMocks();
+  vi.useRealTimers();
+  vi.doUnmock('../../api');
+  vi.doUnmock('../../taxonomy/client');
+});
+
+
+/**
+ * R2：subjects 在途时「AI paper analysis」按钮是 disabled（不许在无学科时起手），
+ * 旧用例的裸 click 打在 disabled 按钮上什么也不发生。这里先等 select 里出现
+ * 合法学科 option（hook 已就绪），再点真正的按钮；绝不以恢复空 subject/math
+ * 默认值来绕过。
+ */
+const launchAfterSubjects = async () => {
+  await waitFor(() => {
+    expect(q('[data-test="pa-subject-select"] option[value="physics"]')).toBeTruthy();
+  });
+  const btn = screen.getByRole('button', { name: /AI paper analysis/i }) as HTMLButtonElement;
+  expect(btn.disabled).toBe(false);
+  fireEvent.click(btn);
+};
 
 // The components use data-test (not data-testid): query through the body.
 const q = (sel: string) => document.body.querySelector(sel)!;
@@ -100,11 +165,20 @@ describe('PaperAnalysisModal', () => {
     expect(q('[data-test="pa-upload"]')).toBeTruthy();
     expect(q('[data-test="pa-upload-note"]').textContent).toBeTruthy();
 
-    const subject = screen.getByLabelText(/Subject/);
+    // 等 subjects promise resolve：select 里出现 physics/math 后才 change，
+    // 否则受控 select 的 value 仍停留在空串（旧夹具的 '' → startPaperAnalysis）。
+    await waitFor(() => {
+      expect(q('[data-test="pa-subject-select"] option[value="physics"]')).toBeTruthy();
+    });
+    const subject = screen.getByLabelText(/Subject/) as HTMLSelectElement;
+    // 组件 state 起手 ''：subjects 到位前没有可选项，到位后也不把 state 改写成
+    // math（DOM 无 <option value=""> 时浏览器会把 select.value 显示成首个 option，
+    // 但发给后端的仍是 React state，见下一个用例）。
     fireEvent.change(subject, { target: { value: 'physics' } });
+    expect(subject.value).toBe('physics');
     // 问题③: the parent's free-text focus rides the start request.
     fireEvent.change(q('[data-test="pa-instructions"]'), { target: { value: 'focus on question 3' } });
-    fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
+    await launchAfterSubjects();
 
     await waitFor(() => expect(api.admin.startPaperAnalysis).toHaveBeenCalledWith(42, 'physics', 'focus on question 3'));
     // The progress rail replaces the launch form while running.
@@ -118,8 +192,24 @@ describe('PaperAnalysisModal', () => {
     expect(q('[data-test="pa-cut-3"]')).toBeTruthy();
   });
 
+  it('does not silently default an unselected subject to math', async () => {
+    // 空串起手：受控 select 的 value='' 在无空 option 时 DOM 显示首个 option，
+    // 但组件 state 仍为 ''；家长不选就按空学科发起，绝不静默改 math。
+    vi.mocked(api.admin.startPaperAnalysis).mockResolvedValue(doneAnalysis());
+    render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={vi.fn()} />);
+
+    await waitFor(() => {
+      const el = q('[data-test="pa-subject-select"]') as HTMLSelectElement;
+      expect(el.querySelector('option[value="physics"]')).toBeTruthy();
+      expect(el.querySelector('option[value="math"]')).toBeTruthy();
+    });
+    expect(Array.from((q('[data-test="pa-subject-select"]') as HTMLSelectElement).options).some(o => o.value === '')).toBe(false);
+    await launchAfterSubjects();
+    await waitFor(() => expect(api.admin.startPaperAnalysis).toHaveBeenCalledWith(42, '', undefined));
+    expect(api.admin.startPaperAnalysis).not.toHaveBeenCalledWith(42, 'math', undefined);
+  });
+
   it('polls the running analysis every 2s until the report lands', async () => {
-    vi.useFakeTimers();
     vi.mocked(api.admin.startPaperAnalysis).mockResolvedValue(runningAnalysis());
     vi.mocked(api.admin.getPaperAnalysis)
       .mockResolvedValueOnce(runningAnalysis({ stage: 'judging', progress: 60 }))
@@ -128,7 +218,11 @@ describe('PaperAnalysisModal', () => {
     vi.mocked(api.errorItems.list).mockResolvedValue([]);
 
     render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
+    // 先在真实计时器下等 subjects 就绪再点 launch（无学科时按钮 disabled），
+    // 之后才切 fake timers 驱动轮询；绝不以空 subject/math 默认值绕过。
+    await launchAfterSubjects();
+    vi.useFakeTimers();
+
     // The launch resolves (running) before the poll interval can arm.
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
 
@@ -158,7 +252,7 @@ describe('PaperAnalysisModal', () => {
     vi.mocked(api.errorItems.list).mockResolvedValue([]);
     render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
+    await launchAfterSubjects();
 
     // The one-line verdict (OD pa-report-head): totals + wrong rate.
     await waitFor(() => expect(q('[data-test="pa-report-head"]')).toBeTruthy());
@@ -179,7 +273,7 @@ describe('PaperAnalysisModal', () => {
     const onToast = vi.fn();
     render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={onToast} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
+    await launchAfterSubjects();
     const btn = await waitFor(() => {
       const el = q('[data-test="pa-gen-task"]') as HTMLButtonElement;
       expect(el).toBeTruthy();
@@ -207,7 +301,7 @@ describe('PaperAnalysisModal', () => {
     ]);
     render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
+    await launchAfterSubjects();
     await waitFor(() => expect(q('[data-test="pa-manual-card"]')).toBeTruthy());
     // The original photo stays reachable for the parent to read.
     expect(screen.getByRole('img')).toBeTruthy();
@@ -227,7 +321,7 @@ describe('PaperAnalysisModal', () => {
       runningAnalysis({ status: 'failed', error: 'vision model unavailable' }));
     render(<PaperAnalysisModal completionId={42} onClose={vi.fn()} onToast={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /AI paper analysis/i }));
+    await launchAfterSubjects();
     await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
     expect(screen.getByText(/vision model unavailable/)).toBeTruthy();
   });

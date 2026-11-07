@@ -14,6 +14,11 @@ import (
 
 // HandleListMedia serves GET /api/admin/media?subject=&class=&from=&to=&
 // chore_id=&user_id=&limit=. Admin-only: the library spans every kid.
+//
+// subject follows the frozen R2 encoding: '' = all, '__unclassified__' =
+// only rows with no chore subject, any other value = exact match. The
+// sentinel is passed through to the store untouched (the UI never
+// persists it); stats stay keyed by the other filters, exactly as before.
 func (h *ChoreHandler) HandleListMedia(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	choreID, _ := strconv.ParseInt(q.Get("chore_id"), 10, 64)

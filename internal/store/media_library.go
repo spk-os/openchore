@@ -58,6 +58,11 @@ func scanMediaItem(row interface{ Scan(...any) error }) (*MediaItem, error) {
 // ListMediaItems is the media library query. Every filter is optional
 // (empty/zero means "no constraint"); results are newest first, capped at
 // limit (default/ceiling applied by the caller).
+//
+// subject follows the frozen R2 encoding shared with the admin UI: '' means
+// "no constraint", the sentinel '__unclassified__' matches only rows whose
+// chore subject is empty (COALESCE(c.subject,'')=''), and any other value is
+// an exact subject match.
 func (s *Store) ListMediaItems(ctx context.Context, subject, mimeClass, dateFrom, dateTo string, choreID, userID int64, limit int) ([]MediaItem, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 200
@@ -70,7 +75,11 @@ func (s *Store) ListMediaItems(ctx context.Context, subject, mimeClass, dateFrom
 		LEFT JOIN chore_schedules cs ON cs.id = cc.chore_schedule_id
 		LEFT JOIN chores c ON c.id = cs.chore_id
 		WHERE ca.deleted_at IS NULL
-		  AND (? = '' OR COALESCE(c.subject, '') = ?)
+		  AND (
+		        ? = '__unclassified__' AND COALESCE(c.subject, '') = ''
+		        OR ? = ''
+		        OR (? != '__unclassified__' AND COALESCE(c.subject, '') = ?)
+		      )
 		  AND (? = '' OR ca.mime_class = ?)
 		  AND (date(ca.created_at) >= ? OR ? = '')
 		  AND (date(ca.created_at) <= ? OR ? = '')
@@ -78,7 +87,8 @@ func (s *Store) ListMediaItems(ctx context.Context, subject, mimeClass, dateFrom
 		  AND (? = 0 OR u.id = ?)
 		ORDER BY ca.created_at DESC
 		LIMIT ?`,
-		subject, subject, mimeClass, mimeClass,
+		subject, subject, subject, subject,
+		mimeClass, mimeClass,
 		dateFrom, dateFrom, dateTo, dateTo,
 		choreID, choreID, userID, userID, limit)
 	if err != nil {

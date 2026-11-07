@@ -30,11 +30,12 @@ type CopilotTask struct {
 	Title            string   `json:"title"`
 	Description      string   `json:"description"`
 	Category         string   `json:"category"`
-	// Subject is the school subject when the task is schoolwork (math/
-	// chinese/english/physics/chemistry — the media library and the error
-	// book vocabulary); "" for household chores. The apply path validates
-	// it, so the media library's subject chips light up for AI-drafted
-	// tasks too.
+	// Subject is the school subject when the task is schoolwork — the
+	// ten-subject vocabulary (math/chinese/english/physics/chemistry/
+	// science/morality/history/geography/biology) the media library and
+	// the error book share; "" for household chores. The apply path
+	// validates it, so the media library's subject chips light up for
+	// AI-drafted tasks too.
 	Subject          string   `json:"subject"`
 	Icon             string   `json:"icon"`
 	PointsValue      int      `json:"points_value"`
@@ -93,7 +94,7 @@ var copilotSchema = &Schema{
 						"title":             map[string]any{"type": "string"},
 						"description":       map[string]any{"type": "string"},
 						"category":          map[string]any{"type": "string"},
-						"subject":           map[string]any{"type": "string", "enum": []string{"", "math", "chinese", "english", "physics", "chemistry"}},
+						"subject":           map[string]any{"type": "string", "enum": []string{"", "math", "chinese", "english", "physics", "chemistry", "science", "morality", "history", "geography", "biology"}},
 						"icon":              map[string]any{"type": "string"},
 						"points_value":      map[string]any{"type": "integer"},
 						"missed_penalty":    map[string]any{"type": "integer"},
@@ -206,7 +207,7 @@ Hard rules:
 - NEVER draft survival obligations (eating, dressing, brushing teeth, sleeping basics). Those are family life, not point tasks.
 - Points must fit the family's own economy: reference the existing chores and reward ladder below. A 90-minute exam paper is worth a bit more than a 15-minute daily task, never 100 points.
 - category: "required" (school/homework must-dos), "core" (daily routine), "bonus" (extra credit). Default "core".
-- subject: "math", "chinese", "english", "physics", or "chemistry" when the task is schoolwork in that subject, "" for household chores.
+- subject: one of "math", "chinese", "english", "physics", "chemistry", "science", "morality", "history", "geography", "biology" when the task is schoolwork in that subject, "" for household chores.
 - days uses: "daily", "weekdays", "weekends", or day names "mon".."sun". For a one-day task set "days": [] and "date": "YYYY-MM-DD".
 - Every task needs: title (short, kid-readable), description (1 sentence, what "done" looks like), points_value (1-20), estimated_minutes, icon (one emoji), confidence (0.0-1.0), rationale (one short line: why this price/schedule, referencing the anchors when they apply).
 - Dedup: if a task duplicates an existing chore listed below, DO NOT emit it as a task — mention it in notes instead ("与现有任务 X 重复，已跳过").
@@ -260,7 +261,7 @@ func parseCopilotDraft(raw string) (*CopilotDraft, error) {
 	}
 
 	validCats := map[string]bool{"required": true, "core": true, "bonus": true}
-	validSubjects := map[string]bool{"": true, "math": true, "chinese": true, "english": true, "physics": true, "chemistry": true}
+	validSubjects := map[string]bool{"": true, "math": true, "chinese": true, "english": true, "physics": true, "chemistry": true, "science": true, "morality": true, "history": true, "geography": true, "biology": true}
 	tasks := make([]CopilotTask, 0, len(draft.Tasks))
 	for _, task := range draft.Tasks {
 		task.Title = strings.TrimSpace(task.Title)
@@ -271,7 +272,7 @@ func parseCopilotDraft(raw string) (*CopilotDraft, error) {
 			task.Category = "core"
 		}
 		// Junk subjects would fall into no media-library bucket at all;
-		// fold anything outside the five (plus "") back to unclassified.
+		// fold anything outside the ten (plus "") back to unclassified.
 		if !validSubjects[task.Subject] {
 			task.Subject = ""
 		}

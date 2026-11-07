@@ -84,18 +84,18 @@ const (
 // with ..." after the profile is tapped; subjects and emails are never
 // exposed on the public listing.
 type User struct {
-	ID             int64     `json:"id"`
-	Name           string    `json:"name"`
-	AvatarURL      string    `json:"avatar_url"`
-	Role           string    `json:"role"`
-	Age            *int      `json:"age,omitempty"`
-	Theme          string    `json:"theme,omitempty"`
-	LineColor      string    `json:"line_color,omitempty"`
-	Color          string    `json:"color,omitempty"`
-	Paused         bool      `json:"paused"`
-	HasPin         bool      `json:"has_pin"`
-	PinHash        string    `json:"-"`
-	PinLength      int       `json:"pin_length,omitempty"` // digits in the PIN; 0 = no PIN or not known yet
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url"`
+	Role      string `json:"role"`
+	Age       *int   `json:"age,omitempty"`
+	Theme     string `json:"theme,omitempty"`
+	LineColor string `json:"line_color,omitempty"`
+	Color     string `json:"color,omitempty"`
+	Paused    bool   `json:"paused"`
+	HasPin    bool   `json:"has_pin"`
+	PinHash   string `json:"-"`
+	PinLength int    `json:"pin_length,omitempty"` // digits in the PIN; 0 = no PIN or not known yet
 	// Read-aloud preference, stored server-side (041) so it follows the
 	// person across devices. nil = never set (the client falls back to an
 	// age-based default).
@@ -801,6 +801,32 @@ type KnowledgeTag struct {
 	Code      string `json:"code,omitempty"`
 	SortOrder int    `json:"sort_order"`
 	IsSystem  bool   `json:"is_system"`
+
+	// 042 taxonomy columns (cn-math-taxonomy mirror). omitempty keeps the
+	// old JSON shape for hand-made tags, which have none of these.
+	Grade          *int   `json:"grade,omitempty"`
+	Semester       *int   `json:"semester,omitempty"` // 1=上 2=下, NULL=不限
+	Domain         string `json:"domain,omitempty"`
+	Chapter        string `json:"chapter,omitempty"`
+	TopicType      string `json:"topic_type,omitempty"`
+	Description    string `json:"description,omitempty"`
+	Source         string `json:"source,omitempty"`
+	ExternalRef    string `json:"external_ref,omitempty"`
+	TopicCount     int    `json:"topic_count,omitempty"`    // browse list only
+	QuestionCount  int    `json:"question_count,omitempty"` // browse list only
+	MasteryJSON    string `json:"mastery_criteria_json,omitempty"`
+	DiagnosticJSON string `json:"diagnostic_question_json,omitempty"`
+}
+
+// Subject is one row of the subjects word list (subjects table): the
+// single source of truth for subject keys, replaces the hardcoded
+// five-subject list.
+type Subject struct {
+	Key       string `json:"id"`
+	LabelZh   string `json:"name"`
+	SBCode    string `json:"sb_code,omitempty"`
+	SortOrder int    `json:"sort_order"`
+	Enabled   bool   `json:"enabled"`
 }
 
 // Review-item source types (L4): what a spaced-repetition card was
@@ -1037,6 +1063,121 @@ type CourseOutcome struct {
 	CalculationMethod string `json:"calculation_method"`
 	CalcInt           *int   `json:"calc_int,omitempty"`
 	RatingsJSON       string `json:"ratings_json"`
+
+	// 042: link the outcome to an imported knowledge point, so practice
+	// and assessments can roll into the learner profile per KC.
+	KnowledgeTagID *int64 `json:"knowledge_tag_id,omitempty"`
+}
+
+// KnowledgeQuestion is one bank question (knowledge_questions): the
+// upstream pack's question, judged by the taxonomy engine's JudgeQuestion.
+type KnowledgeQuestion struct {
+	ID             int64  `json:"id"`
+	TopicID        int64  `json:"topic_id"`
+	ExternalRef    string `json:"external_ref,omitempty"`
+	Difficulty     string `json:"difficulty"`
+	Type           string `json:"type"` // numeric|choice|short|self
+	Prompt         string `json:"prompt"`
+	ChoicesJSON    string `json:"choices_json,omitempty"`
+	AnswerJSON     string `json:"answer_json,omitempty"`
+	AcceptJSON     string `json:"accept_json,omitempty"`
+	Explanation    string `json:"explanation,omitempty"`
+	Verify         string `json:"verify,omitempty"`
+	Unordered      bool   `json:"unordered,omitempty"`
+	Figure         string `json:"figure,omitempty"`
+	HideChoiceText bool   `json:"hide_choice_text,omitempty"`
+	Source         string `json:"source,omitempty"`
+	SortOrder      int    `json:"sort_order,omitempty"`
+}
+
+// CurriculumStandard is one curriculum-standard clause
+// (curriculum_standards): the 2022 standard text linked to knowledge
+// points through KnowledgeTagStandards.
+type CurriculumStandard struct {
+	ID          int64  `json:"id"`
+	ExternalRef string `json:"external_ref,omitempty"`
+	Subject     string `json:"subject"`
+	Domain      string `json:"domain,omitempty"`
+	Section     string `json:"section,omitempty"`
+	Clause      string `json:"clause,omitempty"`
+	Body        string `json:"body"`
+	PageOrRef   string `json:"page_or_ref,omitempty"`
+}
+
+// KnowledgeTagStandard links a knowledge point to a curriculum standard
+// (knowledge_tag_standards). Confidence mirrors the SQL column: TEXT with
+// CHECK (confidence IN ('exact','inferred')), not a numeric score.
+type KnowledgeTagStandard struct {
+	TagID      int64  `json:"tag_id"`
+	StandardID int64  `json:"standard_id"`
+	Confidence string `json:"confidence,omitempty"` // exact|inferred
+	Note       string `json:"note,omitempty"`
+}
+
+// KnowledgeTagPrerequisite is one prerequisite edge
+// (knowledge_tag_prerequisites): from → to is "tag requires
+// prerequisite"; strength is hard|soft.
+type KnowledgeTagPrerequisite struct {
+	TagID          int64  `json:"topic_id"`
+	PrerequisiteID int64  `json:"prerequisite_id"`
+	Strength       string `json:"strength"`
+	Reason         string `json:"reason,omitempty"`
+	ReviewStatus   string `json:"review_status,omitempty"`
+}
+
+// DiagnosticSession is one diagnostic run (diagnostic_sessions): the
+// engine state is serialized into StateJSON so answering can resume
+// without re-deriving anything; ScopeJSON/SummaryJSON carry the request
+// scope and the engine's terminal summary.
+type DiagnosticSession struct {
+	ID          int64      `json:"id"`
+	UserID      int64      `json:"user_id"`
+	Subject     string     `json:"subject"`
+	Mode        string     `json:"mode"`   // diagnose|retest|confirm
+	Status      string     `json:"status"` // active|completed|voided
+	ScopeJSON   string     `json:"scope_json"`
+	StateJSON   string     `json:"state_json"`
+	SummaryJSON string     `json:"summary_json,omitempty"`
+	VoidedAt    *time.Time `json:"voided_at,omitempty"`
+	VoidedBy    *int64     `json:"voided_by,omitempty"`
+	RestoredAt  *time.Time `json:"restored_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+}
+
+// DiagnosticAttempt is one append-only answer row
+// (diagnostic_attempts): role probe|confirm, status
+// answered|voided|corrected (void/correct keep the row, they never
+// rewrite it).
+type DiagnosticAttempt struct {
+	ID            int64      `json:"id"`
+	SessionID     int64      `json:"session_id"`
+	QuestionID    string     `json:"question_id"` // engine question id, not DB row id
+	TopicID       string     `json:"topic_id"`    // external_ref of the knowledge point
+	Seq           int        `json:"seq"`
+	Role          string     `json:"role"` // probe|confirm
+	AnswerJSON    string     `json:"answer_json,omitempty"`
+	Correct       *bool      `json:"correct,omitempty"`
+	Status        string     `json:"status"` // answered|voided|corrected
+	VoidedAt      *time.Time `json:"voided_at,omitempty"`
+	CorrectedByAt *time.Time `json:"corrected_by_at,omitempty"`
+}
+
+// DiagnosticShare is one share link (diagnostic_shares): the raw token
+// never lands in the DB or logs — only TokenHash; SnapshotJSON is the
+// frozen report at share time (later overrides don't touch it).
+type DiagnosticShare struct {
+	ID           int64      `json:"id"`
+	TokenHash    string     `json:"-"`
+	OwnerID      int64      `json:"owner_id"`
+	SessionID    *int64     `json:"session_id,omitempty"`
+	ReportKind   string     `json:"report_kind"` // diagnosis|path|blindspots
+	SnapshotJSON string     `json:"snapshot_json,omitempty"`
+	ExpiresAt    *time.Time `json:"expires_at,omitempty"`
+	RevokedAt    *time.Time `json:"revoked_at,omitempty"`
+	CreatedBy    int64      `json:"created_by"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 // OutcomeAssessment is one score event (Canvas RubricAssessment): who
@@ -1122,4 +1263,81 @@ type StudentConfig struct {
 	Strengths     string    `json:"strengths"`
 	Weaknesses    string    `json:"weaknesses"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// --- L3 · Learning-data export & restore ---
+
+// LearningExport is the portable learning-data document (one kid, one
+// JSON file): what the export endpoint writes and the restore endpoint
+// reads back. Machine-local row ids never travel as the join key —
+// mastery rows are keyed by the tag's external_ref, events and review
+// items carry their source object's stable ref — so a restore onto
+// another machine remaps without guessing. No secrets, PINs or sessions
+// ever land in here.
+type LearningExport struct {
+	SchemaVersion int                  `json:"schema_version"`
+	PackVersion   string               `json:"pack_version"` // built-in taxonomy pack the data was produced against
+	ExportedAt    time.Time            `json:"exported_at"`
+	TargetUserID  int64                `json:"target_user_id,omitempty"` // explicit restore target (0 = the document's own user)
+	User          LearningExportUser   `json:"user"`
+	Mastery       []LearningMastery    `json:"mastery"`
+	Events        []LearningEvent      `json:"events"`
+	Diagnostics   []DiagnosticSession  `json:"diagnostics"`
+	Attempts      []DiagnosticAttempt  `json:"attempts"`
+	ReviewItems   []LearningReviewItem `json:"review_items"`
+}
+
+// LearningExportUser identifies the person the document belongs to.
+type LearningExportUser struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Role string `json:"role"` // RoleAdmin | RoleChild
+}
+
+// LearningMastery is one kc_mastery row in export form: the knowledge
+// point travels as its external_ref (pack-level id, stable across
+// machines) instead of the local knowledge_tags row id.
+type LearningMastery struct {
+	ExternalRef   string     `json:"external_ref"`
+	CorrectCount  int        `json:"correct_count"`
+	TotalCount    int        `json:"total_count"`
+	Mastery       float64    `json:"mastery"`
+	LowConfidence bool       `json:"low_confidence"`
+	LastEventAt   *time.Time `json:"last_event_at,omitempty"`
+}
+
+// LearningEvent is one learner_event in export form: the xAPI statement
+// skeleton plus the stable refs of what it touched — the object's
+// pack-level ref and the knowledge points it counted towards.
+type LearningEvent struct {
+	LearnerEvent
+	ObjectRef string   `json:"object_ref"`
+	KCRefs    []string `json:"kc_refs"`
+}
+
+// LearningReviewItem is one FSRS card in export form, plus the stable
+// ref of its source object.
+type LearningReviewItem struct {
+	ReviewItem
+	SourceRef string `json:"source_ref"`
+}
+
+// LearningImportStat is the per-section imported/skipped count a restore
+// reports back. Rows that fail validation or can't be mapped count as
+// skipped, never silently dropped.
+type LearningImportStat struct {
+	Imported int `json:"imported"`
+	Skipped  int `json:"skipped"`
+}
+
+// LearningRestoreResult is the restore response: the overall
+// imported/skipped totals plus one stat per document section.
+type LearningRestoreResult struct {
+	Imported    int                `json:"imported"`
+	Skipped     int                `json:"skipped"`
+	Mastery     LearningImportStat `json:"mastery"`
+	Events      LearningImportStat `json:"events"`
+	Diagnostics LearningImportStat `json:"diagnostics"`
+	Attempts    LearningImportStat `json:"attempts"`
+	ReviewItems LearningImportStat `json:"review_items"`
 }

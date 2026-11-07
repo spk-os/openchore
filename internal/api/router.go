@@ -45,6 +45,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	chores.SetSpacedRepetition(reviews)
 	courses := NewCourseHandler(s)
 	learner := NewLearnerHandler(s, reviews, aiSvc)
+	taxonomyH := NewTaxonomyHandler(s, reviews)
 	authH := NewAuthHandler(s, auth.Sessions, dispatcher, auth.OIDC)
 	oidcH := auth.OIDC
 
@@ -83,6 +84,12 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 		// path is the elder's only credential, so no session needed.
 		r.Get("/boost/{token}", boosts.GetBoostPage)
 		r.Post("/boost/{token}", boosts.PostBoost)
+
+		// Public: read-only taxonomy report shares (042) — same token
+		// semantics as boost links: the token is the only credential,
+		// the payload is a frozen summary snapshot (no answers, no
+		// other kid's data), and expiry/revocation is server-side.
+		r.Get("/taxonomy/shared/{token}", taxonomyH.GetSharedReport)
 
 		// Initial setup (only works when no users exist)
 		r.Post("/setup", setup.Setup)
@@ -175,6 +182,30 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 			r.Get("/courses/{id}", courses.GetCourseForKid)
 			r.Post("/resources/{id}/progress", courses.ReportProgress)
 			r.Get("/courses/{id}/outcomes", courses.ListCourseOutcomes)
+
+			// Taxonomy (042): the ten-subject knowledge graph —
+			// subject/topic browse, the knowledge-point neighborhood
+			// graph, single-topic practice with judging and profile
+			// rollup, diagnostic sessions (create → answer →
+			// undo/correct/finish/retest), blind-spot view, and the
+			// learning-data export. Kids act on their own data; admins
+			// name any user via user_id (never X-User-ID).
+			r.Get("/taxonomy/subjects", taxonomyH.GetSubjects)
+			r.Get("/taxonomy/topics", taxonomyH.GetTopics)
+			r.Get("/taxonomy/topics/{externalRef}", taxonomyH.GetTopic)
+			r.Post("/taxonomy/practice", taxonomyH.Practice)
+			r.Post("/taxonomy/diagnostics", taxonomyH.CreateDiagnostic)
+			r.Get("/taxonomy/diagnostics", taxonomyH.ListDiagnostics)
+			r.Get("/taxonomy/diagnostics/{id}", taxonomyH.GetDiagnostic)
+			r.Post("/taxonomy/diagnostics/{id}/answers", taxonomyH.AnswerDiagnostic)
+			r.Post("/taxonomy/diagnostics/{id}/undo", taxonomyH.UndoDiagnostic)
+			r.Post("/taxonomy/diagnostics/{id}/correct", taxonomyH.CorrectDiagnostic)
+			r.Post("/taxonomy/diagnostics/{id}/finish", taxonomyH.FinishDiagnostic)
+			r.Post("/taxonomy/diagnostics/{id}/retest", taxonomyH.RetestDiagnostic)
+			r.Post("/taxonomy/diagnostics/{id}/share", taxonomyH.ShareDiagnostic)
+			r.Get("/taxonomy/blindspots", taxonomyH.GetBlindspots)
+			r.Get("/taxonomy/export", taxonomyH.ExportLearningDocument)
+			r.Get("/taxonomy/graph", taxonomyH.GetGraph)
 
 			// Any user can view and redeem rewards
 			r.Get("/rewards", rewards.List)
@@ -389,6 +420,25 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 				r.Delete("/admin/resources/{id}", courses.DeleteResourceAdmin)
 				r.Delete("/admin/outcomes/{id}", courses.DeleteOutcomeAdmin)
 				r.Post("/admin/outcomes/{id}/assessments", courses.CreateAssessmentAdmin)
+
+				// Taxonomy (042), admin side: the pack re-sync
+				// (POST sync — startup's manual retry path; /import is
+				// NOT the pack path anymore), restore one kid's
+				// exported learning document (explicit target_user_id
+				// mapping), generate a draft course from a diagnostic
+				// learning path, edit the prerequisite DAG (PUT adds or
+				// rewrites one edge; PATCH flips a stored edge's review
+				// status — both identify the edge in the body), and
+				// revoke report shares. The share list (per kid,
+				// status derived) feeds the revoke UI.
+				r.Post("/admin/taxonomy/sync", taxonomyH.AdminImportPack)
+				r.Get("/admin/taxonomy/status", taxonomyH.AdminTaxonomyStatus)
+				r.Post("/admin/taxonomy/import", taxonomyH.ImportLearningDocument)
+				r.Post("/admin/taxonomy/courses/generate", taxonomyH.GenerateCourse)
+				r.Put("/admin/taxonomy/prerequisites", taxonomyH.PutPrerequisite)
+				r.Patch("/admin/taxonomy/prerequisites/review", taxonomyH.ReviewPrerequisite)
+				r.Get("/admin/taxonomy/shares", taxonomyH.ListShares)
+				r.Delete("/admin/taxonomy/shares/{id}", taxonomyH.RevokeShare)
 
 				// Integration discovery: chores with triggers
 				r.Get("/chores/triggerable", triggers.ListTriggerable)

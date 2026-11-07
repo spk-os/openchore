@@ -21,6 +21,8 @@ import { PetCard } from './PetCard';
 import { ReviewEntryCard } from './ReviewEntryCard';
 import { CourseEntryCard } from './CourseEntryCard';
 import { ErrorBookEntryCard } from './ErrorBookEntryCard';
+// 042：学科学习入口（/learn）——常驻卡，排在复习/错题/课程入口之后。
+import { LearnEntryCard } from './LearnEntryCard';
 import { CAT_ORDER, ChoreGroups, Notice, PausedNotice } from './parts';
 import { MonthView } from './MonthView';
 import type { KidData } from './useKidData';
@@ -271,6 +273,8 @@ export function HomeScreen({ user, data, now, topBar, viewOf, tts, speakingId, o
         {!user.paused && <ReviewEntryCard />}
         {!user.paused && <ErrorBookEntryCard />}
         {!user.paused && <CourseEntryCard />}
+        {/* 042：学科学习入口——十学科知识浏览与挑战检测的常驻门。 */}
+        {!user.paused && <LearnEntryCard />}
         {/* The kid's buddy (P4-13), when the household has it on. */}
         {!user.paused && data.petState && (
           <PetCard

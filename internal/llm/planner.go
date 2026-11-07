@@ -65,9 +65,11 @@ type PlannerChore struct {
 	Title            string       `json:"title"`
 	Description      string       `json:"description"`
 	Category         string       `json:"category"`
-	// Subject: the school subject when the chore is schoolwork (math/
-	// chinese/english/physics/chemistry), "" for household chores — so
-	// adopted planner chores land in the media library's subject buckets.
+	// Subject: the school subject when the chore is schoolwork — the
+	// ten-subject vocabulary (math/chinese/english/physics/chemistry/
+	// science/morality/history/geography/biology), "" for household
+	// chores — so adopted planner chores land in the media library's
+	// subject buckets.
 	Subject          string       `json:"subject"`
 	Icon             string       `json:"icon"`
 	PointsValue      int          `json:"points_value"`
@@ -116,7 +118,7 @@ var plannerSchema = &Schema{
 				"items": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
-						"type": map[string]any{"type": "string", "enum": []string{"kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder"}},
+						"type": map[string]any{"type": "string", "enum": []string{"kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder", "diagnostics", "blindspots"}},
 						"id":   map[string]any{"type": "integer"},
 						"fact": map[string]any{"type": "string"},
 					},
@@ -134,7 +136,7 @@ var plannerSchema = &Schema{
 								"title":             map[string]any{"type": "string"},
 								"description":       map[string]any{"type": "string"},
 								"category":          map[string]any{"type": "string"},
-								"subject":           map[string]any{"type": "string", "enum": []string{"", "math", "chinese", "english", "physics", "chemistry"}},
+								"subject":           map[string]any{"type": "string", "enum": []string{"", "math", "chinese", "english", "physics", "chemistry", "science", "morality", "history", "geography", "biology"}},
 								"icon":              map[string]any{"type": "string"},
 								"points_value":      map[string]any{"type": "integer"},
 								"missed_penalty":    map[string]any{"type": "integer"},
@@ -235,7 +237,7 @@ Hard rules:
 - Points fit the family's own economy: reference the existing chores and reward ladder below; 1-20 per task.
 - category: "required" (school/homework must-dos), "core" (daily routine), "bonus" (extra credit).
 - days uses "daily", "weekdays", "weekends", or "mon".."sun"; a one-day task sets "days": [] and "date": "YYYY-MM-DD".
-- Every source_ref's fact must be a concrete, checkable statement drawn ONLY from the profile data below (a mastery rate, a count, a config value). Type it as "kc_mastery", "learner_events", "error_dist", "student_config" or "reward_ladder". At least one ref per plan; cite the weak KC a chore targets.
+- Every source_ref's fact must be a concrete, checkable statement drawn ONLY from the profile data below (a mastery rate, a count, a config value, a diagnostic/blindspot finding). Type it as "kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder", "diagnostics" or "blindspots". At least one ref per plan; cite the weak KC a chore targets.
 - Each new_chore ALSO carries its own "refs": 1-3 facts that justify THAT chore specifically (same typing rules). A chore without its own refs shows only the plan-level citations to the parent — give every chore its own.
 - Low-confidence KCs (n < 5): propose only lightweight observation ("先观察"), never a heavy drill, and say so in the ref.
 - Write titles, rationales, facts and notes in the family's language (default Chinese).
@@ -310,7 +312,7 @@ func parsePlannerDraft(raw string) (*PlannerDraft, error) {
 			continue
 		}
 		switch r.Type {
-		case "kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder":
+		case "kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder", "diagnostics", "blindspots":
 		default:
 			r.Type = "learner_events" // an unknown source still cites a fact; keep it checkable
 		}
@@ -322,7 +324,7 @@ func parsePlannerDraft(raw string) (*PlannerDraft, error) {
 	draft.SourceRefs = refs
 
 	validCats := map[string]bool{"required": true, "core": true, "bonus": true}
-	validSubjects := map[string]bool{"": true, "math": true, "chinese": true, "english": true, "physics": true, "chemistry": true}
+	validSubjects := map[string]bool{"": true, "math": true, "chinese": true, "english": true, "physics": true, "chemistry": true, "science": true, "morality": true, "history": true, "geography": true, "biology": true}
 	chores := make([]PlannerChore, 0, len(draft.Proposal.NewChores))
 	for _, t := range draft.Proposal.NewChores {
 		t.Title = strings.TrimSpace(t.Title)
@@ -332,7 +334,7 @@ func parsePlannerDraft(raw string) (*PlannerDraft, error) {
 		if !validCats[t.Category] {
 			t.Category = "core"
 		}
-		// Same fold as the copilot: a subject outside the five (+"")
+		// Same fold as the copilot: a subject outside the ten (+"")
 		// would land in no media-library bucket, so it becomes "".
 		if !validSubjects[t.Subject] {
 			t.Subject = ""
@@ -365,7 +367,7 @@ func parsePlannerDraft(raw string) (*PlannerDraft, error) {
 				continue
 			}
 			switch r.Type {
-			case "kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder":
+			case "kc_mastery", "learner_events", "error_dist", "student_config", "reward_ladder", "diagnostics", "blindspots":
 			default:
 				r.Type = "learner_events"
 			}

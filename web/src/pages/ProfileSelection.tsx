@@ -248,8 +248,12 @@ export const ProfileSelection: React.FC = () => {
     setError('');
     try {
       const auth = await api.auth.login({ user_id: user.id, ...extra });
-      signIn(auth);
-      navigate('/');
+      // DEF-PWA-PRODUCTION-R2（reviewer P0）：必须 await signIn 完成缓存
+      // 清理与状态采纳后再导航——fire-and-forget 会让 navigate('/') 抢在
+      // 清理/状态落地之前执行。
+      // DEF-PWA-PRODUCTION-R2 第二轮（reviewer P1）：signIn 返回是否真正
+      // 采纳（false = 清理期间被更新的认证操作 supersede），仅 true 才导航。
+      if (await signIn(auth)) navigate('/');
     } catch (e) {
       if (e instanceof APIError && e.status === 403 && e.data?.code === 'admin_setup_required') {
         setError('');

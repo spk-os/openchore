@@ -39,15 +39,15 @@ type measureRequest struct {
 	Priority   int      `json:"priority"`
 }
 
-// validate normalizes one measure request in place.
+// validate normalizes one measure request in place. The subject is kept
+// exactly as sent: "" is a legitimate no-subject (habit-level) measure and
+// is never silently defaulted to "math"; a non-empty value is checked
+// against the subjects vocabulary by the handler (checkMeasureSubject).
 func (req *measureRequest) validate() error {
 	req.Title = strings.TrimSpace(req.Title)
 	req.Detail = strings.TrimSpace(req.Detail)
 	if req.Title == "" || req.Detail == "" {
 		return errors.New("title and detail are required")
-	}
-	if req.Subject == "" {
-		req.Subject = "math"
 	}
 	if req.Priority < 1 || req.Priority > 3 {
 		req.Priority = 2
@@ -88,6 +88,28 @@ func (h *ChoreHandler) ListLearningMeasures(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, measures)
 }
 
+// checkMeasureSubject validates a non-empty request subject against the
+// same table-driven vocabulary the chores use: unknown or disabled keys
+// are rejected with 400, a vocabulary-load failure is a 500. It must run
+// BEFORE any store write (never inside a transaction): the vocabulary
+// load takes the DB's single connection, so wrapping it in a write would
+// deadlock the pool. Empty is always allowed (no-subject measures).
+func (h *ChoreHandler) checkMeasureSubject(w http.ResponseWriter, ctx context.Context, subject string) bool {
+	if subject == "" {
+		return true
+	}
+	ok, err := h.validSubject(ctx, subject)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load subjects")
+		return false
+	}
+	if !ok {
+		writeError(w, http.StatusBadRequest, "subject must be empty or a subject from the subjects list")
+		return false
+	}
+	return true
+}
+
 // CreateLearningMeasure serves POST /api/admin/measures — a parent
 // writing a measure by hand (origin=manual).
 func (h *ChoreHandler) CreateLearningMeasure(w http.ResponseWriter, r *http.Request) {
@@ -102,6 +124,9 @@ func (h *ChoreHandler) CreateLearningMeasure(w http.ResponseWriter, r *http.Requ
 	}
 	if err := req.validate(); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if !h.checkMeasureSubject(w, r.Context(), req.Subject) {
 		return
 	}
 	parent := UserFromContext(r.Context())
@@ -158,6 +183,9 @@ func (h *ChoreHandler) UpdateLearningMeasure(w http.ResponseWriter, r *http.Requ
 	}
 	if err := req.validate(); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if !h.checkMeasureSubject(w, r.Context(), req.Subject) {
 		return
 	}
 	m.Subject = req.Subject
@@ -330,6 +358,14 @@ func (h *ChoreHandler) DistillMeasures(w http.ResponseWriter, r *http.Request) {
 	parent := UserFromContext(r.Context())
 	created, err := h.distillMeasuresForAnalysis(r.Context(), analysis, parent.ID)
 	if err != nil {
+		// subjects 词表加载失败是服务端问题且不会写任何东西：不能沿用
+		// 502 "AI distill failed: "+err（会把原生 DB/SQL 细节回给客户端，
+		// 也会把内部错误误标成上游 AI 的锅）。内部细节只进日志。
+		if errors.Is(err, errMeasureSubjectsUnavailable) {
+			log.Printf("measures: distilling analysis %d: %v", analysis.ID, err)
+			writeError(w, http.StatusInternalServerError, "failed to load subjects")
+			return
+		}
 		writeError(w, http.StatusBadGateway, "AI distill failed: "+err.Error())
 		return
 	}
@@ -378,17 +414,40 @@ func (h *ChoreHandler) distillMeasuresForAnalysis(ctx context.Context, analysis 
 
 	// 任务③：spk-agent 优先（真 agent 蒸馏措施），直连 LLM 回退。
 	drafts, err := h.draftMeasures(ctx, llm.MeasureContext{
-		KidName:  kid.Name,
-		Subject:  analysis.Subject,
-		WeakTags: weakInputs,
-		ErrorMix: distInputs,
+		KidName:     kid.Name,
+		Subject:     analysis.Subject,
+		WeakTags:    weakInputs,
+		ErrorMix:    distInputs,
 		ParentNotes: parentNotes,
 	}, fmt.Sprintf("measures:%d", analysis.ID))
 	if err != nil {
 		return nil, err
 	}
+	// AI 输出不可信（卡 TX-AI-MEASURE-SUBJECT-CODER）：任何写库之前先把
+	// 每条 draft 的 subject 过一遍 enabled subjects 词表（与 chores 同一
+	// 白名单）。未知/disabled/大小写不匹配的非空 subject 整条跳过——既不
+	// 写 learning_measures，也不借 FindOrCreateKnowledgeTag 落异学科/垃圾
+	// 知识点；空 subject 保持合法（习惯级措施）。词表加载失败直接报错，
+	// 保证此时尚无任何 KC/措施写入。校验不在事务里跑：SQLite 单写者，
+	// 词表加载会占用唯一连接，包进写事务会死锁。
+	validSubjects, err := h.validDraftSubjects(ctx, drafts)
+	if err != nil {
+		return nil, err
+	}
 	created := make([]model.LearningMeasure, 0, len(drafts))
 	for _, d := range drafts {
+		if d.Subject != "" {
+			if _, ok := validSubjects[d.Subject]; !ok {
+				// Only the subject key is logged — draft titles/details can
+				// carry the kid's private text and must not reach the logs.
+				// The key itself is untrusted AI output, so it is truncated
+				// (rune-safe): a runaway model reply must not be able to
+				// spray unbounded text into the log either.
+				log.Printf("measures: skipping distilled draft with unknown or disabled subject %q for user %d (analysis %d)",
+					truncateFor(d.Subject, 64), analysis.UserID, analysis.ID)
+				continue
+			}
+		}
 		m := &model.LearningMeasure{
 			UserID:     analysis.UserID,
 			Subject:    d.Subject,
@@ -401,7 +460,10 @@ func (h *ChoreHandler) distillMeasuresForAnalysis(ctx context.Context, analysis 
 			Priority:   d.Priority,
 			CreatedBy:  parentID,
 		}
-		if d.KC != "" {
+		if d.KC != "" && d.Subject != "" {
+			// KC 自动建/绑只发生在 subject 已通过校验的 draft 上：空 subject
+			// 的 KC 不得进 FindOrCreateKnowledgeTag（否则会落一条 subject=''
+			// 的知识点）；空 subject 措施本身照常创建（习惯级）。
 			if tagID, terr := h.store.FindOrCreateKnowledgeTag(ctx, d.KC, d.Subject, nil); terr == nil {
 				m.KCTagID = &tagID
 				m.KCName = d.KC
@@ -414,6 +476,46 @@ func (h *ChoreHandler) distillMeasuresForAnalysis(ctx context.Context, analysis 
 		created = append(created, *m)
 	}
 	return created, nil
+}
+
+// errMeasureSubjectsUnavailable is the fixed sentinel for "the enabled-
+// subject vocabulary could not be loaded" on the distill path: the raw
+// store error stays in the server log (it can carry SQL/driver detail),
+// the client only ever sees the handler's stable generic message.
+var errMeasureSubjectsUnavailable = errors.New("subjects vocabulary unavailable")
+
+// validDraftSubjects builds the per-distill enabled-subject snapshot: one
+// ListSubjects read, one exact-case set, shared by every non-empty draft
+// subject in this validation pass — a repeated unknown subject is refused
+// from the same snapshot instead of re-loading the vocabulary, and the
+// whole batch sees one consistent word list (no mid-batch drift from a
+// concurrent seed/disable). Nothing is written before this returns nil.
+// The snapshot deliberately does NOT reuse the handler's subjectAllow
+// cache: a single fresh read keeps the whole batch on one vocabulary and
+// its error path is decisive (below). An empty subject is the caller's
+// business (it stays legal) — this set only answers "is this non-empty
+// subject enabled right now?". A load failure returns the sentinel
+// errMeasureSubjectsUnavailable so the caller can abort before any write
+// and map the failure to a fixed client message (never the raw DB error).
+// Never call this inside a transaction: the vocabulary load takes the
+// DB's single connection and would deadlock a wrapped write.
+func (h *ChoreHandler) validDraftSubjects(ctx context.Context, drafts []llm.MeasureDraft) (map[string]struct{}, error) {
+	subs, err := h.store.ListSubjects(ctx)
+	if err != nil {
+		// The raw store error (SQL/driver detail) stays server-side; the
+		// caller only ever sees the fixed sentinel. Logged here because
+		// the sentinel deliberately drops the cause.
+		log.Printf("measures: loading subjects vocabulary for draft validation: %v", err)
+		return nil, errMeasureSubjectsUnavailable
+	}
+	valid := make(map[string]struct{}, len(subs))
+	for _, sub := range subs {
+		if !sub.Enabled {
+			continue
+		}
+		valid[sub.Key] = struct{}{}
+	}
+	return valid, nil
 }
 
 // joinChinese joins with 、 without importing strings here (the api

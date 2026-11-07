@@ -22,7 +22,9 @@ export default defineConfig({
     {
       name: 'main',
       use: { browserName: 'chromium' },
-      testIgnore: /admin-pin-change|sign-in-options/,
+      // The PWA spec runs only under playwright.pwa.config.ts (production
+      // build + vite preview + SW); it must not run against the dev server.
+      testIgnore: /admin-pin-change|sign-in-options|pwa-sw/,
     },
     {
       // Specs that change household-wide sign-in state, run after the rest.
