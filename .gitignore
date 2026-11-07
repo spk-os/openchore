@@ -39,6 +39,14 @@ data/
 default.profraw
 internal/*/data/
 
+# internal/taxonomy/data 是 go:embed 编译期数据（3108 知识点 / 12579 题），
+# 必须随仓库走：干净 checkout（CI）缺它则 `go build`/`go test` 直接失败
+# （pattern data/*.json: no matching files）。上两级目录被忽略时，git
+# 对已忽略目录内的文件不再展开，需逐级否定。
+!internal/taxonomy/
+!internal/taxonomy/data/
+!internal/taxonomy/data/**
+
 # Temp
 /tmp/
 

@@ -24,6 +24,10 @@ jobs:
 
   test-e2e:
     runs-on: ubuntu-latest
+    # 串行执行：自建 act_runner 的两个 job 容器共享宿主 hostedtoolcache，
+    # setup-go/setup-node 并发写同一版本目录会互相踩（2026-11-08 test job
+    # 曾报 `Command failed: version not found`，恰逢 test-e2e 同刻解压同版 Go）。
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
