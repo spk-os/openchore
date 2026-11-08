@@ -51,18 +51,27 @@ jobs:
       - name: Copy seed config
         run: cp config/config.example.yaml config/config.yaml
 
+      - name: Show runner environment
+        run: |
+          echo "node: $(node --version)"
+          echo "npm: $(npm --version)"
+          echo "go: $(go version)"
+          echo "CPUs: $(nproc)"
+          echo "mem-free: $(free -m | awk '/^Mem:/{print $4}')MB"
+          df -h / | tail -1
+
       - name: Run e2e tests
-        run: cd e2e && npx playwright test
+        run: cd e2e && npx playwright test --workers=4 --reporter=line
         env:
           CI: true
+          # 显式端口避开常用端口：runner 容器网络（gitea_default）内 8080/5173
+          # 无占用，但显式声明消除任何与宿主映射端口的潜在冲突。
+          E2E_API_PORT: "8181"
+          E2E_WEB_PORT: "5281"
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-report
-          path: e2e/test-results/
-          retention-days: 7
+      # upload-artifact 已删除：Gitea Actions（act_runner）不支持 artifact v4 API
+      # （GHESNotSupportedError），失败时上传会把 job 拖红。需要报告时直接
+      # 看 job 日志或本地复跑 `cd e2e && npx playwright test --reporter=line`。
 
   # 原 build-api / build-web job 已删除：镜像由 SPK-OS 本地构建
   # （Containerfile / web/Containerfile + delivery/app compose），不经 ghcr.io 发布；

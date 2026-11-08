@@ -18,6 +18,8 @@ web/.vitest/
 # E2E tests
 e2e/node_modules/
 e2e/test-results/
+# taxonomy-print.spec.ts 的 page.screenshot 落盘目录（与 test-results 同性质）
+e2e/taxonomy-print/
 e2e/playwright-report/
 e2e/pwa-report.json
 

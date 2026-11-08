@@ -6,6 +6,23 @@ const API_PORT = process.env.E2E_API_PORT || '8080';
 const WEB_PORT = process.env.E2E_WEB_PORT || '5173';
 // Optional: use an already-installed Chromium instead of Playwright's pinned build.
 const CHROMIUM_PATH = process.env.E2E_CHROMIUM_PATH;
+// The app defaults to Chinese on a clean browser (i18n FALLBACK_CODE='zh',
+// detection order is localStorage-only). The e2e specs assert English UI
+// labels ('Select profile for Alex', 'Manage', …), so every context gets
+// localStorage `openchore_lang=en` injected via a cookie-less storageState.
+// E2E_LANG=zh is only for manually debugging the Chinese UI — with it set,
+// the English-label specs (including screenshots.spec) fail by design.
+// Production screenshots for the wiki still run under the default en.
+const E2E_LANG = process.env.E2E_LANG || 'en';
+const storageState = {
+  cookies: [],
+  origins: [
+    {
+      origin: `http://localhost:${WEB_PORT}`,
+      localStorage: [{ name: 'openchore_lang', value: E2E_LANG }],
+    },
+  ],
+};
 
 export default defineConfig({
   testDir: './tests',
@@ -16,6 +33,7 @@ export default defineConfig({
     headless: true,
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
+    storageState,
     ...(CHROMIUM_PATH ? { launchOptions: { executablePath: CHROMIUM_PATH } } : {}),
   },
   projects: [

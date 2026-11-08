@@ -2,9 +2,10 @@
 // a full practice run (submit / reference answer self-check / skip).
 //
 // Selectors come from the components' data-test attributes; no copy text is
-// used to find elements. The practice answers are read from the admin topic
-// view (kids' responses intentionally omit `answer`), then submitted through
-// the real UI so the server judges and records them.
+// used to find elements. The practice answers come from the static
+// CORRECT_ANSWERS/WRONG_ANSWERS tables in helpers/taxonomy (the API strips
+// `answer` from topic questions for everyone, not just kids), then are
+// submitted through the real UI so the server judges and records them.
 import { test, expect } from '@playwright/test';
 import { selectUser } from './helpers/setup';
 import {
@@ -95,16 +96,21 @@ test.describe('042 taxonomy — kid learning', () => {
     await expect(page.locator('[data-test="tx-practice"]')).toBeVisible();
     await expect(page.locator('[data-test="tx-answer-input"]')).toBeVisible();
 
-    // Q1: reference answer → self-assessment (correct). The practice call is
-    // real; wait for it before moving on.
-    await page.locator('[data-test="tx-peek"]').click();
-    await expect(page.locator('[data-test="tx-self-right"]')).toBeVisible();
-    const selfCheck = page.waitForResponse(
+    // Q1: numeric seed question judged correct through the real judge.
+    // (The seed pack's cnm_p001 questions are all numeric — the old
+    // self-question tx-peek flow no longer matches the seeded data; the
+    // self-question path stays covered by PracticeRunner unit tests.)
+    const q1 = questions[0];
+    expect(q1.id).toBeTruthy();
+    await page.locator('[data-test="tx-answer-input"]').fill(correctAnswerOf(q1));
+    const firstJudged = page.waitForResponse(
       (resp) => resp.request().method() === 'POST' && resp.url().includes('/api/taxonomy/practice') && resp.ok(),
     );
-    await page.locator('[data-test="tx-self-right"]').click();
-    await selfCheck;
-    await expect(page.locator('[data-test="tx-skip"]')).toBeVisible();
+    await page.locator('[data-test="tx-submit"]').click();
+    await firstJudged;
+    await expect(page.locator('[data-test="tx-verdict"]')).toBeVisible();
+    await expect(page.locator('[data-test="tx-verdict"]')).toHaveText('回答正确');
+    await page.locator('[data-test="tx-next"]').click();
 
     // Q2: "不会" path shows the reference answer, then advances.
     await page.locator('[data-test="tx-skip"]').click();
@@ -140,6 +146,6 @@ test.describe('042 taxonomy — kid learning', () => {
     const kid = await findUser(page, KID);
     const exported = await exportLearning(page, kid.id);
     expect(exported.user.id).toBe(kid.id);
-    expect(exported.mastery.some((row) => row.name === '1到5各数的认识')).toBeTruthy();
+    expect(exported.mastery.some((row) => row.external_ref === TOPIC.countToFive)).toBeTruthy();
   });
 });

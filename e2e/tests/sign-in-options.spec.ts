@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { authHeaders, loginAsAdmin, openAdminTab } from './helpers/setup';
+import { authHeaders, loginAsAdmin } from './helpers/setup';
 
 // Runs in the project after the main suite: the start page is a
 // household-wide setting other specs rely on. Signs in as Jamie because the
@@ -14,7 +14,10 @@ test.describe('Sign-in options', () => {
 
   test('the start page can send signed-out visitors to the wall display', async ({ page, browser }) => {
     await loginAsAdmin(page, '5678', 'Jamie');
-    await openAdminTab(page, 'Settings');
+    // 两个同文案按钮（侧栏 NavItem 与 header 齿轮）在 en 文案下触发 strict
+    // mode violation；header 齿轮自带 e2e 钩子（AdminDashboard.tsx 的
+    // data-test="header-settings"），两按钮都 goTab('settings')，点齿轮即可。
+    await page.locator('[data-test="header-settings"]').click();
     const start = page.getByLabel('When someone opens OpenChore signed out');
     await expect(start).toHaveValue('picker');
     await start.selectOption('wall');

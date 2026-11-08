@@ -103,9 +103,15 @@ test.describe('Screenshots', () => {
     await loginAsAdmin(page);
     await page.getByRole('button', { name: /^Chores$/i }).click();
     await expect(page.getByText('Make Bed')).toBeVisible({ timeout: 10_000 });
-    // Click the FAB
-    await page.locator('button[title="Quick Assign"]').click();
-    await expect(page.getByText('Quick Assign')).toBeVisible({ timeout: 5_000 });
+    // Click the Quick Assign button. At this 1024px-wide viewport the FAB is
+    // display:none (desktop layout); the real entry is the sidebar button,
+    // whose accessible name is 'Quick Assign'. A role selector matches only
+    // the visible sidebar button (hidden elements are excluded from the a11y tree).
+    await page.getByRole('button', { name: 'Quick Assign' }).click();
+    // The modal shell is role=dialog with aria-labelledby pointing at its h2
+    // title ('Quick Assign'). Asserting on the dialog role avoids the strict
+    // ambiguity of getByText, which also matches the sidebar button's label.
+    await expect(page.getByRole('dialog', { name: 'Quick Assign' })).toBeVisible({ timeout: 5_000 });
     await page.screenshot({ path: `${dir}/11-quick-assign.png`, fullPage: false });
   });
 

@@ -79,6 +79,9 @@
     gap: var(--space-3);
     flex: 1;
     min-height: 0;
+    /* nav 内容超高时盒内滚动，避免溢出的按钮被流内后续的 .sideNew 遮挡。 */
+    overflow-y: auto;
+    scrollbar-width: thin;
   }
 
   .sideGroup {
@@ -521,4 +524,16 @@
   width: 26px;
   height: 26px;
   stroke-width: 2.25;
+}
+
+/* ---------- print：报告打印时隐藏管理端侧边栏 ----------
+ * taxonomy 打印三视图（诊断报告/盲区/学习路径）复用屏幕 DOM，工作区
+ * 内的打印规则在 workspace.module.css 的 @media print 段；但桌面侧边栏
+ * （aside.sidebar，230px sticky）不在那个 CSS Module 作用域，打印时仍
+ * 占宽导致横向溢出（1350 > 1282，taxonomy-print e2e 实测）。报告打印
+ * 不需要导航，整栏隐藏。 */
+@media print {
+  .sidebar {
+    display: none;
+  }
 }

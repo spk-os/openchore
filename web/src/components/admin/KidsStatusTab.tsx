@@ -177,7 +177,9 @@ const KidDayView: React.FC<{
   onExcuse: (e: React.MouseEvent, chore: ScheduledChore) => void;
   onToggle: (e: React.MouseEvent, chore: ScheduledChore) => void;
   togglingKey: string | null;
-}> = ({ kid, today, onExcuse, onToggle, togglingKey }) => {
+  /** KIDS-REFRESH：三个写操作（代完成/撤销/请假）成功后 bump，驱动本视图重拉当月清单。 */
+  refreshKey?: number;
+}> = ({ kid, today, onExcuse, onToggle, togglingKey, refreshKey }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const monthOf = (date: string) => date.slice(0, 7);
@@ -206,15 +208,26 @@ const KidDayView: React.FC<{
   const [chores, setChores] = useState<ScheduledChore[] | null>(null);
   const [failed, setFailed] = useState(false);
 
+  // KIDS-REFRESH：家长代完成/撤销/请假后，本视图的月清单必须重拉——顶层
+  // load() 只刷 kid 汇总（users/balances/pending），不触发展开区内部
+  // effect，故由 refreshKey 驱动重拉。换人/换月才清空旧数据；同 scope
+  // 重拉保留旧数据平滑覆盖（避免 refreshKey 触发时行清单闪空白）。ref
+  // 只做比较与幂等赋值，React 严格模式/双执行不影响正确性。
+  const lastScope = useRef('');
+
   useEffect(() => {
     let live = true;
     setFailed(false);
-    setChores(null);
+    const scope = `${kid.user.id}|${month}`;
+    if (lastScope.current !== scope) {
+      lastScope.current = scope;
+      setChores(null);
+    }
     api.users.getChores(kid.user.id, 'month', `${month}-01`)
       .then(rows => { if (live) setChores(rows); })
       .catch(() => { if (live) { setFailed(true); setChores([]); } });
     return () => { live = false; };
-  }, [kid.user.id, month]);
+  }, [kid.user.id, month, refreshKey]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, ScheduledChore[]>();
@@ -638,6 +651,11 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  // KIDS-REFRESH：家长代完成/撤销/请假成功后 bump，让展开区 KidDayView
+  // 重拉当月清单——顶层 load() 只刷 kid 汇总（users/balances/pending），
+  // 不触发展开区内部的月数据 effect，行状态（completed/Undo）不会自己变。
+  // 只在写操作成功路径 bump，不放进 load()（初始 mount 会多打一次请求）。
+  const [dayRefresh, setDayRefresh] = useState(0);
 
   const today = localDateStr(new Date());
 
@@ -740,7 +758,8 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
     if (reason === null) return; // user cancelled prompt
     try {
       await api.chores.excuse(chore.schedule_id, chore.date, reason);
-      load();
+      await load();
+      setDayRefresh(n => n + 1);
     } catch (err) {
       console.error('Failed to excuse chore:', err);
     }
@@ -766,6 +785,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
         await api.chores.complete(chore.schedule_id, chore.date);
       }
       await load();
+      setDayRefresh(n => n + 1);
     } catch (err) {
       setActionError(t('admin.kidsStatusTab.toggleError', {
         title: chore.title,
@@ -789,14 +809,20 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
     if (!glance) return;
     const names = Array.from(new Set(glance.overdue.map(o => o.user.name))).join('、');
     if (!window.confirm(t('admin.kidsStatusTab.glance.excuseAllConfirm', { count: glance.overdue.length, names }))) return;
+    let excused = 0;
     for (const o of glance.overdue) {
       try {
         await api.chores.excuse(o.chore.schedule_id, o.chore.date, undefined);
+        excused += 1;
       } catch (err) {
         console.error('Failed to excuse chore from the glance bar', o.chore.schedule_id, err);
       }
     }
-    load();
+    // 全部失败时不刷新也不 bump：数据没变，刷新只会闪一下。
+    if (excused > 0) {
+      await load();
+      setDayRefresh(n => n + 1);
+    }
   };
 
   const toggleExpand = (id: number) => {
@@ -1060,6 +1086,7 @@ export const KidsStatusTab: React.FC<{ onPendingChange?: (count: number) => void
                     onExcuse={handleExcuse}
                     onToggle={handleToggle}
                     togglingKey={toggling}
+                    refreshKey={dayRefresh}
                   />
                   {kid.loadError && (
                     <p className={ui.msgError}>{t('admin.kidsStatusTab.childLoadError')}</p>

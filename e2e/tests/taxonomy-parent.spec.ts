@@ -147,12 +147,21 @@ test.describe('042 taxonomy — parent workspace', () => {
 
     const before = await listDiagnostics(page, kid.id);
 
-    // Restore through the real API first (the final contract maps the export
-    // document's user explicitly; every diagnostic becomes a fresh session).
-    const restored = await importLearning(page, payload);
+    // Restore through the real API first. The restore endpoint maps the
+    // export document's user explicitly (target_user_id). Note the content
+    // key compares created_at as RFC3339 (dbTime) against the column's
+    // native CURRENT_TIMESTAMP format, so a same-machine restore re-inserts
+    // every exported diagnostic instead of skipping (a known backend defect;
+    // the store-level contract — repeat restores dedupe — is frozen in
+    // learning_restore_test.go and covered with store fixtures).
+    const restored = await importLearning(page, payload, kid.id);
     expect(restored.imported).toBeGreaterThan(0);
     const after = await listDiagnostics(page, kid.id);
-    expect(after.sessions.length).toBeGreaterThanOrEqual(before.sessions.length + restored.imported);
+    // 只有 diagnostics 段的 imported 对应新 INSERT；顶层 imported 是五段
+    // 总和，不能当 session 增量用（learning_restore.go 的 res.Imported
+    // 求和逻辑）。每条 exported diagnostic 要么 Imported 要么 Skipped。
+    expect(restored.diagnostics.imported + restored.diagnostics.skipped).toBeGreaterThan(0);
+    expect(after.sessions.length).toBeGreaterThanOrEqual(before.sessions.length + restored.diagnostics.imported);
     expect(after.sessions.some((session) => Number(session.user_id) === kid.id)).toBeTruthy();
 
     // The UI import card (real file upload + real POST) must report success.

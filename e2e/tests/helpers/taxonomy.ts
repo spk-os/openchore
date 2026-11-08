@@ -78,9 +78,27 @@ export interface TopicDetail {
 
 export interface ExportPayload {
   schema_version: number;
+  // 导出文档的 pack 溯源戳（后端 learningExportPackVersion =
+  // "cn-math-taxonomy@embedded-v1"）；导入端校验非空（taxonomy_learning.go
+  // 400 "pack_version is required"）。payload 来自真实下载，本就含此字段。
+  pack_version: string;
+  // 导出文档刻意不写 target_user_id（model.LearningExport 的 omitempty，0 =
+  // 文档自身 user）；恢复端点则强制要求显式目标（API 400 "target_user_id
+  // is required"）。UI 正确先例是发送时补（client.ts adminImportLearning）。
+  target_user_id?: number;
   exported_at: string;
   user: { id: number; name: string; role: string };
-  mastery: Array<{ tag_id: number; name: string }>;
+  // 后端 model.LearningMastery（internal/model/model.go:1300-1307）：external_ref
+  // 是跨机稳定键（pack 级 id），SELECT 不含 knowledge_tags.name——不要凭空
+  // 声明 name/tag_id 字段。
+  mastery: Array<{
+    external_ref: string;
+    correct_count: number;
+    total_count: number;
+    mastery: number;
+    low_confidence?: boolean;
+    last_event_at?: string | null;
+  }>;
   events: Array<Record<string, unknown>>;
   diagnostics: Array<{ id: number; status?: string; user_id?: number }>;
   attempts: Array<Record<string, unknown>>;
@@ -161,27 +179,79 @@ export function getTopicDetail(page: Page, externalRef: string): Promise<TopicDe
   );
 }
 
+/**
+ * Static correct answers for the deterministic seed questions.
+ *
+ * Source of truth: `internal/taxonomy/data/questions.json` (seed pack). When
+ * the seed questions change, update this table in the same change.
+ *
+ * These tables exist because the API deliberately strips `question.answer`
+ * for *everyone* (see `internal/api/taxonomy.go`: `GetTopic` — "Bank
+ * questions: answerless for everyone" — and `sessionDetail` with
+ * `includeAnswers=false`). That anti-leak decision means the helpers below
+ * must NOT rely on the runtime `answer` field: before this table,
+ * `wrongAnswerOf` picked the first choice key ('A') as a "wrong" answer,
+ * which silently *matched* seed questions whose correct key is 'A'.
+ */
+const CORRECT_ANSWERS: Record<string, string> = {
+  // cnm_p001 (countToFive)
+  cnm_p001_q1: '4',
+  cnm_p001_q2: '3',
+  cnm_p001_q3: '4',
+  cnm_p001_q4: '4',
+  // cnm_p002 (compareWithinFive)
+  cnm_p002_q1: 'A',
+  cnm_p002_q2: '2',
+  cnm_p002_q3: 'A',
+  cnm_p002_q4: '3',
+};
+
+/**
+ * Guaranteed-wrong answers for the same seed questions. For choice questions
+ * the key must exist among the choices and differ from the correct key; for
+ * the grade-1 "within 5" numeric seed questions used by this suite '999' is
+ * wrong (note: not a universal guarantee for any numeric question — the seed
+ * bank does contain numeric answers like 999, e.g. cnm_p053_q2).
+ */
+const WRONG_ANSWERS: Record<string, string> = {
+  // cnm_p001 (countToFive, all numeric within 5)
+  cnm_p001_q1: '999',
+  cnm_p001_q2: '999',
+  cnm_p001_q3: '999',
+  cnm_p001_q4: '999',
+  // cnm_p002 (compareWithinFive)
+  cnm_p002_q1: 'B',
+  cnm_p002_q2: '999',
+  cnm_p002_q3: 'B',
+  cnm_p002_q4: '999',
+};
+
 /** A deterministic wrong answer for the engine (numeric/choice only in 042). */
 export function wrongAnswerOf(question: QuestionView): string {
+  const known = WRONG_ANSWERS[question.id];
+  if (known !== undefined) return known;
+  // Unknown numeric question: '999' is only safe for the within-5 seeds this
+  // suite actually hits — it is not a universal "wrong for any numeric" pick.
+  if (question.type === 'numeric') return '999';
+  // Unknown choice question: fail loudly instead of guessing a key that may
+  // be the correct one (the API no longer tells us which key is right).
   if (question.type === 'choice') {
-    const keys = (question.choices ?? []).map((c) => c.key);
-    const correct = question.answer ?? '';
-    return keys.find((k) => k !== correct) ?? 'B';
-  }
-  if (question.type === 'numeric') {
-    const n = Number(question.answer);
-    if (Number.isFinite(n)) return String(n + 1);
-    return '0';
+    throw new Error(
+      `unknown seed question ${question.id}: add it to WRONG_ANSWERS`,
+    );
   }
   return '不对';
 }
 
-/** The admin-visible answer (choice key for choice questions). */
+/** The correct answer (choice key for choice questions). */
 export function correctAnswerOf(question: QuestionView): string {
+  const known = CORRECT_ANSWERS[question.id];
+  if (known !== undefined) return known;
+  // Fallback chain kept for questions outside the seeded pack.
   if (question.answer) return question.answer;
   if (question.accept?.[0]) return question.accept[0];
   if (question.type === 'choice' && question.choices?.[0]) return question.choices[0].key;
-  throw new Error(`question ${question.id} has no answer in the admin view`);
+  throw new Error(`question ${question.id} has no known answer`);
 }
 
 /** camelCase engine keys → snake_case keys the UI/API contracts read. */
@@ -450,14 +520,46 @@ export function exportLearning(page: Page, userId: number): Promise<ExportPayloa
   );
 }
 
-/** Restore an export document (final contract: POST /api/admin/taxonomy/import). */
-export function importLearning(page: Page, payload: ExportPayload) {
-  return apiJson<{ imported: number; skipped: number }>(
+/**
+ * Restore an export document (final contract: POST /api/admin/taxonomy/import).
+ *
+ * 恢复目标必须显式传：端点对 `TargetUserID <= 0` 返回 400
+ * "target_user_id is required"（internal/api/taxonomy_learning.go
+ * ImportLearningDocument），store 侧从不读取文档自身的 TargetUserID/User
+ * （internal/store/learning_restore.go: "the document's own TargetUserID/User
+ * fields are never consulted"）。导出文档刻意不带该字段，因此这里非变更地
+ * 在发送副本上补 `target_user_id: targetUserId`（与 UI 先例
+ * web/src/taxonomy/client.ts adminImportLearning 一致）。
+ */
+export function importLearning(
+  page: Page,
+  payload: ExportPayload,
+  targetUserId: number,
+): Promise<{
+  imported: number;
+  skipped: number;
+  // per-section 统计（model.LearningRestoreResult）：顶层 imported 是五段
+  // 总和（learning_restore.go:219），只有 diagnostics 段对应新增 session。
+  mastery: { imported: number; skipped: number };
+  events: { imported: number; skipped: number };
+  diagnostics: { imported: number; skipped: number };
+  attempts: { imported: number; skipped: number };
+  review_items: { imported: number; skipped: number };
+}> {
+  return apiJson<{
+    imported: number;
+    skipped: number;
+    mastery: { imported: number; skipped: number };
+    events: { imported: number; skipped: number };
+    diagnostics: { imported: number; skipped: number };
+    attempts: { imported: number; skipped: number };
+    review_items: { imported: number; skipped: number };
+  }>(
     page,
     'POST',
     '/api/admin/taxonomy/import',
     ADMIN_ID,
-    payload,
+    { ...payload, target_user_id: targetUserId },
   );
 }
 

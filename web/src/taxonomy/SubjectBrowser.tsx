@@ -423,11 +423,33 @@ const TopicDetailView: React.FC<{
   const standards = detail.standards ?? [];
   const criteria = topic.mastery_criteria ?? [];
 
-  const asRow = (t: TopicRow): TopicRow => t;
-
   // 详情行已在 topicRef(topic) === externalRef 的请求里返回：诊断/练习
   // 回调拿到的 TopicRow.external_ref 必有值（无 ref 的行进不了详情页）。
   const detailRef = topicRef(topic);
+
+  // 诊断/练习回调必须收到按 external_ref 寻址的行（id = external_ref）：
+  // topic 是 model.KnowledgeTag 的序列化行，JSON id 是 DB 自增整数（如 1），
+  // 原样传出会让宿主 practicePreset / TopicPracticePanel / PracticeRunner
+  // 拿 topic.id 发 GET /api/taxonomy/topics/1 式 404（后端 catalog 按
+  // external_ref 寻址）。对照深链路径 detailToTopicRow 的先例：行上放
+  // external_ref，不把本机自增整数 id 发给按 external_ref 寻址的接口。
+  // detailRef 必有值；理论边缘 null 时 id 回退本地整数串保持旧行为
+  //（PrereqGraph 内部 nodeKey = topicRef(t) ?? t.id 定位不受影响）。
+  // String(topic.id)：运行时后端 id 是 number，包一层保证 TopicRow.id 的
+  // string 类型安全；semester 运行时是 number 属既有类型偏差，本处只透传。
+  const detailAsRow: TopicRow = {
+    id: detailRef ?? String(topic.id),
+    external_ref: detailRef ?? '',
+    name: topic.name,
+    grade: topic.grade ?? null,
+    semester: topic.semester ?? null,
+    domain: topic.domain ?? null,
+    chapter: topic.chapter ?? null,
+    subject: topic.subject ?? null,
+    question_count: topic.question_count ?? null,
+    description: topic.description ?? null,
+    external: topic.external,
+  };
   return (
     <div className={s.screen} data-test="tx-topic-detail">
       <button type="button" className={s.btnGhost} data-test="tx-detail-back" onClick={onBack}>
@@ -449,7 +471,7 @@ const TopicDetailView: React.FC<{
                 type="button"
                 className={s.btnPrimary}
                 data-test="tx-detail-diagnose"
-                onClick={() => onDiagnose(asRow(topic))}
+                onClick={() => onDiagnose(detailAsRow)}
               >
                 诊断这个知识点
               </button>
@@ -459,7 +481,7 @@ const TopicDetailView: React.FC<{
                 type="button"
                 className={s.btn}
                 data-test="tx-detail-practice"
-                onClick={() => onPractice(asRow(topic))}
+                onClick={() => onPractice(detailAsRow)}
               >
                 练习题
               </button>
@@ -502,7 +524,7 @@ const TopicDetailView: React.FC<{
       </article>
 
       <PrereqGraph
-        topic={asRow(topic)}
+        topic={detailAsRow}
         prerequisites={(detail.prerequisites ?? []).map(edgeToRow)}
         dependents={(detail.dependents ?? []).map(edgeToRow)}
         onSelect={onSelect}
